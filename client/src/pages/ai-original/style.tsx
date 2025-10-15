@@ -226,8 +226,8 @@ export default function StylePage() {
                     className="hidden"
                   />
                   {characterImage ? (
-                    <div className="relative border-2 border-border rounded-xl overflow-hidden">
-                      <img src={characterImage} alt="人物形象参考" className="w-full h-48 object-cover" />
+                    <div className="relative border-2 border-border rounded-xl overflow-hidden bg-muted">
+                      <img src={characterImage} alt="人物形象参考" className="w-full h-64 object-contain" />
                       <Button
                         variant="destructive"
                         size="icon"
@@ -279,8 +279,8 @@ export default function StylePage() {
                     className="hidden"
                   />
                   {styleImage ? (
-                    <div className="relative border-2 border-border rounded-xl overflow-hidden">
-                      <img src={styleImage} alt="风格参考" className="w-full h-48 object-cover" />
+                    <div className="relative border-2 border-border rounded-xl overflow-hidden bg-muted">
+                      <img src={styleImage} alt="风格参考" className="w-full h-64 object-contain" />
                       <Button
                         variant="destructive"
                         size="icon"
