@@ -110,9 +110,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: "Script content is required" });
       }
 
+      console.log("[Segments] Starting generation for script:", scriptContent.substring(0, 50) + "...");
+
       const prompt = `请将以下文案分成适合视频拍摄的镜头片段。每个片段应该是一个完整的语义单元，长度适中。请直接返回JSON数组格式，每个元素只包含text字段：\n\n${scriptContent}`;
       
       const result = await callDeepSeekAPI(prompt);
+      console.log("[Segments] DeepSeek API response:", result);
       
       // 尝试解析AI返回的JSON
       let segments;
@@ -120,7 +123,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // 移除可能的markdown代码块标记
         const cleanResult = result.replace(/```json\n?|\n?```/g, '').trim();
         segments = JSON.parse(cleanResult);
+        console.log("[Segments] Successfully parsed segments:", segments.length);
       } catch (parseError) {
+        console.log("[Segments] JSON parse failed, using fallback segmentation");
         // 如果解析失败，使用简单的段落分割作为备选
         segments = scriptContent.split(/[。！？\n]+/).filter((text: string) => text.trim()).map((text: string) => ({ text: text.trim() }));
       }
@@ -135,10 +140,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         sceneDescription: "",
       }));
 
+      console.log("[Segments] Returning", formattedSegments.length, "segments");
       res.json({ segments: formattedSegments });
     } catch (error) {
-      console.error("Segment generation error:", error);
-      res.status(500).json({ error: "Failed to generate segments" });
+      console.error("[Segments] Error:", error);
+      res.status(500).json({ error: "Failed to generate segments", details: error instanceof Error ? error.message : String(error) });
     }
   });
 
