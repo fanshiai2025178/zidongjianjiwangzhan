@@ -464,7 +464,7 @@ export default function SegmentsPage() {
             size="lg"
             data-testid="button-continue-generation"
           >
-            下一步：生成描述
+            下一步：选择流程
           </Button>
         </div>
 
