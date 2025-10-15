@@ -102,6 +102,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // 翻译片段API
+  app.post("/api/segments/translate", async (req, res) => {
+    try {
+      const { segments } = req.body;
+      if (!segments || !Array.isArray(segments)) {
+        return res.status(400).json({ error: "Segments array is required" });
+      }
+
+      console.log("[Translation] Translating", segments.length, "segments");
+
+      const translationPrompt = `请将以下英文文本片段翻译成中文，保持原意和专业性。直接返回JSON数组格式，每个元素包含id和translation字段：\n\n${JSON.stringify(segments)}`;
+      
+      const translationResult = await callDeepSeekAPI(translationPrompt, "你是一个专业的英中翻译助手。");
+      const cleanTranslation = translationResult.replace(/```json\n?|\n?```/g, '').trim();
+      const translations = JSON.parse(cleanTranslation);
+      
+      console.log("[Translation] Successfully translated segments");
+      res.json({ translations });
+    } catch (error) {
+      console.error("[Translation] Error:", error);
+      res.status(500).json({ error: "Failed to translate segments", details: error instanceof Error ? error.message : String(error) });
+    }
+  });
+
   // 智能分段API
   app.post("/api/segments/generate", async (req, res) => {
     try {

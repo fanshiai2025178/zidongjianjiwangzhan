@@ -85,7 +85,7 @@ export default function SegmentsPage() {
     setCutDialogOpen(true);
   };
 
-  const handleCut = () => {
+  const handleCut = async () => {
     if (!selectedSegment) return;
 
     const text = selectedSegment.text;
@@ -104,17 +104,19 @@ export default function SegmentsPage() {
     const segmentIndex = segments.findIndex(s => s.id === selectedSegment.id);
     const newSegments = [...segments];
     
-    // 创建两个新片段
+    // 创建两个新片段（先不包含翻译）
     const part1: Segment = {
       ...selectedSegment,
       id: `seg-${Date.now()}-1`,
       text: part1Text,
+      translation: undefined,
     };
     
     const part2: Segment = {
       ...selectedSegment,
       id: `seg-${Date.now()}-2`,
       text: part2Text,
+      translation: undefined,
     };
 
     // 替换原片段
@@ -127,13 +129,42 @@ export default function SegmentsPage() {
 
     setSegments(newSegments);
     setCutDialogOpen(false);
+    
     toast({
       title: "切割成功",
-      description: "片段已成功切割为两部分",
+      description: "正在翻译新片段...",
     });
+
+    // 如果是英文，异步翻译新片段
+    if (selectedSegment.language === 'English') {
+      try {
+        const response = await apiRequest("POST", "/api/segments/translate", {
+          segments: [
+            { id: part1.id, text: part1Text },
+            { id: part2.id, text: part2Text }
+          ]
+        });
+        const data = await response.json();
+        
+        // 更新翻译
+        setSegments(prevSegments => 
+          prevSegments.map(seg => {
+            const translated = data.translations.find((t: any) => t.id === seg.id);
+            return translated ? { ...seg, translation: translated.translation } : seg;
+          })
+        );
+        
+        toast({
+          title: "翻译完成",
+          description: "新片段已完成翻译",
+        });
+      } catch (error) {
+        console.error("Translation failed:", error);
+      }
+    }
   };
 
-  const handleMerge = (index: number) => {
+  const handleMergeDown = async (index: number) => {
     if (index >= segments.length - 1) return;
 
     const newSegments = [...segments];
@@ -141,7 +172,9 @@ export default function SegmentsPage() {
     const next = newSegments[index + 1];
     
     // 合并文本
-    current.text = current.text + " " + next.text;
+    const mergedText = current.text + " " + next.text;
+    current.text = mergedText;
+    current.translation = undefined; // 清除旧翻译
     
     // 删除下一个片段
     newSegments.splice(index + 1, 1);
@@ -154,8 +187,85 @@ export default function SegmentsPage() {
     setSegments(newSegments);
     toast({
       title: "合并成功",
-      description: "片段已成功合并",
+      description: current.language === 'English' ? "正在翻译合并后的片段..." : "片段已成功合并",
     });
+
+    // 如果是英文，翻译合并后的片段
+    if (current.language === 'English') {
+      try {
+        const response = await apiRequest("POST", "/api/segments/translate", {
+          segments: [{ id: current.id, text: mergedText }]
+        });
+        const data = await response.json();
+        
+        setSegments(prevSegments => 
+          prevSegments.map(seg => 
+            seg.id === current.id 
+              ? { ...seg, translation: data.translations[0].translation }
+              : seg
+          )
+        );
+        
+        toast({
+          title: "翻译完成",
+          description: "合并后的片段已完成翻译",
+        });
+      } catch (error) {
+        console.error("Translation failed:", error);
+      }
+    }
+  };
+
+  const handleMergeUp = async (index: number) => {
+    if (index <= 0) return;
+
+    const newSegments = [...segments];
+    const current = newSegments[index];
+    const previous = newSegments[index - 1];
+    
+    // 向上合并：合并到前一个片段
+    const mergedText = previous.text + " " + current.text;
+    previous.text = mergedText;
+    previous.translation = undefined; // 清除旧翻译
+    
+    // 删除当前片段
+    newSegments.splice(index, 1);
+    
+    // 重新编号
+    newSegments.forEach((seg, idx) => {
+      seg.number = idx + 1;
+    });
+
+    setSegments(newSegments);
+    toast({
+      title: "合并成功",
+      description: previous.language === 'English' ? "正在翻译合并后的片段..." : "片段已成功合并",
+    });
+
+    // 如果是英文，翻译合并后的片段
+    if (previous.language === 'English') {
+      try {
+        const response = await apiRequest("POST", "/api/segments/translate", {
+          segments: [{ id: previous.id, text: mergedText }]
+        });
+        const data = await response.json();
+        
+        setSegments(prevSegments => 
+          prevSegments.map(seg => 
+            seg.id === previous.id 
+              ? { ...seg, translation: data.translations[0].translation }
+              : seg
+          )
+        );
+        
+        toast({
+          title: "翻译完成",
+          description: "合并后的片段已完成翻译",
+        });
+      } catch (error) {
+        console.error("Translation failed:", error);
+      }
+    }
   };
 
   const currentStep = project?.currentStep || 3;
@@ -232,12 +342,23 @@ export default function SegmentsPage() {
                   >
                     <Scissors className="h-4 w-4" />
                   </Button>
+                  {index > 0 && (
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => handleMergeUp(index)}
+                      data-testid={`button-merge-up-${segment.number}`}
+                      title="向上合并"
+                    >
+                      <ArrowUpCircle className="h-4 w-4" />
+                    </Button>
+                  )}
                   {index < segments.length - 1 && (
                     <Button
                       variant="ghost"
                       size="icon"
-                      onClick={() => handleMerge(index)}
-                      data-testid={`button-merge-${segment.number}`}
+                      onClick={() => handleMergeDown(index)}
+                      data-testid={`button-merge-down-${segment.number}`}
                       title="向下合并"
                     >
                       <ArrowDownCircle className="h-4 w-4" />
