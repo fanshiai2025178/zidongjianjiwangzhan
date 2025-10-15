@@ -556,7 +556,7 @@ export default function SegmentsPage() {
                         </Button>
                       </div>
                     ) : (
-                      <p className="text-sm text-destructive italic">未翻译（需要翻译才能继续）</p>
+                      <p className="text-sm text-destructive italic">请稍等</p>
                     )
                   )}
                 </div>
