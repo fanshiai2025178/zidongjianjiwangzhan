@@ -708,22 +708,20 @@ export default function DescriptionsPage() {
                     <div className="col-span-2 p-3 border-r border-border">
                       {segment.imageUrl ? (
                         <div className="space-y-2">
-                          <div className="relative aspect-video bg-muted rounded-md overflow-hidden group/image">
+                          <div 
+                            className="relative aspect-video bg-muted rounded-md overflow-hidden cursor-pointer hover-elevate active-elevate-2"
+                            onClick={() => setPreviewImage({ url: segment.imageUrl!, number: segment.number })}
+                          >
                             <img 
                               src={segment.imageUrl} 
                               alt={`Scene ${segment.number}`}
                               className="w-full h-full object-cover"
                               data-testid={`image-${segment.number}`}
                             />
-                            <Button
-                              size="icon"
-                              variant="secondary"
-                              className="absolute top-2 right-2 opacity-0 group-hover/image:opacity-100 transition-opacity"
-                              onClick={() => setPreviewImage({ url: segment.imageUrl!, number: segment.number })}
-                              data-testid={`button-preview-image-${segment.number}`}
-                            >
-                              <ZoomIn className="h-4 w-4" />
-                            </Button>
+                            <div className="absolute top-2 right-2 bg-background/80 backdrop-blur-sm rounded-md px-2 py-1 flex items-center gap-1">
+                              <ZoomIn className="h-3 w-3 text-muted-foreground" />
+                              <span className="text-xs text-muted-foreground">点击放大</span>
+                            </div>
                           </div>
                           <Button
                             size="sm"

@@ -67,7 +67,7 @@ export async function callJuguangAPI(
   }
 }
 
-export async function generateImageWithJuguang(prompt: string): Promise<string> {
+export async function generateImageWithJuguang(prompt: string, retries: number = 3): Promise<string> {
   const apiKey = process.env.JUGUANG_API_KEY;
   
   if (!apiKey) {
@@ -76,44 +76,61 @@ export async function generateImageWithJuguang(prompt: string): Promise<string> 
 
   console.log("[Juguang Image] Generating image with prompt:", prompt);
 
-  try {
-    const response = await fetch("https://ai.juguang.chat/v1beta/models/gemini-2.5-flash-image-preview:generateContent", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": `Bearer ${apiKey}`
-      },
-      body: JSON.stringify({
-        contents: [{
-          parts: [{
-            text: prompt
+  for (let attempt = 1; attempt <= retries; attempt++) {
+    try {
+      if (attempt > 1) {
+        console.log(`[Juguang Image] Retry attempt ${attempt}/${retries}`);
+        // 等待一秒后重试
+        await new Promise(resolve => setTimeout(resolve, 1000));
+      }
+
+      const response = await fetch("https://ai.juguang.chat/v1beta/models/gemini-2.5-flash-image-preview:generateContent", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${apiKey}`
+        },
+        body: JSON.stringify({
+          contents: [{
+            parts: [{
+              text: prompt
+            }]
           }]
-        }]
-      })
-    });
+        })
+      });
 
-    if (!response.ok) {
-      const errorData = await response.json();
-      console.error("[Juguang Image] API error:", errorData);
-      throw new Error(`Juguang Image API error: ${JSON.stringify(errorData)}`);
+      if (!response.ok) {
+        const errorData = await response.json();
+        console.error("[Juguang Image] API error:", errorData);
+        throw new Error(`Juguang Image API error: ${JSON.stringify(errorData)}`);
+      }
+
+      const data: JuguangResponse = await response.json();
+      const imageBase64 = data.candidates[0]?.content?.parts[0]?.inlineData?.data;
+      
+      if (!imageBase64) {
+        console.warn(`[Juguang Image] No image data in response (attempt ${attempt}/${retries})`);
+        if (attempt === retries) {
+          throw new Error("No image data in response after all retries");
+        }
+        continue; // 重试
+      }
+
+      // 将base64转换为data URL
+      const mimeType = data.candidates[0]?.content?.parts[0]?.inlineData?.mimeType || "image/png";
+      const dataUrl = `data:${mimeType};base64,${imageBase64}`;
+
+      console.log(`[Juguang Image] Image generated successfully (attempt ${attempt}/${retries})`);
+      
+      return dataUrl;
+    } catch (error) {
+      console.error(`[Juguang Image] Error on attempt ${attempt}:`, error);
+      
+      if (attempt === retries) {
+        throw new Error(`Failed to generate image after ${retries} attempts: ${error instanceof Error ? error.message : String(error)}`);
+      }
     }
-
-    const data: JuguangResponse = await response.json();
-    const imageBase64 = data.candidates[0]?.content?.parts[0]?.inlineData?.data;
-    
-    if (!imageBase64) {
-      throw new Error("No image data in response");
-    }
-
-    // 将base64转换为data URL
-    const mimeType = data.candidates[0]?.content?.parts[0]?.inlineData?.mimeType || "image/png";
-    const dataUrl = `data:${mimeType};base64,${imageBase64}`;
-
-    console.log("[Juguang Image] Image generated successfully");
-    
-    return dataUrl;
-  } catch (error) {
-    console.error("[Juguang Image] Error:", error);
-    throw new Error(`Failed to generate image: ${error instanceof Error ? error.message : String(error)}`);
   }
+  
+  throw new Error("Failed to generate image: unexpected error");
 }
