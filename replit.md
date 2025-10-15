@@ -6,7 +6,21 @@ This is an AI-powered video creation platform designed to streamline professiona
 
 ## Recent Changes (October 15, 2025)
 
-**火山引擎DeepSeek批量生成接入（最新）**
+**关键词提取功能（最新）**
+- **第6步功能替换**：将"提示词优化"完全替换为"关键词提取"功能
+- **专用API端点**：
+  - `/api/keywords/extract` - 单个关键词提取
+  - `/api/keywords/batch-extract` - 批量关键词提取
+- **专属火山引擎DeepSeek配置**：
+  - `VOLCENGINE_KEYWORD_ENDPOINT_ID`: ep-20251016063909-7l6gr（关键词提取专用）
+  - `VOLCENGINE_KEYWORD_API_KEY`: 关键词提取专用密钥
+- **API严格分离**：关键词提取API仅用于第6步，不影响其他任何功能
+- **提取策略**：从描述词中提取5类关键词（主体、场景、动作、风格、情绪）
+- **数据模型更新**：Segment接口新增`keywords`字段存储提取结果
+- **UI更新**：表格表头"提示词优化"改为"关键词提取"，按钮文字同步更新
+- **完整功能**：单个提取、批量提取、编辑保存全部可用
+
+**火山引擎DeepSeek批量生成接入**
 - **专属批量API**：创建 `/api/descriptions/batch-generate` 专门用于批量生成描述词
 - **火山引擎DeepSeek集成**：使用火山引擎DeepSeek API专用端点提供批量描述词生成服务
 - **独立密钥配置**：
@@ -15,26 +29,15 @@ This is an AI-powered video creation platform designed to streamline professiona
 - **API分离策略**：
   - 单个生成：使用火山引擎DeepSeek API（`/api/descriptions/generate`）
   - 批量生成：使用火山引擎DeepSeek API（`/api/descriptions/batch-generate`）
-  - 提示词优化：使用原有DeepSeek API（`/api/descriptions/optimize`）
+  - 关键词提取：使用专用火山引擎DeepSeek API（`/api/keywords/extract`）
 - **批量处理优势**：一次性提交多个片段，服务端批量处理，提升效率
-- **专用API保障**：批量生成使用专属火山引擎端点，不影响其他功能
-
-**API架构优化：描述生成与提示词优化分离**
-- **独立API端点**：创建专门的 `/api/descriptions/optimize` 优化API，与描述生成API（`/api/descriptions/generate`）完全分离
-- **职责分离**：每个API专注单一任务，描述生成API用于初始生成，优化API用于质量提升
-- **差异化策略**：
-  - 描述生成：基于文案内容、风格设置、角色一致性生成初始描述词
-  - 提示词优化：针对已有描述词进行技术细节增强、镜头语言优化、视觉质量提升
-- **双模式优化**：
-  - 文生视频优化：强化动作明确性、镜头运动、时间结构（开始→发展→结束）
-  - 文生图优化：增强视觉细节、构图优化、灯光材质、艺术风格
-- **完整功能支持**：单个优化、批量优化、停止控制、编辑保存全部可用
+- **专用API保障**：每个功能使用专属火山引擎端点，互不影响
 
 **新增第6步：生成素材页面**
 - **流程重组**：将"5生成描述"后的素材生成功能独立为"6生成素材"步骤
 - **功能迁移**：批量生成图片和批量生成视频从描述页面迁移至素材页面
-- **提示词优化**：新增提示词优化功能，使用DeepSeek API优化描述词（详细规则待定）
-- **表格布局**：提示词优化 | 批量生成图片 | 批量生成视频
+- **关键词提取**：使用专用火山引擎DeepSeek API提取描述词关键词
+- **表格布局**：关键词提取 | 批量生成图片 | 批量生成视频
 - **7步工作流**：风格定制 → 输入文案 → 智能分段 → 选择流程 → 生成描述 → 生成素材 → 导出成片
 
 **描述词英文输出 + 批量生成停止功能**
@@ -125,5 +128,8 @@ Currently, the platform lacks an authentication system. It is designed for futur
 
 ### API Integrations
 
--   **DeepSeek API (deepseek-chat model)**: For intelligent text segmentation, English-to-Chinese translation, and description generation.
+-   **DeepSeek API (deepseek-chat model)**: For intelligent text segmentation and English-to-Chinese translation.
+-   **火山引擎DeepSeek API**:
+    -   端点 ep-20251016061331-8bgnk：专用于描述词生成（单个和批量）
+    -   端点 ep-20251016063909-7l6gr：专用于关键词提取（单个和批量）
 -   **聚光Chat API (gemini-2.5-flash-image-preview model)**: For image generation.

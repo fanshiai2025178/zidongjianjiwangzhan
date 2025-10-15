@@ -22,28 +22,28 @@ export default function MaterialsPage() {
   const [, setLocation] = useLocation();
   const { project, updateSegments } = useProject();
   const { toast } = useToast();
-  const [optimizingDescriptions, setOptimizingDescriptions] = useState<Set<string>>(new Set());
+  const [extractingKeywords, setExtractingKeywords] = useState<Set<string>>(new Set());
   const [generatingImages, setGeneratingImages] = useState<Set<string>>(new Set());
   const [generatingVideos, setGeneratingVideos] = useState<Set<string>>(new Set());
-  const [batchOptimizing, setBatchOptimizing] = useState(false);
+  const [batchExtractingKeywords, setBatchExtractingKeywords] = useState(false);
   const [batchGeneratingImages, setBatchGeneratingImages] = useState(false);
   const [batchGeneratingVideos, setBatchGeneratingVideos] = useState(false);
-  const [currentOptimizingId, setCurrentOptimizingId] = useState<string | null>(null);
+  const [currentExtractingId, setCurrentExtractingId] = useState<string | null>(null);
   const [currentGeneratingImageId, setCurrentGeneratingImageId] = useState<string | null>(null);
   const [currentGeneratingVideoId, setCurrentGeneratingVideoId] = useState<string | null>(null);
-  const [shouldStopOptimizing, setShouldStopOptimizing] = useState(false);
+  const [shouldStopKeywords, setShouldStopKeywords] = useState(false);
   const [shouldStopImages, setShouldStopImages] = useState(false);
   const [shouldStopVideos, setShouldStopVideos] = useState(false);
   const [previewImage, setPreviewImage] = useState<{ url: string; number: number } | null>(null);
-  const [editingOptimizedId, setEditingOptimizedId] = useState<string | null>(null);
-  const [editedOptimized, setEditedOptimized] = useState("");
+  const [editingKeywordsId, setEditingKeywordsId] = useState<string | null>(null);
+  const [editedKeywords, setEditedKeywords] = useState("");
 
   const segments = (project?.segments as Segment[]) || [];
   const generationMode = project?.generationMode || "text-to-image-to-video";
   const isTextToVideo = generationMode === "text-to-video";
 
-  // 单个优化提示词
-  const optimizeSingleDescription = async (segmentId: string) => {
+  // 单个关键词提取
+  const extractSingleKeywords = async (segmentId: string) => {
     const segment = segments.find(s => s.id === segmentId);
     if (!segment?.sceneDescription) {
       toast({
@@ -54,18 +54,16 @@ export default function MaterialsPage() {
       return;
     }
 
-    setOptimizingDescriptions(prev => new Set(prev).add(segmentId));
+    setExtractingKeywords(prev => new Set(prev).add(segmentId));
 
     try {
-      const response = await apiRequest("POST", "/api/descriptions/optimize", {
+      const response = await apiRequest("POST", "/api/keywords/extract", {
         description: segment.sceneDescription,
-        generationMode: project?.generationMode || "text-to-image-to-video",
-        aspectRatio: project?.aspectRatio || "16:9",
       });
       const data = await response.json();
       
       const updatedSegments = segments.map(seg =>
-        seg.id === segmentId ? { ...seg, optimizedDescription: data.optimizedDescription } : seg
+        seg.id === segmentId ? { ...seg, keywords: data.keywords } : seg
       );
       updateSegments(updatedSegments);
       
@@ -81,18 +79,18 @@ export default function MaterialsPage() {
       }
       
       toast({
-        title: "优化成功",
-        description: "提示词已优化",
+        title: "提取成功",
+        description: "关键词已提取",
       });
     } catch (error) {
-      console.error("Failed to optimize description:", error);
+      console.error("Failed to extract keywords:", error);
       toast({
-        title: "优化失败",
+        title: "提取失败",
         description: "请稍后重试",
         variant: "destructive",
       });
     } finally {
-      setOptimizingDescriptions(prev => {
+      setExtractingKeywords(prev => {
         const next = new Set(prev);
         next.delete(segmentId);
         return next;
@@ -100,73 +98,72 @@ export default function MaterialsPage() {
     }
   };
 
-  // 批量优化提示词
-  const handleBatchOptimize = async () => {
-    const segmentsToOptimize = segments.filter(s => s.sceneDescription && !s.optimizedDescription);
+  // 批量关键词提取
+  const handleBatchExtractKeywords = async () => {
+    const segmentsToExtract = segments.filter(s => s.sceneDescription && !s.keywords);
     
-    if (segmentsToOptimize.length === 0) {
+    if (segmentsToExtract.length === 0) {
       toast({
         title: "提示",
-        description: "所有描述词已优化",
+        description: "所有关键词已提取",
       });
       return;
     }
 
-    setBatchOptimizing(true);
-    setShouldStopOptimizing(false);
-    let currentSegments = [...segments];
-    let optimizedCount = 0;
+    setBatchExtractingKeywords(true);
+    setShouldStopKeywords(false);
 
-    for (const segment of segmentsToOptimize) {
-      if (shouldStopOptimizing) {
-        console.log("[Batch] Stopped optimization by user");
-        break;
+    try {
+      const response = await apiRequest("POST", "/api/keywords/batch-extract", {
+        segments: segmentsToExtract.map(s => ({
+          id: s.id,
+          sceneDescription: s.sceneDescription,
+        })),
+      });
+      const data = await response.json();
+      
+      const results = data.results || [];
+      let successCount = 0;
+      let currentSegments = [...segments];
+      
+      for (const result of results) {
+        if (result.keywords) {
+          currentSegments = currentSegments.map(seg =>
+            seg.id === result.id ? { ...seg, keywords: result.keywords } : seg
+          );
+          successCount++;
+        }
       }
-
-      setCurrentOptimizingId(segment.id);
-      try {
-        // 调用专门的优化API
-        const response = await apiRequest("POST", "/api/descriptions/optimize", {
-          description: segment.sceneDescription,
-          generationMode: project?.generationMode || "text-to-image-to-video",
-          aspectRatio: project?.aspectRatio || "16:9",
-        });
-        const data = await response.json();
-        
-        currentSegments = currentSegments.map(seg =>
-          seg.id === segment.id ? { ...seg, optimizedDescription: data.optimizedDescription } : seg
-        );
-        updateSegments(currentSegments);
-        optimizedCount++;
-      } catch (error) {
-        console.error("Failed to optimize description:", error);
+      
+      updateSegments(currentSegments);
+      
+      if (project?.id) {
+        try {
+          await apiRequest("PATCH", `/api/projects/${project.id}`, {
+            ...project,
+            segments: currentSegments,
+          });
+        } catch (error) {
+          console.error("Failed to save project:", error);
+        }
       }
+      
+      toast({
+        title: "批量提取完成",
+        description: `成功提取 ${successCount} 个关键词`,
+      });
+    } catch (error) {
+      console.error("Failed to batch extract keywords:", error);
+      toast({
+        title: "提取失败",
+        description: "请稍后重试",
+        variant: "destructive",
+      });
+    } finally {
+      setCurrentExtractingId(null);
+      setBatchExtractingKeywords(false);
+      setShouldStopKeywords(false);
     }
-
-    // 保存项目
-    if (project?.id) {
-      try {
-        await apiRequest("PATCH", `/api/projects/${project.id}`, {
-          ...project,
-          segments: currentSegments,
-        });
-      } catch (error) {
-        console.error("Failed to save project:", error);
-      }
-    }
-
-    setCurrentOptimizingId(null);
-    setBatchOptimizing(false);
-    setShouldStopOptimizing(false);
-    
-    const message = shouldStopOptimizing 
-      ? `已停止，成功优化 ${optimizedCount} 个描述`
-      : `成功优化 ${optimizedCount} 个描述`;
-    
-    toast({
-      title: shouldStopOptimizing ? "已停止优化" : "批量优化完成",
-      description: message,
-    });
   };
 
   // 生成单个图片
@@ -432,7 +429,7 @@ export default function MaterialsPage() {
         <div className="mb-8">
           <h1 className="text-3xl font-bold mb-2">生成素材</h1>
           <p className="text-muted-foreground">
-            优化提示词并生成图片和视频素材
+            提取关键词并生成图片和视频素材
           </p>
         </div>
 
@@ -446,20 +443,20 @@ export default function MaterialsPage() {
               <div className="col-span-2 p-3 border-r border-border">
                 <Button
                   size="sm"
-                  onClick={batchOptimizing ? () => setShouldStopOptimizing(true) : handleBatchOptimize}
-                  disabled={!batchOptimizing && segments.every(s => !s.sceneDescription || s.optimizedDescription)}
+                  onClick={batchExtractingKeywords ? () => setShouldStopKeywords(true) : handleBatchExtractKeywords}
+                  disabled={!batchExtractingKeywords && segments.every(s => !s.sceneDescription || s.keywords)}
                   className="w-full"
-                  data-testid="button-batch-optimize"
+                  data-testid="button-batch-extract-keywords"
                 >
-                  {batchOptimizing ? (
+                  {batchExtractingKeywords ? (
                     <>
                       <Loader2 className="h-3 w-3 mr-1 animate-spin" />
-                      优化中...（停止）
+                      提取中...（停止）
                     </>
                   ) : (
                     <>
                       <Sparkles className="h-3 w-3 mr-1" />
-                      提示词优化
+                      关键词提取
                     </>
                   )}
                 </Button>
@@ -529,29 +526,29 @@ export default function MaterialsPage() {
                   </div>
                 </div>
 
-                {/* 提示词优化 */}
+                {/* 关键词提取 */}
                 <div className="col-span-2 p-3 border-r border-border">
-                  {segment.optimizedDescription ? (
+                  {segment.keywords ? (
                     <div className="space-y-2">
-                      {editingOptimizedId === segment.id ? (
+                      {editingKeywordsId === segment.id ? (
                         <div className="space-y-2">
                           <Textarea
-                            value={editedOptimized}
-                            onChange={(e) => setEditedOptimized(e.target.value)}
+                            value={editedKeywords}
+                            onChange={(e) => setEditedKeywords(e.target.value)}
                             className="min-h-[80px] text-sm"
-                            data-testid={`textarea-optimized-${segment.number}`}
+                            data-testid={`textarea-keywords-${segment.number}`}
                           />
                           <div className="flex gap-2">
                             <Button
                               size="sm"
                               onClick={() => {
                                 const updated = segments.map(s =>
-                                  s.id === segment.id ? { ...s, optimizedDescription: editedOptimized } : s
+                                  s.id === segment.id ? { ...s, keywords: editedKeywords } : s
                                 );
                                 updateSegments(updated);
-                                setEditingOptimizedId(null);
+                                setEditingKeywordsId(null);
                               }}
-                              data-testid={`button-save-optimized-${segment.number}`}
+                              data-testid={`button-save-keywords-${segment.number}`}
                             >
                               保存
                             </Button>
@@ -559,8 +556,8 @@ export default function MaterialsPage() {
                               size="sm"
                               variant="ghost"
                               onClick={() => {
-                                setEditingOptimizedId(null);
-                                setEditedOptimized("");
+                                setEditingKeywordsId(null);
+                                setEditedKeywords("");
                               }}
                             >
                               取消
@@ -570,17 +567,17 @@ export default function MaterialsPage() {
                       ) : (
                         <div className="group relative">
                           <div className="text-sm max-h-32 overflow-y-auto pr-8">
-                            {segment.optimizedDescription}
+                            {segment.keywords}
                           </div>
                           <Button
                             size="icon"
                             variant="ghost"
                             className="absolute top-0 right-0 h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
                             onClick={() => {
-                              setEditingOptimizedId(segment.id);
-                              setEditedOptimized(segment.optimizedDescription || "");
+                              setEditingKeywordsId(segment.id);
+                              setEditedKeywords(segment.keywords || "");
                             }}
-                            data-testid={`button-edit-optimized-${segment.number}`}
+                            data-testid={`button-edit-keywords-${segment.number}`}
                           >
                             <Sparkles className="h-3 w-3" />
                           </Button>
@@ -591,20 +588,20 @@ export default function MaterialsPage() {
                     <Button
                       size="sm"
                       variant="outline"
-                      disabled={!segment.sceneDescription || optimizingDescriptions.has(segment.id) || batchOptimizing}
-                      onClick={() => optimizeSingleDescription(segment.id)}
+                      disabled={!segment.sceneDescription || extractingKeywords.has(segment.id) || batchExtractingKeywords}
+                      onClick={() => extractSingleKeywords(segment.id)}
                       className="w-full"
-                      data-testid={`button-optimize-${segment.number}`}
+                      data-testid={`button-extract-keywords-${segment.number}`}
                     >
-                      {optimizingDescriptions.has(segment.id) ? (
+                      {extractingKeywords.has(segment.id) ? (
                         <>
                           <Loader2 className="h-3 w-3 mr-1 animate-spin opacity-100" />
-                          优化中
+                          提取中
                         </>
                       ) : (
                         <>
                           <Sparkles className="h-3 w-3 mr-1" />
-                          优化
+                          提取
                         </>
                       )}
                     </Button>

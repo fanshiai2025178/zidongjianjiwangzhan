@@ -498,6 +498,171 @@ Output the prompt directly without additional explanation.`;
     }
   });
 
+  // 关键词提取API（专用火山引擎DeepSeek）
+  app.post("/api/keywords/extract", async (req, res) => {
+    try {
+      const { description } = req.body;
+      if (!description) {
+        return res.status(400).json({ error: "Description is required" });
+      }
+
+      const volcengineEndpointId = process.env.VOLCENGINE_KEYWORD_ENDPOINT_ID;
+      const volcengineApiKey = process.env.VOLCENGINE_KEYWORD_API_KEY;
+      
+      if (!volcengineEndpointId || !volcengineApiKey) {
+        return res.status(500).json({ error: "Volcengine Keyword API credentials are not configured" });
+      }
+
+      console.log("[Keyword Extract] Extracting keywords from description:", description.substring(0, 50) + "...");
+
+      const extractPrompt = `从以下AI视频/图片生成描述词中提取关键词。提取要点：
+1. 主体：主要人物或物体
+2. 场景：环境、地点
+3. 动作：关键动作或状态
+4. 风格：艺术风格、视觉特征
+5. 情绪：情感、氛围
+
+描述词：
+${description}
+
+请直接输出关键词，用逗号分隔，不要任何解释。例如：年轻女性，城市街道，行走，电影感，怀旧氛围`;
+
+      const systemPrompt = "你是一个专业的关键词提取专家，擅长从AI生成提示词中提取核心关键词。";
+
+      // 使用火山引擎DeepSeek API
+      const response = await fetch("https://ark.cn-beijing.volces.com/api/v3/chat/completions", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${volcengineApiKey}`,
+        },
+        body: JSON.stringify({
+          model: volcengineEndpointId,
+          messages: [
+            {
+              role: "system",
+              content: systemPrompt
+            },
+            {
+              role: "user",
+              content: extractPrompt
+            }
+          ],
+          temperature: 0.3,
+        }),
+      });
+
+      if (!response.ok) {
+        const error = await response.text();
+        throw new Error(`Volcengine Keyword API error: ${error}`);
+      }
+
+      const data = await response.json();
+      const keywords = data.choices?.[0]?.message?.content || "";
+
+      console.log("[Keyword Extract] Successfully extracted keywords");
+      
+      res.json({ keywords: keywords.trim() });
+    } catch (error) {
+      console.error("[Keyword Extract] Error:", error);
+      res.status(500).json({ error: "Failed to extract keywords", details: error instanceof Error ? error.message : String(error) });
+    }
+  });
+
+  // 批量关键词提取API（专用火山引擎DeepSeek）
+  app.post("/api/keywords/batch-extract", async (req, res) => {
+    try {
+      const { segments } = req.body;
+      if (!segments || !Array.isArray(segments)) {
+        return res.status(400).json({ error: "Segments array is required" });
+      }
+
+      const volcengineEndpointId = process.env.VOLCENGINE_KEYWORD_ENDPOINT_ID;
+      const volcengineApiKey = process.env.VOLCENGINE_KEYWORD_API_KEY;
+      
+      if (!volcengineEndpointId || !volcengineApiKey) {
+        return res.status(500).json({ error: "Volcengine Keyword API credentials are not configured" });
+      }
+
+      console.log("[Batch Keyword Extract] Extracting keywords for", segments.length, "segments");
+
+      const results = [];
+      const systemPrompt = "你是一个专业的关键词提取专家，擅长从AI生成提示词中提取核心关键词。";
+
+      for (const segment of segments) {
+        if (!segment.sceneDescription) {
+          results.push({
+            id: segment.id,
+            error: "No description available",
+          });
+          continue;
+        }
+
+        const extractPrompt = `从以下AI视频/图片生成描述词中提取关键词。提取要点：
+1. 主体：主要人物或物体
+2. 场景：环境、地点
+3. 动作：关键动作或状态
+4. 风格：艺术风格、视觉特征
+5. 情绪：情感、氛围
+
+描述词：
+${segment.sceneDescription}
+
+请直接输出关键词，用逗号分隔，不要任何解释。例如：年轻女性，城市街道，行走，电影感，怀旧氛围`;
+
+        try {
+          const response = await fetch("https://ark.cn-beijing.volces.com/api/v3/chat/completions", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              "Authorization": `Bearer ${volcengineApiKey}`,
+            },
+            body: JSON.stringify({
+              model: volcengineEndpointId,
+              messages: [
+                {
+                  role: "system",
+                  content: systemPrompt
+                },
+                {
+                  role: "user",
+                  content: extractPrompt
+                }
+              ],
+              temperature: 0.3,
+            }),
+          });
+
+          if (!response.ok) {
+            const error = await response.text();
+            throw new Error(`Volcengine Keyword API error: ${error}`);
+          }
+
+          const data = await response.json();
+          const keywords = data.choices?.[0]?.message?.content || "";
+
+          results.push({
+            id: segment.id,
+            keywords: keywords.trim(),
+          });
+          console.log(`[Batch Keyword Extract] Extracted keywords for segment ${segment.id}`);
+        } catch (error) {
+          console.error(`[Batch Keyword Extract] Error for segment ${segment.id}:`, error);
+          results.push({
+            id: segment.id,
+            error: error instanceof Error ? error.message : "Failed to extract keywords",
+          });
+        }
+      }
+
+      console.log("[Batch Keyword Extract] Successfully extracted", results.filter(r => !r.error).length, "keywords");
+      res.json({ results });
+    } catch (error) {
+      console.error("[Batch Keyword Extract] Error:", error);
+      res.status(500).json({ error: "Failed to batch extract keywords", details: error instanceof Error ? error.message : String(error) });
+    }
+  });
+
   // 优化提示词API（专门用于提示词优化）
   app.post("/api/descriptions/optimize", async (req, res) => {
     try {
