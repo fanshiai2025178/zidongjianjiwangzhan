@@ -64,68 +64,84 @@ export default function DescriptionsPage() {
 
   // 更新描述词中的比例信息
   const handleAspectRatioChange = async (newRatio: string) => {
+    // 先获取旧比例（在更新前）
+    const oldRatio = aspectRatio;
+    const oldOrientation = getOrientationText(oldRatio);
+    const newOrientation = getOrientationText(newRatio);
+
+    // 立即更新比例状态
     updateAspectRatio(newRatio);
     
     // 如果有已生成的描述词，更新它们
     const hasDescriptions = segments.some(s => s.sceneDescription);
-    if (!hasDescriptions) return;
+    
+    if (hasDescriptions) {
+      // 定义方向相关的关键词映射
+      const orientationKeywords = {
+        '竖屏': ['竖屏', '竖构图', '竖版', '纵向', 'portrait'],
+        '横屏': ['横屏', '横构图', '横版', '横向', 'landscape'],
+        '方形': ['方形', '方形构图', '正方形', 'square']
+      };
 
-    const oldOrientation = getOrientationText(aspectRatio);
-    const newOrientation = getOrientationText(newRatio);
-
-    // 定义方向相关的关键词映射
-    const orientationKeywords = {
-      '竖屏': ['竖屏', '竖构图', '竖版', '纵向', 'portrait'],
-      '横屏': ['横屏', '横构图', '横版', '横向', 'landscape'],
-      '方形': ['方形', '方形构图', '正方形', 'square']
-    };
-
-    // 更新所有描述词中的比例信息
-    const updatedSegments = segments.map(seg => {
-      if (!seg.sceneDescription) return seg;
-      
-      let updatedDescription = seg.sceneDescription;
-      
-      // 替换比例数值（如 16:9 -> 9:16）
-      updatedDescription = updatedDescription.replace(new RegExp(aspectRatio, 'g'), newRatio);
-      
-      // 替换方向描述及其相关词汇
-      if (oldOrientation !== newOrientation) {
-        const oldKeywords = orientationKeywords[oldOrientation as keyof typeof orientationKeywords] || [oldOrientation];
-        const newKeyword = newOrientation;
+      // 更新所有描述词中的比例信息
+      const updatedSegments = segments.map(seg => {
+        if (!seg.sceneDescription) return seg;
         
-        oldKeywords.forEach(keyword => {
-          // 使用全局替换，且考虑中英文混合的情况
-          const regex = new RegExp(keyword, 'gi');
-          updatedDescription = updatedDescription.replace(regex, (match) => {
-            // 保持英文大小写一致性
-            if (match.toLowerCase() === match) return newKeyword;
-            if (match.toUpperCase() === match) return newKeyword.toUpperCase();
-            return newKeyword;
+        let updatedDescription = seg.sceneDescription;
+        
+        // 替换比例数值（使用旧比例值进行替换，如 16:9 -> 9:16）
+        updatedDescription = updatedDescription.replace(new RegExp(oldRatio, 'g'), newRatio);
+        
+        // 替换方向描述及其相关词汇
+        if (oldOrientation !== newOrientation) {
+          const oldKeywords = orientationKeywords[oldOrientation as keyof typeof orientationKeywords] || [oldOrientation];
+          const newKeyword = newOrientation;
+          
+          oldKeywords.forEach(keyword => {
+            // 使用全局替换，且考虑中英文混合的情况
+            const regex = new RegExp(keyword, 'gi');
+            updatedDescription = updatedDescription.replace(regex, (match) => {
+              // 保持英文大小写一致性
+              if (match.toLowerCase() === match) return newKeyword;
+              if (match.toUpperCase() === match) return newKeyword.toUpperCase();
+              return newKeyword;
+            });
           });
-        });
-      }
-      
-      return { ...seg, sceneDescription: updatedDescription };
-    });
-
-    updateSegments(updatedSegments);
-
-    // 自动保存到后端
-    if (project?.id) {
-      try {
-        await apiRequest("PATCH", `/api/projects/${project.id}`, {
-          ...project,
-          aspectRatio: newRatio,
-          segments: updatedSegments,
-        });
+        }
         
-        toast({
-          title: "比例已更新",
-          description: "描述词中的尺寸信息已同步更新",
-        });
-      } catch (error) {
-        console.error("Failed to save aspect ratio change:", error);
+        return { ...seg, sceneDescription: updatedDescription };
+      });
+
+      updateSegments(updatedSegments);
+
+      // 自动保存到后端
+      if (project?.id) {
+        try {
+          await apiRequest("PATCH", `/api/projects/${project.id}`, {
+            ...project,
+            aspectRatio: newRatio,
+            segments: updatedSegments,
+          });
+          
+          toast({
+            title: "比例已更新",
+            description: "描述词中的尺寸信息已同步更新",
+          });
+        } catch (error) {
+          console.error("Failed to save aspect ratio change:", error);
+        }
+      }
+    } else {
+      // 如果没有描述词，只保存比例变更
+      if (project?.id) {
+        try {
+          await apiRequest("PATCH", `/api/projects/${project.id}`, {
+            ...project,
+            aspectRatio: newRatio,
+          });
+        } catch (error) {
+          console.error("Failed to save aspect ratio:", error);
+        }
       }
     }
   };

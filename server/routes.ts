@@ -197,25 +197,33 @@ ${contentToDescribe}
         systemPrompt = "你是专业的AI视频提示词撰写专家，深刻理解镜头语言和视觉叙事。你的提示词能够准确指导AI生成高质量的动态视频内容。";
       } else {
         // 文生图+图生视频：生成静态图片描述（强调画面、构图、色彩、氛围）
+        const orientationDescription = aspectRatio === '9:16' || aspectRatio === '3:4' 
+          ? '竖屏（纵向构图，高度大于宽度，适合人物特写、全身像）' 
+          : aspectRatio === '1:1' 
+          ? '方形（正方形构图，宽高相等，适合居中对称布局）' 
+          : '横屏（横向构图，宽度大于高度，适合风景、场景叙事）';
+
         descriptionPrompt = `请为以下文案生成一个专业的AI图片生成提示词（遵循Seedream 4.0规范）。
 
 文案内容：
 ${contentToDescribe}
 
-画面比例：${aspectRatio}（${aspectRatio === '9:16' || aspectRatio === '3:4' ? '竖屏' : aspectRatio === '1:1' ? '方形' : '横屏'}）
+画面比例：${aspectRatio} ${orientationDescription}
+
+【重要】请在描述中明确体现${aspectRatio}的构图特点！
 
 请按照以下要求生成图片提示词：
 
 【核心要求】
 1. 使用中文撰写，表述清晰准确
 2. 描述具体、可视化、富有细节
-3. 适配${aspectRatio}${aspectRatio === '9:16' || aspectRatio === '3:4' ? '竖屏' : aspectRatio === '1:1' ? '方形' : '横屏'}构图特点
+3. **必须在描述中明确说明"${aspectRatio === '9:16' || aspectRatio === '3:4' ? '竖构图' : aspectRatio === '1:1' ? '方形构图' : '横构图'}"**
 4. 遵循"主体+环境+细节"结构
 
 【必须包含的元素】
 • 主体描述：人物/物体的姿态、表情、服饰、特征（具体化）
 • 环境场景：具体场所、时间、天气、空间感
-• 构图视角：${aspectRatio === '9:16' || aspectRatio === '3:4' ? '竖构图，适合人物特写或全身像' : aspectRatio === '1:1' ? '方形构图，居中对称或三分法' : '横构图，适合风景或场景叙事'}
+• 构图说明：**明确写出"采用${aspectRatio}${aspectRatio === '9:16' || aspectRatio === '3:4' ? '竖构图' : aspectRatio === '1:1' ? '方形构图' : '横构图'}"或"${aspectRatio === '9:16' || aspectRatio === '3:4' ? '竖屏' : aspectRatio === '1:1' ? '方形' : '横屏'}构图"**
 • 光影效果：光源方向、明暗对比、氛围营造
 • 色彩基调：主色调、色彩搭配、情绪表达
 • 质感细节：材质、纹理、质感表现
