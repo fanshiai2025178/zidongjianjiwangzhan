@@ -280,6 +280,91 @@ Output the prompt directly without additional explanation.`;
     }
   });
 
+  // 优化提示词API（专门用于提示词优化）
+  app.post("/api/descriptions/optimize", async (req, res) => {
+    try {
+      const { description, generationMode = "text-to-image-to-video", aspectRatio = "16:9" } = req.body;
+      if (!description) {
+        return res.status(400).json({ error: "Description is required" });
+      }
+
+      console.log("[Optimize] Optimizing description:", description.substring(0, 50) + "...");
+      console.log("[Optimize] Generation mode:", generationMode);
+      console.log("[Optimize] Aspect ratio:", aspectRatio);
+
+      // 根据生成模式选择优化策略
+      let optimizePrompt: string;
+      let systemPrompt: string;
+
+      if (generationMode === "text-to-video") {
+        // 文生视频优化策略
+        optimizePrompt = `You are an expert in optimizing prompts for AI video generation. Please enhance the following video generation prompt to make it more effective for AI video models.
+
+Original Prompt:
+${description}
+
+Aspect Ratio: ${aspectRatio} (${aspectRatio === '9:16' || aspectRatio === '3:4' ? 'Vertical/Portrait' : aspectRatio === '1:1' ? 'Square' : 'Horizontal/Landscape'})
+
+[OPTIMIZATION GOALS]
+1. **Clarity Enhancement**: Make actions and movements more explicit and clear
+2. **Camera Language Refinement**: Add or improve camera movement descriptions (push in, pull out, pan, tilt, track)
+3. **Temporal Structure**: Ensure clear beginning → middle → end progression
+4. **Technical Details**: Add lighting conditions, frame composition, and motion speed details
+5. **Consistency**: Maintain character and environmental consistency throughout
+
+[OPTIMIZATION REQUIREMENTS]
+• Keep the core content and story intact
+• Add specific technical details (camera angles, movement speed, lighting)
+• Enhance visual and motion descriptions
+• Use professional cinematography terminology
+• Maintain English output
+• Keep length reasonable (250 words max)
+• DO NOT add markdown formatting
+
+Output the optimized prompt directly, without explanations.`;
+
+        systemPrompt = "You are a professional AI video prompt optimization expert with deep knowledge of cinematography, motion design, and AI video generation models. Your optimizations significantly improve video generation quality.";
+      } else {
+        // 文生图优化策略
+        optimizePrompt = `You are an expert in optimizing prompts for AI image generation. Please enhance the following image generation prompt to make it more effective for AI image models.
+
+Original Prompt:
+${description}
+
+Aspect Ratio: ${aspectRatio} (${aspectRatio === '9:16' || aspectRatio === '3:4' ? 'Vertical/Portrait' : aspectRatio === '1:1' ? 'Square' : 'Horizontal/Landscape'})
+
+[OPTIMIZATION GOALS]
+1. **Visual Clarity**: Make visual elements more specific and detailed
+2. **Composition Enhancement**: Improve spatial layout and element positioning
+3. **Technical Details**: Add lighting, color palette, texture, and material descriptions
+4. **Artistic Direction**: Enhance artistic style and mood specifications
+5. **Quality Boost**: Add quality-enhancing keywords and technical parameters
+
+[OPTIMIZATION REQUIREMENTS]
+• Keep the core subject and concept intact
+• Add specific visual details (textures, materials, lighting angles)
+• Enhance color and atmosphere descriptions
+• Use professional photography/art terminology
+• Maintain English output
+• Keep length reasonable (250 words max)
+• DO NOT add markdown formatting
+• Focus on static visual elements, NOT motion or time progression
+
+Output the optimized prompt directly, without explanations.`;
+
+        systemPrompt = "You are a professional AI image prompt optimization expert with extensive knowledge of photography, digital art, and AI image generation models. Your optimizations dramatically improve image generation quality and aesthetic appeal.";
+      }
+
+      const optimizedDescription = await callDeepSeekAPI(optimizePrompt, systemPrompt);
+      console.log("[Optimize] Successfully optimized description");
+      
+      res.json({ optimizedDescription: optimizedDescription.trim() });
+    } catch (error) {
+      console.error("[Optimize] Error:", error);
+      res.status(500).json({ error: "Failed to optimize description", details: error instanceof Error ? error.message : String(error) });
+    }
+  });
+
   // Gemini 图片生成API
   app.post("/api/images/generate", async (req, res) => {
     try {

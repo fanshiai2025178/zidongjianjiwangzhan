@@ -42,6 +42,64 @@ export default function MaterialsPage() {
   const generationMode = project?.generationMode || "text-to-image-to-video";
   const isTextToVideo = generationMode === "text-to-video";
 
+  // 单个优化提示词
+  const optimizeSingleDescription = async (segmentId: string) => {
+    const segment = segments.find(s => s.id === segmentId);
+    if (!segment?.sceneDescription) {
+      toast({
+        title: "提示",
+        description: "请先生成场景描述",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setOptimizingDescriptions(prev => new Set(prev).add(segmentId));
+
+    try {
+      const response = await apiRequest("POST", "/api/descriptions/optimize", {
+        description: segment.sceneDescription,
+        generationMode: project?.generationMode || "text-to-image-to-video",
+        aspectRatio: project?.aspectRatio || "16:9",
+      });
+      const data = await response.json();
+      
+      const updatedSegments = segments.map(seg =>
+        seg.id === segmentId ? { ...seg, optimizedDescription: data.optimizedDescription } : seg
+      );
+      updateSegments(updatedSegments);
+      
+      if (project?.id) {
+        try {
+          await apiRequest("PATCH", `/api/projects/${project.id}`, {
+            ...project,
+            segments: updatedSegments,
+          });
+        } catch (error) {
+          console.error("Failed to save project:", error);
+        }
+      }
+      
+      toast({
+        title: "优化成功",
+        description: "提示词已优化",
+      });
+    } catch (error) {
+      console.error("Failed to optimize description:", error);
+      toast({
+        title: "优化失败",
+        description: "请稍后重试",
+        variant: "destructive",
+      });
+    } finally {
+      setOptimizingDescriptions(prev => {
+        const next = new Set(prev);
+        next.delete(segmentId);
+        return next;
+      });
+    }
+  };
+
   // 批量优化提示词
   const handleBatchOptimize = async () => {
     const segmentsToOptimize = segments.filter(s => s.sceneDescription && !s.optimizedDescription);
@@ -67,12 +125,16 @@ export default function MaterialsPage() {
 
       setCurrentOptimizingId(segment.id);
       try {
-        // TODO: 调用DeepSeek API优化描述词
-        // 暂时模拟优化（用户稍后会提供详细规则）
-        const optimized = segment.sceneDescription; // 占位
+        // 调用专门的优化API
+        const response = await apiRequest("POST", "/api/descriptions/optimize", {
+          description: segment.sceneDescription,
+          generationMode: project?.generationMode || "text-to-image-to-video",
+          aspectRatio: project?.aspectRatio || "16:9",
+        });
+        const data = await response.json();
         
         currentSegments = currentSegments.map(seg =>
-          seg.id === segment.id ? { ...seg, optimizedDescription: optimized } : seg
+          seg.id === segment.id ? { ...seg, optimizedDescription: data.optimizedDescription } : seg
         );
         updateSegments(currentSegments);
         optimizedCount++;
@@ -530,10 +592,11 @@ export default function MaterialsPage() {
                       size="sm"
                       variant="outline"
                       disabled={!segment.sceneDescription || optimizingDescriptions.has(segment.id) || batchOptimizing}
+                      onClick={() => optimizeSingleDescription(segment.id)}
                       className="w-full"
                       data-testid={`button-optimize-${segment.number}`}
                     >
-                      {currentOptimizingId === segment.id ? (
+                      {optimizingDescriptions.has(segment.id) ? (
                         <>
                           <Loader2 className="h-3 w-3 mr-1 animate-spin opacity-100" />
                           优化中

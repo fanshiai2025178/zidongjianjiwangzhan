@@ -84,7 +84,7 @@ export default function ResultPage() {
                     </tr>
                   </thead>
                   <tbody>
-                    {segments.map((segment) => (
+                    {segments.map((segment: any) => (
                       <tr
                         key={segment.id}
                         className="border-b border-border last:border-0"
