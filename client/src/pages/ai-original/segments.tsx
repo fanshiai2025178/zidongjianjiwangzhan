@@ -48,6 +48,22 @@ export default function SegmentsPage() {
     }
   }, [project]);
 
+  // 保存segments到project context和后端
+  const saveSegmentsToProject = async (updatedSegments: Segment[]) => {
+    updateSegments(updatedSegments);
+    
+    if (project?.id) {
+      try {
+        await apiRequest("PATCH", `/api/projects/${project.id}`, {
+          ...project,
+          segments: updatedSegments,
+        });
+      } catch (error) {
+        console.error("Failed to save segments:", error);
+      }
+    }
+  };
+
   const generateSegments = async () => {
     if (!project?.scriptContent) return;
     
@@ -58,6 +74,10 @@ export default function SegmentsPage() {
       });
       const data = await response.json();
       setSegments(data.segments);
+      
+      // 保存到 project context 和后端
+      await saveSegmentsToProject(data.segments);
+      
       toast({
         title: "分段成功",
         description: `AI已将文案分成 ${data.segments.length} 个片段`,
@@ -130,6 +150,9 @@ export default function SegmentsPage() {
     setSegments(newSegments);
     setCutDialogOpen(false);
     
+    // 保存到 project context 和后端
+    await saveSegmentsToProject(newSegments);
+    
     toast({
       title: "切割成功",
       description: "正在翻译新片段...",
@@ -147,12 +170,15 @@ export default function SegmentsPage() {
         const data = await response.json();
         
         // 更新翻译
-        setSegments(prevSegments => 
-          prevSegments.map(seg => {
-            const translated = data.translations.find((t: any) => t.id === seg.id);
-            return translated ? { ...seg, translation: translated.translation } : seg;
-          })
-        );
+        const translatedSegments = newSegments.map(seg => {
+          const translated = data.translations.find((t: any) => t.id === seg.id);
+          return translated ? { ...seg, translation: translated.translation } : seg;
+        });
+        
+        setSegments(translatedSegments);
+        
+        // 保存翻译后的segments
+        await saveSegmentsToProject(translatedSegments);
         
         toast({
           title: "翻译完成",
@@ -185,6 +211,10 @@ export default function SegmentsPage() {
     });
 
     setSegments(newSegments);
+    
+    // 保存到 project context 和后端
+    await saveSegmentsToProject(newSegments);
+    
     toast({
       title: "合并成功",
       description: current.language === 'English' ? "正在翻译合并后的片段..." : "片段已成功合并",
@@ -198,13 +228,16 @@ export default function SegmentsPage() {
         });
         const data = await response.json();
         
-        setSegments(prevSegments => 
-          prevSegments.map(seg => 
-            seg.id === current.id 
-              ? { ...seg, translation: data.translations[0].translation }
-              : seg
-          )
+        const translatedSegments = newSegments.map(seg => 
+          seg.id === current.id 
+            ? { ...seg, translation: data.translations[0].translation }
+            : seg
         );
+        
+        setSegments(translatedSegments);
+        
+        // 保存翻译后的segments
+        await saveSegmentsToProject(translatedSegments);
         
         toast({
           title: "翻译完成",
@@ -237,6 +270,10 @@ export default function SegmentsPage() {
     });
 
     setSegments(newSegments);
+    
+    // 保存到 project context 和后端
+    await saveSegmentsToProject(newSegments);
+    
     toast({
       title: "合并成功",
       description: previous.language === 'English' ? "正在翻译合并后的片段..." : "片段已成功合并",
@@ -250,13 +287,16 @@ export default function SegmentsPage() {
         });
         const data = await response.json();
         
-        setSegments(prevSegments => 
-          prevSegments.map(seg => 
-            seg.id === previous.id 
-              ? { ...seg, translation: data.translations[0].translation }
-              : seg
-          )
+        const translatedSegments = newSegments.map(seg => 
+          seg.id === previous.id 
+            ? { ...seg, translation: data.translations[0].translation }
+            : seg
         );
+        
+        setSegments(translatedSegments);
+        
+        // 保存翻译后的segments
+        await saveSegmentsToProject(translatedSegments);
         
         toast({
           title: "翻译完成",

@@ -53,11 +53,24 @@ export default function DescriptionsPage() {
       const data = await response.json();
       return { segmentId, description: data.description };
     },
-    onSuccess: ({ segmentId, description }) => {
+    onSuccess: async ({ segmentId, description }) => {
       const updatedSegments = segments.map(seg =>
         seg.id === segmentId ? { ...seg, sceneDescription: description } : seg
       );
       updateSegments(updatedSegments);
+      
+      // 自动保存项目
+      if (project?.id) {
+        try {
+          await apiRequest("PATCH", `/api/projects/${project.id}`, {
+            ...project,
+            segments: updatedSegments,
+          });
+        } catch (error) {
+          console.error("Failed to save project:", error);
+        }
+      }
+      
       toast({
         title: "生成成功",
         description: "分镜描述已生成",
@@ -101,6 +114,18 @@ export default function DescriptionsPage() {
       );
       updateSegments(updatedSegments);
       
+      // 自动保存项目
+      if (project?.id) {
+        try {
+          await apiRequest("PATCH", `/api/projects/${project.id}`, {
+            ...project,
+            segments: updatedSegments,
+          });
+        } catch (error) {
+          console.error("Failed to save project:", error);
+        }
+      }
+      
       toast({
         title: "生成成功",
         description: "图片已生成",
@@ -133,6 +158,7 @@ export default function DescriptionsPage() {
     }
 
     setBatchGeneratingDescriptions(true);
+    let currentSegments = [...segments];
 
     for (const segment of segmentsWithoutDescription) {
       try {
@@ -147,12 +173,24 @@ export default function DescriptionsPage() {
         );
         const data = await response.json();
         
-        const updatedSegments = segments.map(seg =>
+        currentSegments = currentSegments.map(seg =>
           seg.id === segment.id ? { ...seg, sceneDescription: data.description } : seg
         );
-        updateSegments(updatedSegments);
+        updateSegments(currentSegments);
       } catch (error) {
         console.error("Failed to generate description:", error);
+      }
+    }
+
+    // 保存项目
+    if (project?.id) {
+      try {
+        await apiRequest("PATCH", `/api/projects/${project.id}`, {
+          ...project,
+          segments: currentSegments,
+        });
+      } catch (error) {
+        console.error("Failed to save project:", error);
       }
     }
 
@@ -211,6 +249,18 @@ export default function DescriptionsPage() {
       );
       updateSegments(updatedSegments);
       
+      // 自动保存项目
+      if (project?.id) {
+        try {
+          await apiRequest("PATCH", `/api/projects/${project.id}`, {
+            ...project,
+            segments: updatedSegments,
+          });
+        } catch (error) {
+          console.error("Failed to save project:", error);
+        }
+      }
+      
       toast({
         title: "生成成功",
         description: "视频已生成",
@@ -260,11 +310,24 @@ export default function DescriptionsPage() {
     setEditedDescription(segment.sceneDescription || "");
   };
 
-  const handleSaveEdit = (segmentId: string) => {
+  const handleSaveEdit = async (segmentId: string) => {
     const updatedSegments = segments.map(seg =>
       seg.id === segmentId ? { ...seg, sceneDescription: editedDescription } : seg
     );
     updateSegments(updatedSegments);
+    
+    // 自动保存项目
+    if (project?.id) {
+      try {
+        await apiRequest("PATCH", `/api/projects/${project.id}`, {
+          ...project,
+          segments: updatedSegments,
+        });
+      } catch (error) {
+        console.error("Failed to save project:", error);
+      }
+    }
+    
     setEditingId(null);
     setEditedDescription("");
     toast({

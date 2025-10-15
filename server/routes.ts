@@ -141,17 +141,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
         ? `${text}\n(中文翻译: ${translation})`
         : text;
 
-      const descriptionPrompt = `请为以下文案生成一个详细的视频分镜画面描述。描述应该包括场景、人物、动作、镜头角度等细节，使用英文编写，格式类似于电影剧本的场景描述。
+      const descriptionPrompt = `请为以下文案生成一个详细的视频分镜画面描述。描述应该包括场景、人物、动作、镜头角度等细节，使用中文编写，适合用于AI图片生成的提示词。
 
 文案内容：
 ${contentToDescribe}
 
-请使用以下格式（纯文本，不要markdown格式）：
-Scene: [场景描述]
-Shot: [镜头角度和类型]
-Action: [具体动作和细节]`;
+请直接生成场景描述，包含以下要素：
+- 场景环境和氛围
+- 人物或主体（如有）
+- 具体动作和细节
+- 画面构图和镜头角度
+
+要求：使用中文，描述具体生动，200字以内，不要使用markdown格式。`;
       
-      const systemPrompt = "You are a professional video scene description writer. Generate detailed, visual scene descriptions in English for video production.";
+      const systemPrompt = "你是一位专业的视频分镜描述撰写专家。请生成详细、具象化的中文场景描述，适合用于AI图片生成。";
       
       const description = await callDeepSeekAPI(descriptionPrompt, systemPrompt);
       console.log("[Description] Generated description successfully");

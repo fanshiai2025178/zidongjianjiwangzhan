@@ -6,7 +6,15 @@ This is an AI-powered video creation platform that enables users to create profe
 
 ## Recent Changes (October 15, 2025)
 
-**Table-Style Layout with Batch Generation (Latest)**
+**Critical Bug Fixes - Description & Segment Persistence (Latest)**
+- **Fixed**: Segments disappearing after generation - now auto-save to backend immediately
+- **Fixed**: Descriptions disappearing after generation - all operations auto-save
+- **Fixed**: Chinese description generation - changed from English to Chinese prompts
+- Implemented `saveSegmentsToProject` helper for consistent persistence
+- Auto-save triggers: segment generation, cut, merge, description/image/video generation, edits
+- DeepSeek prompts updated: "使用中文编写，描述具体生动，200字以内"
+
+**Table-Style Layout with Batch Generation**
 - Redesigned descriptions page as complete table layout with borders and column alignment
 - Batch generation buttons integrated in table header row: "批量生成描述词" | "批量生成图片" | "批量生成视频"
 - Table columns: 编号 (1) | 文案 (2) | 翻译 (2) | 分镜画面描述词 (3) | 生成图片 (2) | 生成视频 (2)
@@ -17,7 +25,6 @@ This is an AI-powered video creation platform that enables users to create profe
 - Border-separated table cells with padding for clean visual structure
 - Sequential batch processing for descriptions, images, and videos
 - Image generation API (placeholder implementation - ready for VolcEngine integration)
-- Fixed home page navigation bug (double-click issue) with setTimeout solution
 
 **Description Generation Page Implementation**
 - Created complete descriptions page following design reference
