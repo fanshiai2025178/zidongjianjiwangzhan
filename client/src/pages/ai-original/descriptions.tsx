@@ -26,6 +26,7 @@ export default function DescriptionsPage() {
   const [editedDescription, setEditedDescription] = useState("");
   const [generatingImages, setGeneratingImages] = useState<Set<string>>(new Set());
   const [generatingVideos, setGeneratingVideos] = useState<Set<string>>(new Set());
+  const [batchGeneratingDescriptions, setBatchGeneratingDescriptions] = useState(false);
   const [batchGeneratingImages, setBatchGeneratingImages] = useState(false);
   const [batchGeneratingVideos, setBatchGeneratingVideos] = useState(false);
 
@@ -117,6 +118,49 @@ export default function DescriptionsPage() {
         return next;
       });
     }
+  };
+
+  // 批量生成描述词
+  const handleBatchGenerateDescriptions = async () => {
+    const segmentsWithoutDescription = segments.filter(s => !s.sceneDescription);
+    
+    if (segmentsWithoutDescription.length === 0) {
+      toast({
+        title: "提示",
+        description: "所有镜头已有描述",
+      });
+      return;
+    }
+
+    setBatchGeneratingDescriptions(true);
+
+    for (const segment of segmentsWithoutDescription) {
+      try {
+        const response = await apiRequest(
+          "POST",
+          "/api/descriptions/generate",
+          {
+            text: segment.text,
+            translation: segment.translation,
+            language: segment.language,
+          }
+        );
+        const data = await response.json();
+        
+        const updatedSegments = segments.map(seg =>
+          seg.id === segment.id ? { ...seg, sceneDescription: data.description } : seg
+        );
+        updateSegments(updatedSegments);
+      } catch (error) {
+        console.error("Failed to generate description:", error);
+      }
+    }
+
+    setBatchGeneratingDescriptions(false);
+    toast({
+      title: "批量生成完成",
+      description: `成功生成 ${segmentsWithoutDescription.length} 个描述`,
+    });
   };
 
   // 批量生成图片
@@ -263,67 +307,91 @@ export default function DescriptionsPage() {
         <div className="flex gap-6">
           {/* 左侧主要内容 */}
           <div className="flex-1">
-            <div className="flex items-center justify-between mb-6">
-              <div>
-                <h1 className="text-2xl font-bold text-foreground mb-1">
-                  生成图片
-                </h1>
-                <p className="text-sm text-muted-foreground">
-                  共 {segments.length} 个镜头
-                </p>
-              </div>
-              <div className="flex gap-3">
+            <div className="mb-6">
+              <h1 className="text-2xl font-bold text-foreground mb-1">
+                生成图片
+              </h1>
+              <p className="text-sm text-muted-foreground">
+                共 {segments.length} 个镜头
+              </p>
+            </div>
+
+            {/* 表头 */}
+            <div className="grid grid-cols-12 gap-3 mb-4 px-4 items-center">
+              <div className="col-span-1 text-sm text-muted-foreground">编号</div>
+              <div className="col-span-2 text-sm text-muted-foreground">文案</div>
+              <div className="col-span-2 text-sm text-muted-foreground">翻译</div>
+              <div className="col-span-2">
                 <Button
+                  size="sm"
+                  onClick={handleBatchGenerateDescriptions}
+                  disabled={batchGeneratingDescriptions || segments.every(s => s.sceneDescription)}
+                  className="w-full"
+                  data-testid="button-batch-generate-descriptions"
+                >
+                  {batchGeneratingDescriptions ? (
+                    <>
+                      <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+                      生成中...
+                    </>
+                  ) : (
+                    <>
+                      <Sparkles className="h-3 w-3 mr-1" />
+                      批量生成描述词
+                    </>
+                  )}
+                </Button>
+              </div>
+              <div className="col-span-2">
+                <Button
+                  size="sm"
                   onClick={handleBatchGenerateImages}
                   disabled={batchGeneratingImages || segments.every(s => !s.sceneDescription || s.imageUrl)}
+                  className="w-full"
                   data-testid="button-batch-generate-images"
                 >
                   {batchGeneratingImages ? (
                     <>
-                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                      批量生成中...
+                      <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+                      生成中...
                     </>
                   ) : (
                     <>
-                      <ImageIcon className="h-4 w-4 mr-2" />
+                      <ImageIcon className="h-3 w-3 mr-1" />
                       批量生成图片
                     </>
                   )}
                 </Button>
+              </div>
+              <div className="col-span-2">
                 <Button
+                  size="sm"
                   onClick={handleBatchGenerateVideos}
                   disabled={batchGeneratingVideos || segments.every(s => !s.imageUrl || s.videoUrl)}
+                  className="w-full"
                   data-testid="button-batch-generate-videos"
                 >
                   {batchGeneratingVideos ? (
                     <>
-                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                      批量生成中...
+                      <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+                      生成中...
                     </>
                   ) : (
                     <>
-                      <Video className="h-4 w-4 mr-2" />
+                      <Video className="h-3 w-3 mr-1" />
                       批量生成视频
                     </>
                   )}
                 </Button>
               </div>
-            </div>
-
-            {/* 表头 */}
-            <div className="grid grid-cols-12 gap-4 mb-4 px-4 text-sm text-muted-foreground">
-              <div className="col-span-1">编号</div>
-              <div className="col-span-3">文案</div>
-              <div className="col-span-2">翻译</div>
-              <div className="col-span-4">分镜画面描述词</div>
-              <div className="col-span-2"></div>
+              <div className="col-span-1"></div>
             </div>
 
             {/* 片段卡片列表 */}
             <div className="space-y-3">
               {segments.map((segment) => (
                 <Card key={segment.id} className="p-4" data-testid={`card-segment-${segment.number}`}>
-                  <div className="grid grid-cols-12 gap-4 items-start">
+                  <div className="grid grid-cols-12 gap-3 items-start">
                     {/* 编号 */}
                     <div className="col-span-1">
                       <Badge variant="secondary" className="font-mono">
@@ -332,7 +400,7 @@ export default function DescriptionsPage() {
                     </div>
 
                     {/* 文案 */}
-                    <div className="col-span-3">
+                    <div className="col-span-2">
                       <p className="text-sm text-foreground">{segment.text}</p>
                       <Badge variant="outline" className="text-xs mt-1">
                         {segment.language}
@@ -349,7 +417,7 @@ export default function DescriptionsPage() {
                     </div>
 
                     {/* 分镜描述 */}
-                    <div className="col-span-4">
+                    <div className="col-span-2">
                       {editingId === segment.id ? (
                         <div className="space-y-2">
                           <Textarea
@@ -418,13 +486,14 @@ export default function DescriptionsPage() {
                       )}
                     </div>
 
-                    {/* 操作按钮 */}
-                    <div className="col-span-2 flex gap-2">
+                    {/* 生成图片按钮 */}
+                    <div className="col-span-2">
                       <Button
                         size="sm"
                         variant={segment.imageUrl ? "outline" : "default"}
                         onClick={() => generateSingleImage(segment.id)}
                         disabled={!segment.sceneDescription || generatingImages.has(segment.id)}
+                        className="w-full"
                         data-testid={`button-generate-image-${segment.number}`}
                       >
                         {generatingImages.has(segment.id) ? (
@@ -438,11 +507,16 @@ export default function DescriptionsPage() {
                           "生成"
                         )}
                       </Button>
+                    </div>
+
+                    {/* 生成视频按钮 */}
+                    <div className="col-span-2">
                       <Button
                         size="sm"
                         variant={segment.videoUrl ? "outline" : "default"}
                         onClick={() => generateSingleVideo(segment.id)}
                         disabled={!segment.imageUrl || generatingVideos.has(segment.id)}
+                        className="w-full"
                         data-testid={`button-generate-video-${segment.number}`}
                       >
                         {generatingVideos.has(segment.id) ? (
@@ -457,6 +531,9 @@ export default function DescriptionsPage() {
                         )}
                       </Button>
                     </div>
+
+                    {/* 空白列 */}
+                    <div className="col-span-1"></div>
                   </div>
                 </Card>
               ))}
