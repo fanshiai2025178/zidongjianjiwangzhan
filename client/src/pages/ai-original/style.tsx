@@ -1,12 +1,13 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useLocation } from "wouter";
 import { TopNavbar } from "@/components/top-navbar";
 import { StepProgress } from "@/components/step-progress";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Card } from "@/components/ui/card";
-import { Upload, ArrowLeft } from "lucide-react";
+import { Upload, ArrowLeft, X } from "lucide-react";
 import { useProject } from "@/hooks/use-project";
+import { useToast } from "@/hooks/use-toast";
 
 const presetStyles = [
   {
@@ -62,11 +63,17 @@ const presetStyles = [
 export default function StylePage() {
   const [, setLocation] = useLocation();
   const { project, updateStyleSettings, updateCurrentStep } = useProject();
+  const { toast } = useToast();
   
   const [useCharacterRef, setUseCharacterRef] = useState(false);
   const [useStyleRef, setUseStyleRef] = useState(false);
   const [usePreset, setUsePreset] = useState(false);
   const [selectedStyle, setSelectedStyle] = useState("cinema");
+  const [characterImage, setCharacterImage] = useState<string | null>(null);
+  const [styleImage, setStyleImage] = useState<string | null>(null);
+  
+  const characterInputRef = useRef<HTMLInputElement>(null);
+  const styleInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (!project) {
@@ -98,10 +105,50 @@ export default function StylePage() {
     }
   };
 
+  const handleCharacterImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (file.size > 5 * 1024 * 1024) {
+        toast({
+          title: "文件过大",
+          description: "图片大小不能超过5MB",
+          variant: "destructive",
+        });
+        return;
+      }
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        setCharacterImage(event.target?.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleStyleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (file.size > 5 * 1024 * 1024) {
+        toast({
+          title: "文件过大",
+          description: "图片大小不能超过5MB",
+          variant: "destructive",
+        });
+        return;
+      }
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        setStyleImage(event.target?.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
   const handleContinue = () => {
     updateStyleSettings({
       useCharacterReference: useCharacterRef,
+      characterImageUrl: characterImage,
       useStyleReference: useStyleRef,
+      styleImageUrl: styleImage,
       usePresetStyle: usePreset,
       presetStyleId: selectedStyle,
     });
@@ -170,11 +217,40 @@ export default function StylePage() {
               </div>
 
               {useCharacterRef && (
-                <div className="ml-7 border-2 border-dashed border-border rounded-xl p-12 text-center hover-elevate transition-all">
-                  <Upload className="h-12 w-12 mx-auto text-muted-foreground mb-3" />
-                  <p className="text-sm text-muted-foreground">
-                    点击上传人物形象参考
-                  </p>
+                <div className="ml-7">
+                  <input
+                    ref={characterInputRef}
+                    type="file"
+                    accept="image/*"
+                    onChange={handleCharacterImageUpload}
+                    className="hidden"
+                  />
+                  {characterImage ? (
+                    <div className="relative border-2 border-border rounded-xl overflow-hidden">
+                      <img src={characterImage} alt="人物形象参考" className="w-full h-48 object-cover" />
+                      <Button
+                        variant="destructive"
+                        size="icon"
+                        className="absolute top-2 right-2"
+                        onClick={() => setCharacterImage(null)}
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  ) : (
+                    <div 
+                      className="border-2 border-dashed border-border rounded-xl p-12 text-center hover-elevate transition-all cursor-pointer"
+                      onClick={() => characterInputRef.current?.click()}
+                    >
+                      <Upload className="h-12 w-12 mx-auto text-muted-foreground mb-3" />
+                      <p className="text-sm text-muted-foreground">
+                        点击上传人物形象参考
+                      </p>
+                      <p className="text-xs text-muted-foreground mt-2">
+                        支持 JPG, PNG 格式，最大 5MB
+                      </p>
+                    </div>
+                  )}
                 </div>
               )}
 
@@ -194,11 +270,40 @@ export default function StylePage() {
               </div>
 
               {useStyleRef && (
-                <div className="ml-7 border-2 border-dashed border-border rounded-xl p-12 text-center hover-elevate transition-all">
-                  <Upload className="h-12 w-12 mx-auto text-muted-foreground mb-3" />
-                  <p className="text-sm text-muted-foreground">
-                    点击上传风格参考图片
-                  </p>
+                <div className="ml-7">
+                  <input
+                    ref={styleInputRef}
+                    type="file"
+                    accept="image/*"
+                    onChange={handleStyleImageUpload}
+                    className="hidden"
+                  />
+                  {styleImage ? (
+                    <div className="relative border-2 border-border rounded-xl overflow-hidden">
+                      <img src={styleImage} alt="风格参考" className="w-full h-48 object-cover" />
+                      <Button
+                        variant="destructive"
+                        size="icon"
+                        className="absolute top-2 right-2"
+                        onClick={() => setStyleImage(null)}
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  ) : (
+                    <div 
+                      className="border-2 border-dashed border-border rounded-xl p-12 text-center hover-elevate transition-all cursor-pointer"
+                      onClick={() => styleInputRef.current?.click()}
+                    >
+                      <Upload className="h-12 w-12 mx-auto text-muted-foreground mb-3" />
+                      <p className="text-sm text-muted-foreground">
+                        点击上传风格参考图片
+                      </p>
+                      <p className="text-xs text-muted-foreground mt-2">
+                        支持 JPG, PNG 格式，最大 5MB
+                      </p>
+                    </div>
+                  )}
                 </div>
               )}
 
