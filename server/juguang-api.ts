@@ -1,0 +1,119 @@
+interface JuguangMessage {
+  parts: {
+    text: string;
+  }[];
+}
+
+interface JuguangResponse {
+  candidates: {
+    content: {
+      parts: {
+        text?: string;
+        inlineData?: {
+          data: string;
+          mimeType: string;
+        };
+      }[];
+    };
+  }[];
+}
+
+export async function callJuguangAPI(
+  userPrompt: string, 
+  systemPrompt: string = "You are a helpful assistant."
+): Promise<string> {
+  const apiKey = process.env.JUGUANG_API_KEY;
+  
+  if (!apiKey) {
+    throw new Error("JUGUANG_API_KEY is not configured");
+  }
+
+  // 合并系统提示和用户提示
+  const fullPrompt = systemPrompt ? `${systemPrompt}\n\n${userPrompt}` : userPrompt;
+
+  console.log("[Juguang] Calling API with prompt:", fullPrompt.substring(0, 100) + "...");
+
+  try {
+    const response = await fetch("https://ai.juguang.chat/v1beta/models/gemini-2.5-flash-preview:generateContent", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${apiKey}`
+      },
+      body: JSON.stringify({
+        contents: [{
+          parts: [{
+            text: fullPrompt
+          }]
+        }]
+      })
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      console.error("[Juguang] API error:", errorData);
+      throw new Error(`Juguang API error: ${JSON.stringify(errorData)}`);
+    }
+
+    const data: JuguangResponse = await response.json();
+    const result = data.candidates[0]?.content?.parts[0]?.text || "";
+    
+    console.log("[Juguang] Response received:", result.substring(0, 100) + "...");
+    
+    return result;
+  } catch (error) {
+    console.error("[Juguang] Error:", error);
+    throw new Error(`Failed to generate text: ${error instanceof Error ? error.message : String(error)}`);
+  }
+}
+
+export async function generateImageWithJuguang(prompt: string): Promise<string> {
+  const apiKey = process.env.JUGUANG_API_KEY;
+  
+  if (!apiKey) {
+    throw new Error("JUGUANG_API_KEY is not configured");
+  }
+
+  console.log("[Juguang Image] Generating image with prompt:", prompt);
+
+  try {
+    const response = await fetch("https://ai.juguang.chat/v1beta/models/gemini-2.5-flash-image-preview:generateContent", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${apiKey}`
+      },
+      body: JSON.stringify({
+        contents: [{
+          parts: [{
+            text: prompt
+          }]
+        }]
+      })
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      console.error("[Juguang Image] API error:", errorData);
+      throw new Error(`Juguang Image API error: ${JSON.stringify(errorData)}`);
+    }
+
+    const data: JuguangResponse = await response.json();
+    const imageBase64 = data.candidates[0]?.content?.parts[0]?.inlineData?.data;
+    
+    if (!imageBase64) {
+      throw new Error("No image data in response");
+    }
+
+    // 将base64转换为data URL
+    const mimeType = data.candidates[0]?.content?.parts[0]?.inlineData?.mimeType || "image/png";
+    const dataUrl = `data:${mimeType};base64,${imageBase64}`;
+
+    console.log("[Juguang Image] Image generated successfully");
+    
+    return dataUrl;
+  } catch (error) {
+    console.error("[Juguang Image] Error:", error);
+    throw new Error(`Failed to generate image: ${error instanceof Error ? error.message : String(error)}`);
+  }
+}
