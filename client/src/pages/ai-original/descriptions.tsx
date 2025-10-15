@@ -64,6 +64,8 @@ export default function DescriptionsPage() {
 
   // 更新描述词中的比例信息
   const handleAspectRatioChange = async (newRatio: string) => {
+    console.log("[AspectRatio Change] From:", aspectRatio, "To:", newRatio);
+    
     // 先获取旧比例（在更新前）
     const oldRatio = aspectRatio;
     const oldOrientation = getOrientationText(oldRatio);
@@ -71,6 +73,19 @@ export default function DescriptionsPage() {
 
     // 立即更新比例状态
     updateAspectRatio(newRatio);
+    
+    // 立即保存到后端，确保project对象同步
+    if (project?.id) {
+      try {
+        await apiRequest("PATCH", `/api/projects/${project.id}`, {
+          ...project,
+          aspectRatio: newRatio,
+        });
+        console.log("[AspectRatio Saved] Project updated with:", newRatio);
+      } catch (error) {
+        console.error("Failed to save aspect ratio immediately:", error);
+      }
+    }
     
     // 如果有已生成的描述词，更新它们
     const hasDescriptions = segments.some(s => s.sceneDescription);
@@ -152,6 +167,10 @@ export default function DescriptionsPage() {
       const segment = segments.find(s => s.id === segmentId);
       if (!segment) throw new Error("Segment not found");
 
+      // 确保使用最新的aspectRatio
+      const currentAspectRatio = project?.aspectRatio || "16:9";
+      console.log("[Frontend] Generating description with aspectRatio:", currentAspectRatio);
+
       const response = await apiRequest(
         "POST",
         "/api/descriptions/generate",
@@ -160,7 +179,7 @@ export default function DescriptionsPage() {
           translation: segment.translation,
           language: segment.language,
           generationMode: generationMode,
-          aspectRatio: aspectRatio,
+          aspectRatio: currentAspectRatio,
           styleSettings: project?.styleSettings,
         }
       );
@@ -282,6 +301,10 @@ export default function DescriptionsPage() {
     for (const segment of segmentsWithoutDescription) {
       setCurrentGeneratingDescId(segment.id);
       try {
+        // 确保使用最新的aspectRatio
+        const currentAspectRatio = project?.aspectRatio || "16:9";
+        console.log("[Frontend Batch] Generating description with aspectRatio:", currentAspectRatio);
+        
         const response = await apiRequest(
           "POST",
           "/api/descriptions/generate",
@@ -290,7 +313,7 @@ export default function DescriptionsPage() {
             translation: segment.translation,
             language: segment.language,
             generationMode: generationMode,
-            aspectRatio: aspectRatio,
+            aspectRatio: currentAspectRatio,
             styleSettings: project?.styleSettings,
           }
         );
