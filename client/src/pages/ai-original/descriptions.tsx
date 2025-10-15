@@ -399,7 +399,7 @@ export default function DescriptionsPage() {
       <main className="container mx-auto max-w-7xl px-6 pb-16">
         <Button
           variant="ghost"
-          onClick={() => setLocation("/ai-original/segments")}
+          onClick={() => setLocation("/ai-original/generation-mode")}
           className="mb-6"
           data-testid="button-back"
         >
@@ -412,7 +412,7 @@ export default function DescriptionsPage() {
           <div className="flex-1">
             <div className="mb-6">
               <h1 className="text-2xl font-bold text-foreground mb-1">
-                生成图片
+                生成素材
               </h1>
               <p className="text-sm text-muted-foreground">
                 共 {segments.length} 个镜头
