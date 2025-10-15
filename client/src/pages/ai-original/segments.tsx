@@ -5,7 +5,7 @@ import { StepProgress } from "@/components/step-progress";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, Scissors, ArrowUpCircle, ArrowDownCircle } from "lucide-react";
+import { ArrowLeft, Scissors, ArrowUpCircle, ArrowDownCircle, RefreshCw } from "lucide-react";
 import { useProject } from "@/hooks/use-project";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -138,6 +138,45 @@ export default function SegmentsPage() {
       });
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleRetranslate = async (segment: Segment) => {
+    if (segment.language !== 'English') return;
+    
+    setTranslatingSegments(new Set([segment.id]));
+    
+    try {
+      const response = await apiRequest("POST", "/api/segments/translate", {
+        segments: [{ id: segment.id, text: segment.text }]
+      });
+      const data = await response.json();
+      
+      const updatedSegments = segments.map(seg => 
+        seg.id === segment.id 
+          ? { ...seg, translation: data.translations[0].translation }
+          : seg
+      );
+      
+      setSegments(updatedSegments);
+      
+      // 保存翻译后的segments
+      await saveSegmentsToProject(updatedSegments);
+      
+      setTranslatingSegments(new Set());
+      
+      toast({
+        title: "翻译完成",
+        description: "片段已重新翻译",
+      });
+    } catch (error) {
+      console.error("Translation failed:", error);
+      setTranslatingSegments(new Set());
+      toast({
+        title: "翻译失败",
+        description: "请稍后重试",
+        variant: "destructive",
+      });
     }
   };
 
@@ -479,7 +518,19 @@ export default function SegmentsPage() {
                     translatingSegments.has(segment.id) ? (
                       <p className="text-sm text-muted-foreground italic">正在翻译...</p>
                     ) : segment.translation ? (
-                      <p className="text-base text-muted-foreground">{segment.translation}</p>
+                      <div className="flex items-center gap-2">
+                        <p className="text-base text-muted-foreground flex-1">{segment.translation}</p>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleRetranslate(segment)}
+                          className="h-7"
+                          data-testid={`button-retranslate-${segment.number}`}
+                        >
+                          <RefreshCw className="h-3 w-3 mr-1" />
+                          重新翻译
+                        </Button>
+                      </div>
                     ) : null
                   )}
                 </div>
@@ -496,13 +547,6 @@ export default function SegmentsPage() {
             下一步：选择流程
           </Button>
         </div>
-
-        <Card className="mt-6 p-6 bg-muted/50 border border-muted-foreground/20">
-          <h3 className="font-medium text-foreground mb-2">分段成功</h3>
-          <p className="text-sm text-muted-foreground">
-            已生成 {segments.length} 个分段，您可以继续编辑或进入下一步
-          </p>
-        </Card>
       </main>
 
       {/* 切割对话框 */}
