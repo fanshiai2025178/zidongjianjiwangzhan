@@ -368,10 +368,12 @@ export default function SegmentsPage() {
               </div>
               <div className="space-y-3">
                 <div>
-                  <p className="text-sm text-muted-foreground">文案片段</p>
+                  <p className="text-sm text-muted-foreground">
+                    {segment.language === 'English' ? '英文原文' : '文案片段'}
+                  </p>
                   <p className="text-base text-foreground">{segment.text}</p>
                 </div>
-                {segment.translation && (
+                {segment.language === 'English' && segment.translation && (
                   <div>
                     <p className="text-sm text-muted-foreground">中文翻译</p>
                     <p className="text-base text-foreground">{segment.translation}</p>
