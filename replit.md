@@ -6,13 +6,14 @@ This is an AI-powered video creation platform that enables users to create profe
 
 ## Recent Changes (October 15, 2025)
 
-**API 迁移至 Google Gemini（最新）**
-- **文本生成 API**: 将 DeepSeek API 全面替换为 Google Gemini 2.0 Flash
-- **图片生成 API**: 将火山引擎 Volcengine API 替换为 Gemini 2.0 Flash Image Generation
-- **统一 API 管理**: 使用单一的 GEMINI_API_KEY 环境变量
+**API 迁移至第三方代理服务（最新）**
+- **服务地址**: https://ai.da520.online (OpenAI 兼容格式)
+- **文本生成**: 使用 gemini-2.0-flash-exp 模型
+- **图片生成**: 使用 gemini-2.0-flash-preview-image-generation 模型
+- **统一密钥**: 使用 THIRD_PARTY_API_KEY 环境变量
 - **提示词优化**: 图片生成自动添加画面比例和质量提示
-- **功能覆盖**: 翻译、分段、描述词生成、图片生成全部使用 Gemini
-- 移除对 DEEPSEEK_API_KEY 和 VOLCENGINE 相关环境变量的依赖
+- **功能覆盖**: 翻译、分段、描述词生成、图片生成全部通过第三方代理调用
+- 移除对 DEEPSEEK_API_KEY、GEMINI_API_KEY 和 VOLCENGINE 相关环境变量的依赖
 
 **描述词生成优化 - 遵循Seedream 4.0规范**
 - **专业提示词规范**: 按照火山引擎Seedream 4.0官方规范优化提示词生成

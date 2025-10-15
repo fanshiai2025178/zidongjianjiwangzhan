@@ -2,7 +2,7 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { insertProjectSchema } from "@shared/schema";
-import { callGeminiAPI, generateImageWithGemini } from "./gemini";
+import { callThirdPartyAPI, generateImageWithThirdPartyAPI } from "./third-party-api";
 
 // DeepSeek API调用（已废弃，改用 Gemini）
 async function callDeepSeekAPI(prompt: string, systemPrompt?: string): Promise<string> {
@@ -115,7 +115,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const translationPrompt = `请将以下英文文本片段翻译成中文，保持原意和专业性。直接返回JSON数组格式，每个元素包含id和translation字段：\n\n${JSON.stringify(segments)}`;
       
-      const translationResult = await callGeminiAPI(translationPrompt, "你是一个专业的英中翻译助手。");
+      const translationResult = await callThirdPartyAPI(translationPrompt, "你是一个专业的英中翻译助手。");
       const cleanTranslation = translationResult.replace(/```json\n?|\n?```/g, '').trim();
       const translations = JSON.parse(cleanTranslation);
       
@@ -237,7 +237,7 @@ ${contentToDescribe}
         systemPrompt = "你是专业的AI图片提示词撰写专家，精通Seedream 4.0图片生成规范。你的提示词能够准确指导AI生成高质量、符合预期的图片内容，具有出色的视觉表现力和艺术性。";
       }
       
-      const description = await callGeminiAPI(descriptionPrompt, systemPrompt);
+      const description = await callThirdPartyAPI(descriptionPrompt, systemPrompt);
       console.log("[Description] Generated description successfully");
       
       res.json({ description: description.trim() });
@@ -268,8 +268,8 @@ ${contentToDescribe}
       
       const enhancedPrompt = `${prompt}，${orientationHint}，高质量，细节丰富`;
 
-      // 调用 Gemini 图片生成
-      const imageUrl = await generateImageWithGemini(enhancedPrompt);
+      // 调用第三方 API 图片生成
+      const imageUrl = await generateImageWithThirdPartyAPI(enhancedPrompt);
 
       console.log("[Gemini Image] Successfully generated image");
       
@@ -308,8 +308,8 @@ ${contentToDescribe}
         ? "You are a professional video script segmentation assistant. Always keep the original English text."
         : "你是一个专业的视频脚本分段助手。";
       
-      const result = await callGeminiAPI(segmentPrompt, systemPrompt);
-      console.log("[Segments] Gemini API response:", result);
+      const result = await callThirdPartyAPI(segmentPrompt, systemPrompt);
+      console.log("[Segments] Third-party API response:", result);
       
       // 尝试解析AI返回的JSON
       let segments;
@@ -334,7 +334,7 @@ ${contentToDescribe}
         const translationPrompt = `请将以下英文文本片段翻译成中文，保持原意和专业性。直接返回JSON数组格式，每个元素包含translation字段：\n\n${JSON.stringify(segments.map((s: any) => s.text || s))}`;
         
         try {
-          const translationResult = await callGeminiAPI(translationPrompt, "你是一个专业的英中翻译助手。");
+          const translationResult = await callThirdPartyAPI(translationPrompt, "你是一个专业的英中翻译助手。");
           const cleanTranslation = translationResult.replace(/```json\n?|\n?```/g, '').trim();
           const translations = JSON.parse(cleanTranslation);
           
