@@ -34,6 +34,8 @@ export default function DescriptionsPage() {
   const [currentGeneratingVideoId, setCurrentGeneratingVideoId] = useState<string | null>(null);
 
   const segments = (project?.segments as Segment[]) || [];
+  const generationMode = project?.generationMode || "text-to-image-to-video";
+  const isTextToVideo = generationMode === "text-to-video";
   const totalDuration = Math.ceil(segments.length * 5);
   const minutes = Math.floor(totalDuration / 60);
   const seconds = totalDuration % 60;
@@ -89,15 +91,16 @@ export default function DescriptionsPage() {
   });
 
   // 生成单个图片
-  const generateSingleImage = async (segmentId: string) => {
-    const segment = segments.find(s => s.id === segmentId);
+  const generateSingleImage = async (segmentId: string, currentSegments?: Segment[]) => {
+    const segs = currentSegments || segments;
+    const segment = segs.find(s => s.id === segmentId);
     if (!segment?.sceneDescription) {
       toast({
         title: "提示",
         description: "请先生成场景描述",
         variant: "destructive",
       });
-      return;
+      return segs;
     }
 
     setGeneratingImages(prev => new Set(prev).add(segmentId));
@@ -112,7 +115,7 @@ export default function DescriptionsPage() {
       );
       const data = await response.json();
       
-      const updatedSegments = segments.map(seg =>
+      const updatedSegments = segs.map(seg =>
         seg.id === segmentId ? { ...seg, imageUrl: data.imageUrl } : seg
       );
       updateSegments(updatedSegments);
@@ -133,12 +136,15 @@ export default function DescriptionsPage() {
         title: "生成成功",
         description: "图片已生成",
       });
+      
+      return updatedSegments;
     } catch (error) {
       toast({
         title: "生成失败",
         description: error instanceof Error ? error.message : "请稍后重试",
         variant: "destructive",
       });
+      return segs;
     } finally {
       setGeneratingImages(prev => {
         const next = new Set(prev);
@@ -219,10 +225,14 @@ export default function DescriptionsPage() {
     }
 
     setBatchGeneratingImages(true);
+    let currentSegments = [...segments];
 
     for (const segment of segmentsWithDescription) {
       setCurrentGeneratingImageId(segment.id);
-      await generateSingleImage(segment.id);
+      const updated = await generateSingleImage(segment.id, currentSegments);
+      if (updated) {
+        currentSegments = updated;
+      }
     }
 
     setCurrentGeneratingImageId(null);
@@ -391,11 +401,11 @@ export default function DescriptionsPage() {
             {/* 表格容器 */}
             <div className="border border-border rounded-lg overflow-hidden">
               {/* 表头 */}
-              <div className="grid grid-cols-12 gap-0 bg-muted/30 border-b border-border">
+              <div className={`grid ${isTextToVideo ? 'grid-cols-10' : 'grid-cols-12'} gap-0 bg-muted/30 border-b border-border`}>
                 <div className="col-span-1 p-3 text-sm text-muted-foreground border-r border-border">编号</div>
                 <div className="col-span-2 p-3 text-sm text-muted-foreground border-r border-border">文案</div>
                 <div className="col-span-2 p-3 text-sm text-muted-foreground border-r border-border">翻译</div>
-                <div className="col-span-3 p-3 border-r border-border">
+                <div className={`${isTextToVideo ? 'col-span-3' : 'col-span-3'} p-3 border-r border-border`}>
                   <Button
                     size="sm"
                     onClick={handleBatchGenerateDescriptions}
@@ -416,32 +426,34 @@ export default function DescriptionsPage() {
                     )}
                   </Button>
                 </div>
-                <div className="col-span-2 p-3 border-r border-border">
-                  <Button
-                    size="sm"
-                    onClick={handleBatchGenerateImages}
-                    disabled={batchGeneratingImages || segments.every(s => !s.sceneDescription || s.imageUrl)}
-                    className="w-full"
-                    data-testid="button-batch-generate-images"
-                  >
-                    {batchGeneratingImages ? (
-                      <>
-                        <Loader2 className="h-3 w-3 mr-1 animate-spin" />
-                        生成中...
-                      </>
-                    ) : (
-                      <>
-                        <ImageIcon className="h-3 w-3 mr-1" />
-                        批量生成图片
-                      </>
-                    )}
-                  </Button>
-                </div>
+                {!isTextToVideo && (
+                  <div className="col-span-2 p-3 border-r border-border">
+                    <Button
+                      size="sm"
+                      onClick={handleBatchGenerateImages}
+                      disabled={batchGeneratingImages || segments.every(s => !s.sceneDescription || s.imageUrl)}
+                      className="w-full"
+                      data-testid="button-batch-generate-images"
+                    >
+                      {batchGeneratingImages ? (
+                        <>
+                          <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+                          生成中...
+                        </>
+                      ) : (
+                        <>
+                          <ImageIcon className="h-3 w-3 mr-1" />
+                          批量生成图片
+                        </>
+                      )}
+                    </Button>
+                  </div>
+                )}
                 <div className="col-span-2 p-3">
                   <Button
                     size="sm"
                     onClick={handleBatchGenerateVideos}
-                    disabled={batchGeneratingVideos || segments.every(s => !s.imageUrl || s.videoUrl)}
+                    disabled={batchGeneratingVideos || segments.every(s => isTextToVideo ? !s.sceneDescription || s.videoUrl : !s.imageUrl || s.videoUrl)}
                     className="w-full"
                     data-testid="button-batch-generate-videos"
                   >
@@ -462,7 +474,7 @@ export default function DescriptionsPage() {
 
               {/* 片段列表 */}
               {segments.map((segment, index) => (
-                <div key={segment.id} className={`grid grid-cols-12 gap-0 ${index !== segments.length - 1 ? 'border-b border-border' : ''}`} data-testid={`row-segment-${segment.number}`}>
+                <div key={segment.id} className={`grid ${isTextToVideo ? 'grid-cols-10' : 'grid-cols-12'} gap-0 ${index !== segments.length - 1 ? 'border-b border-border' : ''}`} data-testid={`row-segment-${segment.number}`}>
                   {/* 编号 */}
                   <div className="col-span-1 p-3 border-r border-border flex items-center">
                     <Badge variant="secondary" className="font-mono">
@@ -563,61 +575,63 @@ export default function DescriptionsPage() {
                     )}
                   </div>
 
-                  {/* 生成图片列 */}
-                  <div className="col-span-2 p-3 border-r border-border">
-                    {segment.imageUrl ? (
-                      <div className="space-y-2">
-                        <div className="relative aspect-video bg-muted rounded-md overflow-hidden">
-                          <img 
-                            src={segment.imageUrl} 
-                            alt={`Scene ${segment.number}`}
-                            className="w-full h-full object-cover"
-                            data-testid={`image-${segment.number}`}
-                          />
+                  {/* 生成图片列 - 仅文生图+图生视频模式显示 */}
+                  {!isTextToVideo && (
+                    <div className="col-span-2 p-3 border-r border-border">
+                      {segment.imageUrl ? (
+                        <div className="space-y-2">
+                          <div className="relative aspect-video bg-muted rounded-md overflow-hidden">
+                            <img 
+                              src={segment.imageUrl} 
+                              alt={`Scene ${segment.number}`}
+                              className="w-full h-full object-cover"
+                              data-testid={`image-${segment.number}`}
+                            />
+                          </div>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => generateSingleImage(segment.id)}
+                            disabled={generatingImages.has(segment.id) || batchGeneratingImages}
+                            className="w-full"
+                            data-testid={`button-regenerate-image-${segment.number}`}
+                          >
+                            {generatingImages.has(segment.id) || currentGeneratingImageId === segment.id ? (
+                              <>
+                                <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+                                生成中
+                              </>
+                            ) : (
+                              "重新生成"
+                            )}
+                          </Button>
                         </div>
+                      ) : (
                         <Button
                           size="sm"
-                          variant="outline"
+                          variant="default"
                           onClick={() => generateSingleImage(segment.id)}
-                          disabled={generatingImages.has(segment.id) || batchGeneratingImages}
+                          disabled={!segment.sceneDescription || generatingImages.has(segment.id) || batchGeneratingImages}
                           className="w-full"
-                          data-testid={`button-regenerate-image-${segment.number}`}
+                          data-testid={`button-generate-image-${segment.number}`}
                         >
                           {generatingImages.has(segment.id) || currentGeneratingImageId === segment.id ? (
                             <>
                               <Loader2 className="h-3 w-3 mr-1 animate-spin" />
                               生成中
                             </>
+                          ) : batchGeneratingImages && segment.sceneDescription && !segment.imageUrl ? (
+                            <>
+                              <Loader2 className="h-3 w-3 mr-1 animate-spin opacity-50" />
+                              等待生成
+                            </>
                           ) : (
-                            "重新生成"
+                            "生成"
                           )}
                         </Button>
-                      </div>
-                    ) : (
-                      <Button
-                        size="sm"
-                        variant="default"
-                        onClick={() => generateSingleImage(segment.id)}
-                        disabled={!segment.sceneDescription || generatingImages.has(segment.id) || batchGeneratingImages}
-                        className="w-full"
-                        data-testid={`button-generate-image-${segment.number}`}
-                      >
-                        {generatingImages.has(segment.id) || currentGeneratingImageId === segment.id ? (
-                          <>
-                            <Loader2 className="h-3 w-3 mr-1 animate-spin" />
-                            生成中
-                          </>
-                        ) : batchGeneratingImages && segment.sceneDescription && !segment.imageUrl ? (
-                          <>
-                            <Loader2 className="h-3 w-3 mr-1 animate-spin opacity-50" />
-                            等待生成
-                          </>
-                        ) : (
-                          "生成"
-                        )}
-                      </Button>
-                    )}
-                  </div>
+                      )}
+                    </div>
+                  )}
 
                   {/* 生成视频列 */}
                   <div className="col-span-2 p-3">
@@ -625,7 +639,11 @@ export default function DescriptionsPage() {
                       size="sm"
                       variant={segment.videoUrl ? "outline" : "default"}
                       onClick={() => generateSingleVideo(segment.id)}
-                      disabled={!segment.imageUrl || generatingVideos.has(segment.id) || batchGeneratingVideos}
+                      disabled={
+                        isTextToVideo 
+                          ? !segment.sceneDescription || generatingVideos.has(segment.id) || batchGeneratingVideos
+                          : !segment.imageUrl || generatingVideos.has(segment.id) || batchGeneratingVideos
+                      }
                       className="w-full"
                       data-testid={`button-generate-video-${segment.number}`}
                     >
@@ -634,7 +652,7 @@ export default function DescriptionsPage() {
                           <Loader2 className="h-3 w-3 mr-1 animate-spin" />
                           生成中
                         </>
-                      ) : batchGeneratingVideos && segment.imageUrl && !segment.videoUrl ? (
+                      ) : batchGeneratingVideos && (isTextToVideo ? segment.sceneDescription : segment.imageUrl) && !segment.videoUrl ? (
                         <>
                           <Loader2 className="h-3 w-3 mr-1 animate-spin opacity-50" />
                           等待生成

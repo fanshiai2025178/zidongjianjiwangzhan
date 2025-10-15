@@ -22,7 +22,13 @@ export default function GenerationModePage() {
     if (selectedMode) {
       updateGenerationMode(selectedMode);
       updateCurrentStep(5);
-      setLocation("/ai-original/descriptions");
+      if (selectedMode === "text-to-video") {
+        // 文生视频：直接跳到生成描述页（视频描述）
+        setLocation("/ai-original/descriptions");
+      } else {
+        // 文生图+图生视频：跳到生成描述页（图片描述）
+        setLocation("/ai-original/descriptions");
+      }
     }
   };
 
