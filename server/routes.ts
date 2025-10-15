@@ -2,8 +2,9 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { insertProjectSchema } from "@shared/schema";
+import { callGeminiAPI, generateImageWithGemini } from "./gemini";
 
-// DeepSeek API调用
+// DeepSeek API调用（已废弃，改用 Gemini）
 async function callDeepSeekAPI(prompt: string, systemPrompt?: string): Promise<string> {
   const apiKey = process.env.DEEPSEEK_API_KEY;
   if (!apiKey) {
@@ -114,7 +115,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const translationPrompt = `请将以下英文文本片段翻译成中文，保持原意和专业性。直接返回JSON数组格式，每个元素包含id和translation字段：\n\n${JSON.stringify(segments)}`;
       
-      const translationResult = await callDeepSeekAPI(translationPrompt, "你是一个专业的英中翻译助手。");
+      const translationResult = await callGeminiAPI(translationPrompt, "你是一个专业的英中翻译助手。");
       const cleanTranslation = translationResult.replace(/```json\n?|\n?```/g, '').trim();
       const translations = JSON.parse(cleanTranslation);
       
@@ -236,7 +237,7 @@ ${contentToDescribe}
         systemPrompt = "你是专业的AI图片提示词撰写专家，精通Seedream 4.0图片生成规范。你的提示词能够准确指导AI生成高质量、符合预期的图片内容，具有出色的视觉表现力和艺术性。";
       }
       
-      const description = await callDeepSeekAPI(descriptionPrompt, systemPrompt);
+      const description = await callGeminiAPI(descriptionPrompt, systemPrompt);
       console.log("[Description] Generated description successfully");
       
       res.json({ description: description.trim() });
@@ -246,7 +247,7 @@ ${contentToDescribe}
     }
   });
 
-  // 火山引擎图片生成API
+  // Gemini 图片生成API
   app.post("/api/images/generate", async (req, res) => {
     try {
       const { prompt, aspectRatio = "16:9" } = req.body;
@@ -254,91 +255,29 @@ ${contentToDescribe}
         return res.status(400).json({ error: "Prompt is required" });
       }
 
-      const apiKey = process.env.VOLCENGINE_ACCESS_KEY;
-      const endpointId = process.env.VOLCENGINE_ENDPOINT_ID;
+      console.log("[Gemini Image] Generating image...");
+      console.log("[Gemini Image] Aspect Ratio:", aspectRatio);
+      console.log("[Gemini Image] Prompt:", prompt.substring(0, 100) + "...");
+
+      // 根据比例优化提示词
+      const orientationHint = aspectRatio === '9:16' || aspectRatio === '3:4' 
+        ? '竖屏构图（portrait orientation）' 
+        : aspectRatio === '1:1' 
+        ? '方形构图（square composition）' 
+        : '横屏构图（landscape orientation）';
       
-      if (!apiKey) {
-        console.error("[Image] VOLCENGINE_ACCESS_KEY not configured");
-        return res.status(500).json({ error: "火山引擎API密钥未配置，请设置VOLCENGINE_ACCESS_KEY环境变量" });
-      }
+      const enhancedPrompt = `${prompt}，${orientationHint}，高质量，细节丰富`;
 
-      if (!endpointId) {
-        console.error("[Image] VOLCENGINE_ENDPOINT_ID not configured");
-        return res.status(500).json({ error: "火山引擎Endpoint ID未配置，请设置VOLCENGINE_ENDPOINT_ID环境变量" });
-      }
+      // 调用 Gemini 图片生成
+      const imageUrl = await generateImageWithGemini(enhancedPrompt);
 
-      // 根据比例设置图片尺寸（火山引擎要求至少921600像素）
-      const sizeMap: Record<string, string> = {
-        "9:16": "720x1280",   // 921600 pixels
-        "3:4": "864x1152",    // 995328 pixels
-        "1:1": "1024x1024",   // 1048576 pixels
-        "16:9": "1280x720",   // 921600 pixels
-        "4:3": "1152x864",    // 995328 pixels
-      };
-      const size = sizeMap[aspectRatio] || "1024x1024";
-
-      console.log("[Image] Generating image...");
-      console.log("[Image] Endpoint ID:", endpointId);
-      console.log("[Image] API Key (first 10 chars):", apiKey.substring(0, 10) + "...");
-      console.log("[Image] Aspect Ratio:", aspectRatio);
-      console.log("[Image] Size:", size);
-      console.log("[Image] Prompt:", prompt.substring(0, 100) + "...");
-
-      // 调用火山引擎图片生成API
-      const requestBody = {
-        model: endpointId,
-        prompt: prompt,
-        size: size,
-        n: 1,
-      };
-      
-      console.log("[Image] Request body:", JSON.stringify(requestBody));
-
-      const response = await fetch("https://ark.cn-beijing.volces.com/api/v3/images/generations", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${apiKey}`,
-        },
-        body: JSON.stringify(requestBody),
-      });
-
-      console.log("[Image] Response status:", response.status);
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error("[Image] API Error Response:", errorText);
-        
-        // 如果是认证错误，返回更友好的提示
-        if (response.status === 401) {
-          return res.status(401).json({ 
-            error: "火山引擎API认证失败", 
-            details: "请检查VOLCENGINE_ACCESS_KEY是否正确配置。API密钥应该从火山引擎控制台的API Key管理获取。",
-            rawError: errorText
-          });
-        }
-        
-        throw new Error(`火山引擎API错误: ${response.status} - ${errorText}`);
-      }
-
-      const data = await response.json();
-      console.log("[Image] API Response:", JSON.stringify(data).substring(0, 300));
-      
-      // 火山引擎API返回格式通常是 { data: [{ url: "..." }] }
-      const imageUrl = data.data?.[0]?.url || data.url || null;
-      
-      if (!imageUrl) {
-        console.error("[Image] No image URL in response:", JSON.stringify(data));
-        throw new Error("API返回数据中没有找到图片URL");
-      }
-
-      console.log("[Image] Successfully generated image:", imageUrl);
+      console.log("[Gemini Image] Successfully generated image");
       
       res.json({ 
         imageUrl: imageUrl,
       });
     } catch (error) {
-      console.error("[Image] Error:", error);
+      console.error("[Gemini Image] Error:", error);
       res.status(500).json({ 
         error: "图片生成失败", 
         details: error instanceof Error ? error.message : String(error) 
@@ -369,8 +308,8 @@ ${contentToDescribe}
         ? "You are a professional video script segmentation assistant. Always keep the original English text."
         : "你是一个专业的视频脚本分段助手。";
       
-      const result = await callDeepSeekAPI(segmentPrompt, systemPrompt);
-      console.log("[Segments] DeepSeek API response:", result);
+      const result = await callGeminiAPI(segmentPrompt, systemPrompt);
+      console.log("[Segments] Gemini API response:", result);
       
       // 尝试解析AI返回的JSON
       let segments;
@@ -395,7 +334,7 @@ ${contentToDescribe}
         const translationPrompt = `请将以下英文文本片段翻译成中文，保持原意和专业性。直接返回JSON数组格式，每个元素包含translation字段：\n\n${JSON.stringify(segments.map((s: any) => s.text || s))}`;
         
         try {
-          const translationResult = await callDeepSeekAPI(translationPrompt, "你是一个专业的英中翻译助手。");
+          const translationResult = await callGeminiAPI(translationPrompt, "你是一个专业的英中翻译助手。");
           const cleanTranslation = translationResult.replace(/```json\n?|\n?```/g, '').trim();
           const translations = JSON.parse(cleanTranslation);
           
