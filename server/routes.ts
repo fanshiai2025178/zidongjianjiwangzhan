@@ -3,6 +3,7 @@ import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { insertProjectSchema } from "@shared/schema";
 import { callJuguangAPI, generateImageWithJuguang } from "./juguang-api";
+import { callVolcengineDeepSeek } from "./volcengine-api";
 
 // DeepSeek API调用（已废弃，改用 Gemini）
 async function callDeepSeekAPI(prompt: string, systemPrompt?: string): Promise<string> {
@@ -277,6 +278,147 @@ Output the prompt directly without additional explanation.`;
     } catch (error) {
       console.error("[Description] Error:", error);
       res.status(500).json({ error: "Failed to generate description", details: error instanceof Error ? error.message : String(error) });
+    }
+  });
+
+  // 批量生成描述词API（使用火山引擎DeepSeek）
+  app.post("/api/descriptions/batch-generate", async (req, res) => {
+    try {
+      const { segments, generationMode = "text-to-image-to-video", aspectRatio = "16:9", styleSettings } = req.body;
+      if (!segments || !Array.isArray(segments)) {
+        return res.status(400).json({ error: "Segments array is required" });
+      }
+
+      console.log("[Batch Description - Volcengine] Generating", segments.length, "descriptions");
+      console.log("[Batch Description - Volcengine] Generation mode:", generationMode);
+      console.log("[Batch Description - Volcengine] Aspect ratio:", aspectRatio);
+
+      const results = [];
+
+      // 预设风格映射表
+      const presetStyleDescriptions: Record<string, string> = {
+        "cinema": "Cinematic quality with film language (depth of field, camera movements, professional lighting), rich visual layers, clear color grading, strong atmospheric presence",
+        "anime": "Japanese anime style with clean lines, vivid saturated colors, exaggerated character expressions, simplified backgrounds, anime-style lighting effects",
+        "realistic": "Photorealistic style with natural lighting effects, rich details, authentic material textures, accurate natural colors, follows physical laws",
+        "fantasy": "Fantasy magical atmosphere with mystical dreamy tones (purple, blue, gold dominant), magical light effects, castle architecture elements, surreal scenes",
+        "retro": "80s-90s retro vibe with film grain, faded effects, nostalgic color palette (warm yellow, orange-red, brown), vintage filter textures",
+        "minimalist": "Minimalist approach with ample negative space, clean composition, restrained colors (monochrome or dual-color), emphasis on geometric shapes and lines",
+        "noir": "Film noir style with black-white or desaturated tones, strong contrast between light and shadow, dramatic lighting, suspenseful oppressive atmosphere",
+        "cyberpunk": "Cyberpunk futuristic feel with neon lighting effects (blue, pink, purple), tech elements, urban nightscape, rain-soaked reflective textures"
+      };
+
+      // 构建风格参考信息
+      let styleContext = "";
+      if (styleSettings) {
+        if (styleSettings.useCharacterReference && styleSettings.characterImageUrl) {
+          styleContext += "\n\n[CHARACTER CONSISTENCY REQUIREMENTS - MUST STRICTLY FOLLOW]\nUser has uploaded a character reference image. In all shot descriptions:\n• Main character must maintain the same appearance features (gender, age, hairstyle, body type, clothing style)\n• Describe specific features: e.g., 'young woman with shoulder-length black hair in white shirt' rather than 'protagonist' or 'she'\n• Ensure character image is completely consistent throughout the story, no different character appearances\n• If specific features cannot be determined, use 'the same character' and keep descriptions uniform";
+        }
+        
+        if (styleSettings.useStyleReference && styleSettings.styleImageUrl) {
+          styleContext += "\n\n[VISUAL STYLE REQUIREMENTS - MUST STRICTLY FOLLOW]\nUser has uploaded a style reference image. All shots must maintain:\n• Same color tones and color schemes\n• Consistent lighting style and atmosphere\n• Unified artistic expression techniques\n• Similar visual textures and detail treatment";
+        }
+        
+        if (styleSettings.usePresetStyle && styleSettings.presetStyleId) {
+          const styleDesc = presetStyleDescriptions[styleSettings.presetStyleId];
+          if (styleDesc) {
+            styleContext += `\n\n[PRESET STYLE REQUIREMENTS - MUST STRICTLY FOLLOW]\nStyle: ${styleSettings.presetStyleId}\nCharacteristics: ${styleDesc}\n\nAll shot descriptions must reflect the above style characteristics and maintain complete visual style unity.`;
+          }
+        }
+      }
+
+      // 逐个生成描述词
+      for (const segment of segments) {
+        const contentToDescribe = segment.language === "English" && segment.translation 
+          ? `${segment.text}\n(中文翻译: ${segment.translation})`
+          : segment.text;
+
+        let descriptionPrompt: string;
+        let systemPrompt: string;
+
+        if (generationMode === "text-to-video") {
+          descriptionPrompt = `Generate a professional AI video generation prompt for the following content.
+
+Content:
+${contentToDescribe}
+
+Aspect Ratio: ${aspectRatio} (${aspectRatio === '9:16' || aspectRatio === '3:4' ? 'Vertical/Portrait' : aspectRatio === '1:1' ? 'Square' : 'Horizontal/Landscape'})
+
+[VIDEO PROMPT CORE REQUIREMENTS]
+1. **Dynamic Expression**: Must describe clear actions and movements
+2. **Camera Language**: Specify camera movement methods (push in, pull out, pan, follow, tilt, etc.)
+3. **Time Evolution**: Describe temporal flow and progression of the scene
+4. **Ratio Adaptation**: Optimize dynamic performance for ${aspectRatio} composition
+5. **English Output**: Write in English with specific, vivid descriptions
+
+[VIDEO-SPECIFIC ELEMENTS]
+• **Action Description**: Specific actions and posture changes
+• **Camera Movement**: Clear camera motion methods
+• **Temporal Flow**: Scene progression from start → development → end${styleContext}
+
+[FORMAT REQUIREMENTS]
+- Limit to 200 words
+- Avoid abstract terms, use concrete visual descriptions
+- No markdown formatting
+- No copyrighted content
+- Output in English
+
+Output the prompt directly without additional explanation.`;
+          
+          systemPrompt = "You are a professional AI video prompt expert with deep knowledge of cinematography and video generation AI models. Your prompts drive high-quality video creation with clear motion, camera work, and temporal structure.";
+        } else {
+          descriptionPrompt = `Generate a professional AI image generation prompt for the following content.
+
+Content:
+${contentToDescribe}
+
+Aspect Ratio: ${aspectRatio} (${aspectRatio === '9:16' || aspectRatio === '3:4' ? 'Vertical/Portrait' : aspectRatio === '1:1' ? 'Square' : 'Horizontal/Landscape'})
+
+[IMAGE PROMPT CORE REQUIREMENTS]
+1. **Static Scene**: Describe a frozen moment, not a sequence
+2. **Spatial Layout**: Clear foreground, midground, and background
+3. **Visual Details**: Precise textures, lighting, and materials
+4. **Ratio Adaptation**: Optimize composition for ${aspectRatio}
+5. **English Output**: Write in English with vivid descriptions
+
+[IMAGE-SPECIFIC ELEMENTS]
+• **Static Posture**: Fixed postures and expressions
+• **Decisive Moment**: Capture a decisive instant
+• **Spatial Layout**: Layering of foreground, midground, and background
+• **Detail Rendering**: Precise description of materials, textures, and lighting${styleContext}
+
+[FORMAT REQUIREMENTS]
+- Limit to 200 words
+- Avoid abstract terms, use concrete visual descriptions
+- No markdown formatting
+- No copyrighted content
+- Output in English
+
+Output the prompt directly without additional explanation.`;
+          
+          systemPrompt = "You are a professional AI image prompt expert, proficient in image generation specifications and visual arts. You excel at transforming text into static scene descriptions for high-quality image generation.";
+        }
+
+        try {
+          const description = await callVolcengineDeepSeek(descriptionPrompt, systemPrompt);
+          results.push({
+            id: segment.id,
+            description: description.trim(),
+          });
+          console.log(`[Batch Description - Volcengine] Generated description for segment ${segment.id}`);
+        } catch (error) {
+          console.error(`[Batch Description - Volcengine] Error for segment ${segment.id}:`, error);
+          results.push({
+            id: segment.id,
+            error: error instanceof Error ? error.message : "Failed to generate description",
+          });
+        }
+      }
+
+      console.log("[Batch Description - Volcengine] Successfully generated", results.filter(r => !r.error).length, "descriptions");
+      res.json({ results });
+    } catch (error) {
+      console.error("[Batch Description - Volcengine] Error:", error);
+      res.status(500).json({ error: "Failed to batch generate descriptions", details: error instanceof Error ? error.message : String(error) });
     }
   });
 

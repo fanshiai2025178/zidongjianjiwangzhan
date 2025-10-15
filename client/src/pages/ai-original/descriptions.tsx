@@ -223,7 +223,7 @@ export default function DescriptionsPage() {
     }
   };
 
-  // 批量生成描述词
+  // 批量生成描述词（使用火山引擎DeepSeek API）
   const handleBatchGenerateDescriptions = async () => {
     // 过滤出：没有描述词 OR 比例不匹配的片段
     const segmentsToGenerate = segments.filter(s => 
@@ -240,75 +240,81 @@ export default function DescriptionsPage() {
     }
 
     setBatchGeneratingDescriptions(true);
-    setShouldStopDescriptions(false); // 重置停止标志
-    let currentSegments = [...segments];
-    let generatedCount = 0;
-
-    for (const segment of segmentsToGenerate) {
-      // 检查是否需要停止
-      if (shouldStopDescriptions) {
-        console.log("[Batch] Stopped descriptions generation by user");
-        break;
-      }
-
-      setCurrentGeneratingDescId(segment.id);
-      try {
-        // 确保使用最新的aspectRatio
-        const currentAspectRatio = project?.aspectRatio || "16:9";
-        console.log("[Frontend Batch] Generating description with aspectRatio:", currentAspectRatio);
-        
-        const response = await apiRequest(
-          "POST",
-          "/api/descriptions/generate",
-          {
-            text: segment.text,
-            translation: segment.translation,
-            language: segment.language,
-            generationMode: generationMode,
-            aspectRatio: currentAspectRatio,
-            styleSettings: project?.styleSettings,
-          }
-        );
-        const data = await response.json();
-        
-        currentSegments = currentSegments.map(seg =>
-          seg.id === segment.id ? { 
-            ...seg, 
-            sceneDescription: data.description,
-            descriptionAspectRatio: currentAspectRatio // 记录生成时的比例
-          } : seg
-        );
-        updateSegments(currentSegments);
-        generatedCount++;
-      } catch (error) {
-        console.error("Failed to generate description:", error);
-      }
-    }
-
-    // 保存项目
-    if (project?.id) {
-      try {
-        await apiRequest("PATCH", `/api/projects/${project.id}`, {
-          ...project,
-          segments: currentSegments,
-        });
-      } catch (error) {
-        console.error("Failed to save project:", error);
-      }
-    }
-
-    setCurrentGeneratingDescId(null);
-    setBatchGeneratingDescriptions(false);
     setShouldStopDescriptions(false);
     
-    const message = shouldStopDescriptions 
-      ? `已停止，成功生成 ${generatedCount} 个描述`
-      : `成功生成 ${generatedCount} 个描述`;
-    
-    toast({
-      title: shouldStopDescriptions ? "已停止生成" : "批量生成完成",
-      description: message,
-    });
+    const currentAspectRatio = project?.aspectRatio || "16:9";
+    console.log("[Batch - Volcengine] Generating", segmentsToGenerate.length, "descriptions");
+    console.log("[Batch - Volcengine] Aspect ratio:", currentAspectRatio);
+
+    try {
+      // 调用火山引擎批量生成API
+      const response = await apiRequest(
+        "POST",
+        "/api/descriptions/batch-generate",
+        {
+          segments: segmentsToGenerate.map(s => ({
+            id: s.id,
+            text: s.text,
+            translation: s.translation,
+            language: s.language,
+          })),
+          generationMode: generationMode,
+          aspectRatio: currentAspectRatio,
+          styleSettings: project?.styleSettings,
+        }
+      );
+      const data = await response.json();
+      
+      // 处理返回结果
+      const results = data.results || [];
+      let successCount = 0;
+      let currentSegments = [...segments];
+      
+      for (const result of results) {
+        if (result.description) {
+          currentSegments = currentSegments.map(seg =>
+            seg.id === result.id ? {
+              ...seg,
+              sceneDescription: result.description,
+              descriptionAspectRatio: currentAspectRatio,
+            } : seg
+          );
+          successCount++;
+        } else if (result.error) {
+          console.error(`Failed to generate description for ${result.id}:`, result.error);
+        }
+      }
+      
+      updateSegments(currentSegments);
+      
+      // 保存项目
+      if (project?.id) {
+        try {
+          await apiRequest("PATCH", `/api/projects/${project.id}`, {
+            ...project,
+            segments: currentSegments,
+          });
+        } catch (error) {
+          console.error("Failed to save project:", error);
+        }
+      }
+      
+      toast({
+        title: "批量生成完成",
+        description: `成功生成 ${successCount} 个描述（使用火山引擎DeepSeek）`,
+      });
+    } catch (error) {
+      console.error("[Batch - Volcengine] Error:", error);
+      toast({
+        title: "生成失败",
+        description: error instanceof Error ? error.message : "请稍后重试",
+        variant: "destructive",
+      });
+    } finally {
+      setCurrentGeneratingDescId(null);
+      setBatchGeneratingDescriptions(false);
+      setShouldStopDescriptions(false);
+    }
   };
 
   // 批量生成图片
