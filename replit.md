@@ -2,7 +2,18 @@
 
 ## Overview
 
-This is an AI-powered video creation platform that enables users to create professional videos through multiple creation modes. The platform provides a step-by-step workflow for AI original video creation, with planned support for commentary and reference video modes. Built with a modern tech stack, it offers a dark-themed creative studio interface optimized for content creation workflows.
+This is an AI-powered video creation platform that enables users to create professional videos through multiple creation modes. The platform provides a complete 5-step workflow for AI original video creation (Style → Script → Segments → Descriptions → Result), with planned support for commentary and reference video modes. Built with a modern tech stack, it offers a dark-themed creative studio interface optimized for content creation workflows.
+
+## Recent Changes (October 15, 2025)
+
+**Description Generation Page Implementation**
+- Created complete descriptions page following design reference
+- Implemented DeepSeek API integration for scene description generation
+- Added card-based layout with segment details (number, text, translation, description)
+- Integrated edit functionality with textarea and save/cancel actions
+- Built export panel with segment count and duration calculation
+- Added collapsible help section for export guidance
+- Updated workflow: Segments → Descriptions (skipping generation mode for now)
 
 ## User Preferences
 
