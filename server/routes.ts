@@ -128,7 +128,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // 生成分镜描述API
+  // 生成分镜描述API（使用火山引擎DeepSeek）
   app.post("/api/descriptions/generate", async (req, res) => {
     try {
       const { text, translation, language, generationMode = "text-to-image-to-video", aspectRatio = "16:9", styleSettings } = req.body;
@@ -136,10 +136,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: "Text is required" });
       }
 
-      console.log("[Description] Generating description for:", text.substring(0, 30) + "...");
-      console.log("[Description] Generation mode:", generationMode);
-      console.log("[Description] Aspect ratio:", aspectRatio);
-      console.log("[Description] Style settings:", styleSettings ? "Provided" : "None");
+      const volcengineEndpointId = process.env.VOLCENGINE_DEEPSEEK_ENDPOINT_ID;
+      const volcengineApiKey = process.env.VOLCENGINE_DEEPSEEK_API_KEY;
+      
+      if (!volcengineEndpointId || !volcengineApiKey) {
+        return res.status(500).json({ error: "Volcengine DeepSeek credentials are not configured" });
+      }
+
+      console.log("[Description - Volcengine DeepSeek] Generating description for:", text.substring(0, 30) + "...");
+      console.log("[Description - Volcengine DeepSeek] Endpoint:", volcengineEndpointId);
+      console.log("[Description - Volcengine DeepSeek] Generation mode:", generationMode);
+      console.log("[Description - Volcengine DeepSeek] Aspect ratio:", aspectRatio);
+      console.log("[Description - Volcengine DeepSeek] Style settings:", styleSettings ? "Provided" : "None");
 
       // 构建提示词
       const contentToDescribe = language === "English" && translation 
@@ -271,12 +279,42 @@ Output the prompt directly without additional explanation.`;
         systemPrompt = "You are a professional AI image prompt expert, proficient in Seedream 4.0 image generation specifications and visual arts. You excel at transforming text into static scene descriptions, accurately guiding AI to generate high-quality, artistic image content.";
       }
       
-      const description = await callDeepSeekAPI(descriptionPrompt, systemPrompt);
-      console.log("[Description] Generated description successfully");
+      // 使用火山引擎DeepSeek API
+      const response = await fetch("https://ark.cn-beijing.volces.com/api/v3/chat/completions", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${volcengineApiKey}`,
+        },
+        body: JSON.stringify({
+          model: volcengineEndpointId,
+          messages: [
+            {
+              role: "system",
+              content: systemPrompt
+            },
+            {
+              role: "user",
+              content: descriptionPrompt
+            }
+          ],
+          temperature: 0.7,
+        }),
+      });
+
+      if (!response.ok) {
+        const error = await response.text();
+        throw new Error(`Volcengine DeepSeek API error: ${error}`);
+      }
+
+      const data = await response.json();
+      const description = data.choices?.[0]?.message?.content || "";
+
+      console.log("[Description - Volcengine DeepSeek] Generated description successfully");
       
       res.json({ description: description.trim() });
     } catch (error) {
-      console.error("[Description] Error:", error);
+      console.error("[Description - Volcengine DeepSeek] Error:", error);
       res.status(500).json({ error: "Failed to generate description", details: error instanceof Error ? error.message : String(error) });
     }
   });
