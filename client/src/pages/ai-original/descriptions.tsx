@@ -316,226 +316,223 @@ export default function DescriptionsPage() {
               </p>
             </div>
 
-            {/* 表头 */}
-            <div className="grid grid-cols-12 gap-3 mb-4 px-4 items-center">
-              <div className="col-span-1 text-sm text-muted-foreground">编号</div>
-              <div className="col-span-2 text-sm text-muted-foreground">文案</div>
-              <div className="col-span-2 text-sm text-muted-foreground">翻译</div>
-              <div className="col-span-2">
-                <Button
-                  size="sm"
-                  onClick={handleBatchGenerateDescriptions}
-                  disabled={batchGeneratingDescriptions || segments.every(s => s.sceneDescription)}
-                  className="w-full"
-                  data-testid="button-batch-generate-descriptions"
-                >
-                  {batchGeneratingDescriptions ? (
-                    <>
-                      <Loader2 className="h-3 w-3 mr-1 animate-spin" />
-                      生成中...
-                    </>
-                  ) : (
-                    <>
-                      <Sparkles className="h-3 w-3 mr-1" />
-                      批量生成描述词
-                    </>
-                  )}
-                </Button>
+            {/* 表格容器 */}
+            <div className="border border-border rounded-lg overflow-hidden">
+              {/* 表头 */}
+              <div className="grid grid-cols-12 gap-0 bg-muted/30 border-b border-border">
+                <div className="col-span-1 p-3 text-sm text-muted-foreground border-r border-border">编号</div>
+                <div className="col-span-2 p-3 text-sm text-muted-foreground border-r border-border">文案</div>
+                <div className="col-span-2 p-3 text-sm text-muted-foreground border-r border-border">翻译</div>
+                <div className="col-span-3 p-3 border-r border-border">
+                  <Button
+                    size="sm"
+                    onClick={handleBatchGenerateDescriptions}
+                    disabled={batchGeneratingDescriptions || segments.every(s => s.sceneDescription)}
+                    className="w-full"
+                    data-testid="button-batch-generate-descriptions"
+                  >
+                    {batchGeneratingDescriptions ? (
+                      <>
+                        <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+                        生成中...
+                      </>
+                    ) : (
+                      <>
+                        <Sparkles className="h-3 w-3 mr-1" />
+                        批量生成描述词
+                      </>
+                    )}
+                  </Button>
+                </div>
+                <div className="col-span-2 p-3 border-r border-border">
+                  <Button
+                    size="sm"
+                    onClick={handleBatchGenerateImages}
+                    disabled={batchGeneratingImages || segments.every(s => !s.sceneDescription || s.imageUrl)}
+                    className="w-full"
+                    data-testid="button-batch-generate-images"
+                  >
+                    {batchGeneratingImages ? (
+                      <>
+                        <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+                        生成中...
+                      </>
+                    ) : (
+                      <>
+                        <ImageIcon className="h-3 w-3 mr-1" />
+                        批量生成图片
+                      </>
+                    )}
+                  </Button>
+                </div>
+                <div className="col-span-2 p-3">
+                  <Button
+                    size="sm"
+                    onClick={handleBatchGenerateVideos}
+                    disabled={batchGeneratingVideos || segments.every(s => !s.imageUrl || s.videoUrl)}
+                    className="w-full"
+                    data-testid="button-batch-generate-videos"
+                  >
+                    {batchGeneratingVideos ? (
+                      <>
+                        <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+                        生成中...
+                      </>
+                    ) : (
+                      <>
+                        <Video className="h-3 w-3 mr-1" />
+                        批量生成视频
+                      </>
+                    )}
+                  </Button>
+                </div>
               </div>
-              <div className="col-span-2">
-                <Button
-                  size="sm"
-                  onClick={handleBatchGenerateImages}
-                  disabled={batchGeneratingImages || segments.every(s => !s.sceneDescription || s.imageUrl)}
-                  className="w-full"
-                  data-testid="button-batch-generate-images"
-                >
-                  {batchGeneratingImages ? (
-                    <>
-                      <Loader2 className="h-3 w-3 mr-1 animate-spin" />
-                      生成中...
-                    </>
-                  ) : (
-                    <>
-                      <ImageIcon className="h-3 w-3 mr-1" />
-                      批量生成图片
-                    </>
-                  )}
-                </Button>
-              </div>
-              <div className="col-span-2">
-                <Button
-                  size="sm"
-                  onClick={handleBatchGenerateVideos}
-                  disabled={batchGeneratingVideos || segments.every(s => !s.imageUrl || s.videoUrl)}
-                  className="w-full"
-                  data-testid="button-batch-generate-videos"
-                >
-                  {batchGeneratingVideos ? (
-                    <>
-                      <Loader2 className="h-3 w-3 mr-1 animate-spin" />
-                      生成中...
-                    </>
-                  ) : (
-                    <>
-                      <Video className="h-3 w-3 mr-1" />
-                      批量生成视频
-                    </>
-                  )}
-                </Button>
-              </div>
-              <div className="col-span-1"></div>
-            </div>
 
-            {/* 片段卡片列表 */}
-            <div className="space-y-3">
-              {segments.map((segment) => (
-                <Card key={segment.id} className="p-4" data-testid={`card-segment-${segment.number}`}>
-                  <div className="grid grid-cols-12 gap-3 items-start">
-                    {/* 编号 */}
-                    <div className="col-span-1">
-                      <Badge variant="secondary" className="font-mono">
-                        #{segment.number}
-                      </Badge>
-                    </div>
+              {/* 片段列表 */}
+              {segments.map((segment, index) => (
+                <div key={segment.id} className={`grid grid-cols-12 gap-0 ${index !== segments.length - 1 ? 'border-b border-border' : ''}`} data-testid={`row-segment-${segment.number}`}>
+                  {/* 编号 */}
+                  <div className="col-span-1 p-3 border-r border-border flex items-center">
+                    <Badge variant="secondary" className="font-mono">
+                      #{segment.number}
+                    </Badge>
+                  </div>
 
-                    {/* 文案 */}
-                    <div className="col-span-2">
-                      <p className="text-sm text-foreground">{segment.text}</p>
-                      <Badge variant="outline" className="text-xs mt-1">
-                        {segment.language}
-                      </Badge>
-                    </div>
+                  {/* 文案 */}
+                  <div className="col-span-2 p-3 border-r border-border">
+                    <p className="text-sm text-foreground">{segment.text}</p>
+                    <Badge variant="outline" className="text-xs mt-1">
+                      {segment.language}
+                    </Badge>
+                  </div>
 
-                    {/* 翻译 */}
-                    <div className="col-span-2">
-                      {segment.translation && (
-                        <p className="text-sm text-muted-foreground">
-                          {segment.translation}
-                        </p>
-                      )}
-                    </div>
+                  {/* 翻译 */}
+                  <div className="col-span-2 p-3 border-r border-border">
+                    {segment.translation && (
+                      <p className="text-sm text-muted-foreground">
+                        {segment.translation}
+                      </p>
+                    )}
+                  </div>
 
-                    {/* 分镜描述 */}
-                    <div className="col-span-2">
-                      {editingId === segment.id ? (
-                        <div className="space-y-2">
-                          <Textarea
-                            value={editedDescription}
-                            onChange={(e) => setEditedDescription(e.target.value)}
-                            className="min-h-[80px] font-mono text-xs"
-                            data-testid={`textarea-description-${segment.number}`}
-                          />
-                          <div className="flex gap-2">
-                            <Button
-                              size="sm"
-                              onClick={() => handleSaveEdit(segment.id)}
-                              data-testid={`button-save-${segment.number}`}
-                            >
-                              保存
-                            </Button>
+                  {/* 分镜描述 */}
+                  <div className="col-span-3 p-3 border-r border-border">
+                    {editingId === segment.id ? (
+                      <div className="space-y-2">
+                        <Textarea
+                          value={editedDescription}
+                          onChange={(e) => setEditedDescription(e.target.value)}
+                          className="min-h-[80px] font-mono text-xs"
+                          data-testid={`textarea-description-${segment.number}`}
+                        />
+                        <div className="flex gap-2">
+                          <Button
+                            size="sm"
+                            onClick={() => handleSaveEdit(segment.id)}
+                            data-testid={`button-save-${segment.number}`}
+                          >
+                            保存
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={handleCancelEdit}
+                            data-testid={`button-cancel-${segment.number}`}
+                          >
+                            取消
+                          </Button>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="space-y-2">
+                        {segment.sceneDescription ? (
+                          <>
+                            <div className="bg-muted rounded-md p-2 font-mono text-xs text-foreground line-clamp-3">
+                              {segment.sceneDescription}
+                            </div>
                             <Button
                               size="sm"
                               variant="ghost"
-                              onClick={handleCancelEdit}
-                              data-testid={`button-cancel-${segment.number}`}
+                              onClick={() => handleEdit(segment)}
+                              className="w-full"
+                              data-testid={`button-edit-${segment.number}`}
                             >
-                              取消
+                              <Edit className="h-3 w-3 mr-1" />
+                              编辑
                             </Button>
-                          </div>
-                        </div>
-                      ) : (
-                        <>
-                          {segment.sceneDescription ? (
-                            <div className="relative group">
-                              <div className="bg-muted rounded-md p-2 font-mono text-xs text-foreground line-clamp-3">
-                                {segment.sceneDescription}
-                              </div>
-                              <Button
-                                size="sm"
-                                variant="ghost"
-                                onClick={() => handleEdit(segment)}
-                                className="absolute top-1 right-1 h-6 px-2 opacity-0 group-hover:opacity-100 transition-opacity"
-                                data-testid={`button-edit-${segment.number}`}
-                              >
-                                <Edit className="h-3 w-3" />
-                              </Button>
-                            </div>
-                          ) : (
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => generateDescriptionMutation.mutate(segment.id)}
-                              disabled={generateDescriptionMutation.isPending}
-                              data-testid={`button-generate-description-${segment.number}`}
-                            >
-                              {generateDescriptionMutation.isPending && generateDescriptionMutation.variables === segment.id ? (
-                                <>
-                                  <Loader2 className="h-3 w-3 mr-1 animate-spin" />
-                                  生成中
-                                </>
-                              ) : (
-                                <>
-                                  <Sparkles className="h-3 w-3 mr-1" />
-                                  生成描述
-                                </>
-                              )}
-                            </Button>
-                          )}
-                        </>
-                      )}
-                    </div>
-
-                    {/* 生成图片按钮 */}
-                    <div className="col-span-2">
-                      <Button
-                        size="sm"
-                        variant={segment.imageUrl ? "outline" : "default"}
-                        onClick={() => generateSingleImage(segment.id)}
-                        disabled={!segment.sceneDescription || generatingImages.has(segment.id)}
-                        className="w-full"
-                        data-testid={`button-generate-image-${segment.number}`}
-                      >
-                        {generatingImages.has(segment.id) ? (
-                          <>
-                            <Loader2 className="h-3 w-3 mr-1 animate-spin" />
-                            生成中
                           </>
-                        ) : segment.imageUrl ? (
-                          "已生成"
                         ) : (
-                          "生成"
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => generateDescriptionMutation.mutate(segment.id)}
+                            disabled={generateDescriptionMutation.isPending}
+                            className="w-full"
+                            data-testid={`button-generate-description-${segment.number}`}
+                          >
+                            {generateDescriptionMutation.isPending && generateDescriptionMutation.variables === segment.id ? (
+                              <>
+                                <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+                                生成中
+                              </>
+                            ) : (
+                              <>
+                                <Sparkles className="h-3 w-3 mr-1" />
+                                生成描述
+                              </>
+                            )}
+                          </Button>
                         )}
-                      </Button>
-                    </div>
-
-                    {/* 生成视频按钮 */}
-                    <div className="col-span-2">
-                      <Button
-                        size="sm"
-                        variant={segment.videoUrl ? "outline" : "default"}
-                        onClick={() => generateSingleVideo(segment.id)}
-                        disabled={!segment.imageUrl || generatingVideos.has(segment.id)}
-                        className="w-full"
-                        data-testid={`button-generate-video-${segment.number}`}
-                      >
-                        {generatingVideos.has(segment.id) ? (
-                          <>
-                            <Loader2 className="h-3 w-3 mr-1 animate-spin" />
-                            生成中
-                          </>
-                        ) : segment.videoUrl ? (
-                          "已生成"
-                        ) : (
-                          "生成视频"
-                        )}
-                      </Button>
-                    </div>
-
-                    {/* 空白列 */}
-                    <div className="col-span-1"></div>
+                      </div>
+                    )}
                   </div>
-                </Card>
+
+                  {/* 生成图片列 */}
+                  <div className="col-span-2 p-3 border-r border-border">
+                    <Button
+                      size="sm"
+                      variant={segment.imageUrl ? "outline" : "default"}
+                      onClick={() => generateSingleImage(segment.id)}
+                      disabled={!segment.sceneDescription || generatingImages.has(segment.id)}
+                      className="w-full"
+                      data-testid={`button-generate-image-${segment.number}`}
+                    >
+                      {generatingImages.has(segment.id) ? (
+                        <>
+                          <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+                          生成中
+                        </>
+                      ) : segment.imageUrl ? (
+                        "已生成"
+                      ) : (
+                        "生成"
+                      )}
+                    </Button>
+                  </div>
+
+                  {/* 生成视频列 */}
+                  <div className="col-span-2 p-3">
+                    <Button
+                      size="sm"
+                      variant={segment.videoUrl ? "outline" : "default"}
+                      onClick={() => generateSingleVideo(segment.id)}
+                      disabled={!segment.imageUrl || generatingVideos.has(segment.id)}
+                      className="w-full"
+                      data-testid={`button-generate-video-${segment.number}`}
+                    >
+                      {generatingVideos.has(segment.id) ? (
+                        <>
+                          <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+                          生成中
+                        </>
+                      ) : segment.videoUrl ? (
+                        "已生成"
+                      ) : (
+                        "生成视频"
+                      )}
+                    </Button>
+                  </div>
+                </div>
               ))}
             </div>
           </div>

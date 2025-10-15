@@ -6,15 +6,16 @@ This is an AI-powered video creation platform that enables users to create profe
 
 ## Recent Changes (October 15, 2025)
 
-**Batch Generation UI Redesign (Latest)**
-- Redesigned descriptions page following user's design specifications
-- Added batch generation buttons: "批量生成图片" and "批量生成视频" (top-right placement)
-- Implemented table-based grid layout (编号 | 文案 | 翻译 | 分镜画面描述词 | 操作按钮)
-- Individual segment actions: "生成" (image) and "生成视频" buttons per row
-- Button state management: shows "已生成" after successful generation
-- Loading states with spinners for all generation operations
-- Inline description editing with hover-activated edit button
-- Sequential batch processing for images and videos
+**Table-Style Layout with Batch Generation (Latest)**
+- Redesigned descriptions page as complete table layout with borders and column alignment
+- Batch generation buttons integrated in table header row: "批量生成描述词" | "批量生成图片" | "批量生成视频"
+- Table columns: 编号 (1) | 文案 (2) | 翻译 (2) | 分镜画面描述词 (3) | 生成图片 (2) | 生成视频 (2)
+- Each column has batch button in header aligned with content below
+- Added "编辑" button below each description (visible by default, not on hover)
+- Individual generation buttons: "生成" → "生成中" → "已生成" state progression
+- Full-width buttons in each column for consistent alignment
+- Border-separated table cells with padding for clean visual structure
+- Sequential batch processing for descriptions, images, and videos
 - Image generation API (placeholder implementation - ready for VolcEngine integration)
 - Fixed home page navigation bug (double-click issue) with setTimeout solution
 
