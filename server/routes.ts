@@ -178,49 +178,69 @@ ${contentToDescribe}
       const endpointId = process.env.VOLCENGINE_ENDPOINT_ID;
       
       if (!apiKey) {
-        return res.status(500).json({ error: "火山引擎API密钥未配置" });
+        console.error("[Image] VOLCENGINE_ACCESS_KEY not configured");
+        return res.status(500).json({ error: "火山引擎API密钥未配置，请设置VOLCENGINE_ACCESS_KEY环境变量" });
       }
 
       if (!endpointId) {
-        return res.status(500).json({ error: "火山引擎Endpoint ID未配置" });
+        console.error("[Image] VOLCENGINE_ENDPOINT_ID not configured");
+        return res.status(500).json({ error: "火山引擎Endpoint ID未配置，请设置VOLCENGINE_ENDPOINT_ID环境变量" });
       }
 
-      console.log("[Image] Generating image with endpoint:", endpointId);
+      console.log("[Image] Generating image...");
+      console.log("[Image] Endpoint ID:", endpointId);
+      console.log("[Image] API Key (first 10 chars):", apiKey.substring(0, 10) + "...");
       console.log("[Image] Prompt:", prompt.substring(0, 100) + "...");
 
       // 调用火山引擎图片生成API
+      const requestBody = {
+        model: endpointId,
+        prompt: prompt,
+        size: "1024x1024",
+        n: 1,
+      };
+      
+      console.log("[Image] Request body:", JSON.stringify(requestBody));
+
       const response = await fetch("https://ark.cn-beijing.volces.com/api/v3/images/generations", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
           "Authorization": `Bearer ${apiKey}`,
         },
-        body: JSON.stringify({
-          model: endpointId,
-          prompt: prompt,
-          size: "1024x1024",
-          n: 1,
-        }),
+        body: JSON.stringify(requestBody),
       });
+
+      console.log("[Image] Response status:", response.status);
 
       if (!response.ok) {
         const errorText = await response.text();
-        console.error("[Image] API Error:", response.status, errorText);
+        console.error("[Image] API Error Response:", errorText);
+        
+        // 如果是认证错误，返回更友好的提示
+        if (response.status === 401) {
+          return res.status(401).json({ 
+            error: "火山引擎API认证失败", 
+            details: "请检查VOLCENGINE_ACCESS_KEY是否正确配置。API密钥应该从火山引擎控制台的API Key管理获取。",
+            rawError: errorText
+          });
+        }
+        
         throw new Error(`火山引擎API错误: ${response.status} - ${errorText}`);
       }
 
       const data = await response.json();
-      console.log("[Image] API Response:", JSON.stringify(data).substring(0, 200));
+      console.log("[Image] API Response:", JSON.stringify(data).substring(0, 300));
       
       // 火山引擎API返回格式通常是 { data: [{ url: "..." }] }
       const imageUrl = data.data?.[0]?.url || data.url || null;
       
       if (!imageUrl) {
-        console.error("[Image] No image URL in response:", data);
+        console.error("[Image] No image URL in response:", JSON.stringify(data));
         throw new Error("API返回数据中没有找到图片URL");
       }
 
-      console.log("[Image] Successfully generated image");
+      console.log("[Image] Successfully generated image:", imageUrl);
       
       res.json({ 
         imageUrl: imageUrl,
@@ -228,7 +248,7 @@ ${contentToDescribe}
     } catch (error) {
       console.error("[Image] Error:", error);
       res.status(500).json({ 
-        error: "Failed to generate image", 
+        error: "图片生成失败", 
         details: error instanceof Error ? error.message : String(error) 
       });
     }

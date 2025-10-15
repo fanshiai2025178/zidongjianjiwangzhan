@@ -6,13 +6,14 @@ This is an AI-powered video creation platform that enables users to create profe
 
 ## Recent Changes (October 15, 2025)
 
-**Batch Generation Status & Image API (Latest)**
-- **Added**: Real-time batch generation status display - "生成中" and "等待生成" indicators
-- **Implemented**: Volcengine image generation API integration with endpoint ID support
+**UI Optimization & Image Display (Latest)**
+- **UI Improvements**: Description text fully visible (no truncation), edit button as hover-only icon
+- **Image Display**: Added image preview with aspect-video ratio, regenerate button
+- **Status Display**: Real-time batch generation status - "生成中" and "等待生成" indicators
+- **Backend Fix**: Increased body size limit to 10mb to fix PayloadTooLargeError
 - Status tracking: `currentGeneratingDescId`, `currentGeneratingImageId`, `currentGeneratingVideoId`
 - Visual feedback: Full opacity spinner for "生成中", 50% opacity for "等待生成"
-- Sequential batch processing with individual item status updates
-- Image API: Uses VOLCENGINE_ENDPOINT_ID with Ark API endpoint
+- Image API: Volcengine integration with detailed logging and error handling
 
 **Critical Bug Fixes - Description & Segment Persistence**
 - **Fixed**: Segments disappearing after generation - now auto-save to backend immediately

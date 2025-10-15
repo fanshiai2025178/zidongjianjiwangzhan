@@ -494,7 +494,7 @@ export default function DescriptionsPage() {
                         <Textarea
                           value={editedDescription}
                           onChange={(e) => setEditedDescription(e.target.value)}
-                          className="min-h-[80px] font-mono text-xs"
+                          className="min-h-[100px] font-mono text-xs"
                           data-testid={`textarea-description-${segment.number}`}
                         />
                         <div className="flex gap-2">
@@ -516,21 +516,20 @@ export default function DescriptionsPage() {
                         </div>
                       </div>
                     ) : (
-                      <div className="space-y-2">
+                      <div className="relative group">
                         {segment.sceneDescription ? (
                           <>
-                            <div className="bg-muted rounded-md p-2 font-mono text-xs text-foreground line-clamp-3">
+                            <div className="bg-muted rounded-md p-3 font-mono text-xs text-foreground leading-relaxed">
                               {segment.sceneDescription}
                             </div>
                             <Button
-                              size="sm"
+                              size="icon"
                               variant="ghost"
                               onClick={() => handleEdit(segment)}
-                              className="w-full"
+                              className="absolute top-1 right-1 h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
                               data-testid={`button-edit-${segment.number}`}
                             >
-                              <Edit className="h-3 w-3 mr-1" />
-                              编辑
+                              <Edit className="h-3 w-3" />
                             </Button>
                           </>
                         ) : (
@@ -566,30 +565,58 @@ export default function DescriptionsPage() {
 
                   {/* 生成图片列 */}
                   <div className="col-span-2 p-3 border-r border-border">
-                    <Button
-                      size="sm"
-                      variant={segment.imageUrl ? "outline" : "default"}
-                      onClick={() => generateSingleImage(segment.id)}
-                      disabled={!segment.sceneDescription || generatingImages.has(segment.id) || batchGeneratingImages}
-                      className="w-full"
-                      data-testid={`button-generate-image-${segment.number}`}
-                    >
-                      {generatingImages.has(segment.id) || currentGeneratingImageId === segment.id ? (
-                        <>
-                          <Loader2 className="h-3 w-3 mr-1 animate-spin" />
-                          生成中
-                        </>
-                      ) : batchGeneratingImages && segment.sceneDescription && !segment.imageUrl ? (
-                        <>
-                          <Loader2 className="h-3 w-3 mr-1 animate-spin opacity-50" />
-                          等待生成
-                        </>
-                      ) : segment.imageUrl ? (
-                        "已生成"
-                      ) : (
-                        "生成"
-                      )}
-                    </Button>
+                    {segment.imageUrl ? (
+                      <div className="space-y-2">
+                        <div className="relative aspect-video bg-muted rounded-md overflow-hidden">
+                          <img 
+                            src={segment.imageUrl} 
+                            alt={`Scene ${segment.number}`}
+                            className="w-full h-full object-cover"
+                            data-testid={`image-${segment.number}`}
+                          />
+                        </div>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => generateSingleImage(segment.id)}
+                          disabled={generatingImages.has(segment.id) || batchGeneratingImages}
+                          className="w-full"
+                          data-testid={`button-regenerate-image-${segment.number}`}
+                        >
+                          {generatingImages.has(segment.id) || currentGeneratingImageId === segment.id ? (
+                            <>
+                              <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+                              生成中
+                            </>
+                          ) : (
+                            "重新生成"
+                          )}
+                        </Button>
+                      </div>
+                    ) : (
+                      <Button
+                        size="sm"
+                        variant="default"
+                        onClick={() => generateSingleImage(segment.id)}
+                        disabled={!segment.sceneDescription || generatingImages.has(segment.id) || batchGeneratingImages}
+                        className="w-full"
+                        data-testid={`button-generate-image-${segment.number}`}
+                      >
+                        {generatingImages.has(segment.id) || currentGeneratingImageId === segment.id ? (
+                          <>
+                            <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+                            生成中
+                          </>
+                        ) : batchGeneratingImages && segment.sceneDescription && !segment.imageUrl ? (
+                          <>
+                            <Loader2 className="h-3 w-3 mr-1 animate-spin opacity-50" />
+                            等待生成
+                          </>
+                        ) : (
+                          "生成"
+                        )}
+                      </Button>
+                    )}
                   </div>
 
                   {/* 生成视频列 */}
