@@ -6,14 +6,14 @@ This is an AI-powered video creation platform that enables users to create profe
 
 ## Recent Changes (October 15, 2025)
 
-**API 迁移至第三方代理服务（最新）**
-- **服务地址**: https://ai.da520.online (OpenAI 兼容格式)
-- **文本生成**: 使用 gemini-2.0-flash-exp 模型
-- **图片生成**: 使用 gemini-2.0-flash-preview-image-generation 模型
-- **统一密钥**: 使用 THIRD_PARTY_API_KEY 环境变量
+**API 迁移至官方 OpenAI API（最新）**
+- **服务提供商**: OpenAI 官方 API (https://api.openai.com)
+- **文本生成模型**: GPT-4o-mini (智能分段、翻译、描述词生成)
+- **图片生成模型**: DALL-E 3 (1024x1024 标准质量)
+- **统一密钥**: 使用 OPENAI_API_KEY 环境变量
 - **提示词优化**: 图片生成自动添加画面比例和质量提示
-- **功能覆盖**: 翻译、分段、描述词生成、图片生成全部通过第三方代理调用
-- 移除对 DEEPSEEK_API_KEY、GEMINI_API_KEY 和 VOLCENGINE 相关环境变量的依赖
+- **功能覆盖**: 翻译、分段、描述词生成、图片生成全部使用 OpenAI API
+- 移除对 DEEPSEEK_API_KEY、GEMINI_API_KEY、THIRD_PARTY_API_KEY 和 VOLCENGINE 相关环境变量的依赖
 
 **描述词生成优化 - 遵循Seedream 4.0规范**
 - **专业提示词规范**: 按照火山引擎Seedream 4.0官方规范优化提示词生成
