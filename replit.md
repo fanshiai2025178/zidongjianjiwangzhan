@@ -10,8 +10,10 @@ This is an AI-powered video creation platform that enables users to create profe
 - **Fixed**: Segments disappearing after generation - now auto-save to backend immediately
 - **Fixed**: Descriptions disappearing after generation - all operations auto-save
 - **Fixed**: Chinese description generation - changed from English to Chinese prompts
+- **Fixed**: English segments auto-translation - now automatically translates after generation
 - Implemented `saveSegmentsToProject` helper for consistent persistence
 - Auto-save triggers: segment generation, cut, merge, description/image/video generation, edits
+- Auto-translation: English segments automatically translated to Chinese after generation
 - DeepSeek prompts updated: "使用中文编写，描述具体生动，200字以内"
 
 **Table-Style Layout with Batch Generation**

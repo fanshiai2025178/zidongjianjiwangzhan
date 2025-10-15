@@ -73,15 +73,55 @@ export default function SegmentsPage() {
         scriptContent: project.scriptContent,
       });
       const data = await response.json();
-      setSegments(data.segments);
+      let generatedSegments = data.segments;
+      setSegments(generatedSegments);
       
       // 保存到 project context 和后端
-      await saveSegmentsToProject(data.segments);
+      await saveSegmentsToProject(generatedSegments);
       
       toast({
         title: "分段成功",
-        description: `AI已将文案分成 ${data.segments.length} 个片段`,
+        description: `AI已将文案分成 ${generatedSegments.length} 个片段`,
       });
+
+      // 检查是否有英文片段需要翻译
+      const englishSegments = generatedSegments.filter((seg: Segment) => seg.language === 'English');
+      if (englishSegments.length > 0) {
+        toast({
+          title: "正在翻译",
+          description: `正在翻译 ${englishSegments.length} 个英文片段...`,
+        });
+
+        try {
+          const translateResponse = await apiRequest("POST", "/api/segments/translate", {
+            segments: englishSegments.map((seg: Segment) => ({ id: seg.id, text: seg.text }))
+          });
+          const translateData = await translateResponse.json();
+          
+          // 更新翻译
+          const translatedSegments = generatedSegments.map((seg: Segment) => {
+            const translated = translateData.translations.find((t: any) => t.id === seg.id);
+            return translated ? { ...seg, translation: translated.translation } : seg;
+          });
+          
+          setSegments(translatedSegments);
+          
+          // 保存翻译后的segments
+          await saveSegmentsToProject(translatedSegments);
+          
+          toast({
+            title: "翻译完成",
+            description: "所有英文片段已翻译为中文",
+          });
+        } catch (error) {
+          console.error("Translation failed:", error);
+          toast({
+            title: "翻译失败",
+            description: "部分片段翻译失败，请稍后重试",
+            variant: "destructive",
+          });
+        }
+      }
     } catch (error) {
       toast({
         title: "分段失败",
