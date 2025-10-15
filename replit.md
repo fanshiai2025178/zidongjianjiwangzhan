@@ -6,7 +6,15 @@ This is an AI-powered video creation platform that enables users to create profe
 
 ## Recent Changes (October 15, 2025)
 
-**Critical Bug Fixes - Description & Segment Persistence (Latest)**
+**Batch Generation Status & Image API (Latest)**
+- **Added**: Real-time batch generation status display - "生成中" and "等待生成" indicators
+- **Implemented**: Volcengine image generation API integration with endpoint ID support
+- Status tracking: `currentGeneratingDescId`, `currentGeneratingImageId`, `currentGeneratingVideoId`
+- Visual feedback: Full opacity spinner for "生成中", 50% opacity for "等待生成"
+- Sequential batch processing with individual item status updates
+- Image API: Uses VOLCENGINE_ENDPOINT_ID with Ark API endpoint
+
+**Critical Bug Fixes - Description & Segment Persistence**
 - **Fixed**: Segments disappearing after generation - now auto-save to backend immediately
 - **Fixed**: Descriptions disappearing after generation - all operations auto-save
 - **Fixed**: Chinese description generation - changed from English to Chinese prompts

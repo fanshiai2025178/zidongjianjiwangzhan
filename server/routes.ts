@@ -166,7 +166,7 @@ ${contentToDescribe}
     }
   });
 
-  // 火山引擎图片生成API（占位符实现）
+  // 火山引擎图片生成API
   app.post("/api/images/generate", async (req, res) => {
     try {
       const { prompt } = req.body;
@@ -175,36 +175,55 @@ ${contentToDescribe}
       }
 
       const apiKey = process.env.VOLCENGINE_ACCESS_KEY;
+      const endpointId = process.env.VOLCENGINE_ENDPOINT_ID;
       
       if (!apiKey) {
         return res.status(500).json({ error: "火山引擎API密钥未配置" });
       }
 
-      console.log("[Image] Generating image with prompt:", prompt.substring(0, 50) + "...");
+      if (!endpointId) {
+        return res.status(500).json({ error: "火山引擎Endpoint ID未配置" });
+      }
 
-      // TODO: 实现真正的火山引擎API调用
-      // 火山方舟图片生成API示例：
-      // const response = await fetch("https://ark.cn-beijing.volces.com/api/v3/images/generations", {
-      //   method: "POST",
-      //   headers: {
-      //     "Content-Type": "application/json",
-      //     "Authorization": `Bearer ${apiKey}`,
-      //   },
-      //   body: JSON.stringify({
-      //     model: "doubao-seedream-3.0-t2i", // 或 doubao-seedream-4.0
-      //     prompt: prompt,
-      //     n: 1,
-      //     size: "1024x1024",
-      //   }),
-      // });
+      console.log("[Image] Generating image with endpoint:", endpointId);
+      console.log("[Image] Prompt:", prompt.substring(0, 100) + "...");
 
-      // 暂时返回占位符图片
-      const placeholderImageUrl = `https://via.placeholder.com/1024x512/1a1a1a/4A9EFF?text=${encodeURIComponent(prompt.substring(0, 30))}`;
+      // 调用火山引擎图片生成API
+      const response = await fetch("https://ark.cn-beijing.volces.com/api/v3/images/generations", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${apiKey}`,
+        },
+        body: JSON.stringify({
+          model: endpointId,
+          prompt: prompt,
+          size: "1024x1024",
+          n: 1,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error("[Image] API Error:", response.status, errorText);
+        throw new Error(`火山引擎API错误: ${response.status} - ${errorText}`);
+      }
+
+      const data = await response.json();
+      console.log("[Image] API Response:", JSON.stringify(data).substring(0, 200));
       
-      console.log("[Image] Returning placeholder image");
+      // 火山引擎API返回格式通常是 { data: [{ url: "..." }] }
+      const imageUrl = data.data?.[0]?.url || data.url || null;
+      
+      if (!imageUrl) {
+        console.error("[Image] No image URL in response:", data);
+        throw new Error("API返回数据中没有找到图片URL");
+      }
+
+      console.log("[Image] Successfully generated image");
       
       res.json({ 
-        imageUrl: placeholderImageUrl,
+        imageUrl: imageUrl,
       });
     } catch (error) {
       console.error("[Image] Error:", error);
