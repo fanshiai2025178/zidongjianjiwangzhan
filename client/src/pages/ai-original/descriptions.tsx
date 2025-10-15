@@ -62,15 +62,10 @@ export default function DescriptionsPage() {
     return '横屏';
   };
 
-  // 更新描述词中的比例信息
+  // 更新画面比例
   const handleAspectRatioChange = async (newRatio: string) => {
     console.log("[AspectRatio Change] From:", aspectRatio, "To:", newRatio);
     
-    // 先获取旧比例（在更新前）
-    const oldRatio = aspectRatio;
-    const oldOrientation = getOrientationText(oldRatio);
-    const newOrientation = getOrientationText(newRatio);
-
     // 立即更新比例状态
     updateAspectRatio(newRatio);
     
@@ -82,81 +77,18 @@ export default function DescriptionsPage() {
           aspectRatio: newRatio,
         });
         console.log("[AspectRatio Saved] Project updated with:", newRatio);
-      } catch (error) {
-        console.error("Failed to save aspect ratio immediately:", error);
-      }
-    }
-    
-    // 如果有已生成的描述词，更新它们
-    const hasDescriptions = segments.some(s => s.sceneDescription);
-    
-    if (hasDescriptions) {
-      // 定义方向相关的关键词映射
-      const orientationKeywords = {
-        '竖屏': ['竖屏', '竖构图', '竖版', '纵向', 'portrait'],
-        '横屏': ['横屏', '横构图', '横版', '横向', 'landscape'],
-        '方形': ['方形', '方形构图', '正方形', 'square']
-      };
-
-      // 更新所有描述词中的比例信息
-      const updatedSegments = segments.map(seg => {
-        if (!seg.sceneDescription) return seg;
         
-        let updatedDescription = seg.sceneDescription;
-        
-        // 替换比例数值（使用旧比例值进行替换，如 16:9 -> 9:16）
-        updatedDescription = updatedDescription.replace(new RegExp(oldRatio, 'g'), newRatio);
-        
-        // 替换方向描述及其相关词汇
-        if (oldOrientation !== newOrientation) {
-          const oldKeywords = orientationKeywords[oldOrientation as keyof typeof orientationKeywords] || [oldOrientation];
-          const newKeyword = newOrientation;
-          
-          oldKeywords.forEach(keyword => {
-            // 使用全局替换，且考虑中英文混合的情况
-            const regex = new RegExp(keyword, 'gi');
-            updatedDescription = updatedDescription.replace(regex, (match) => {
-              // 保持英文大小写一致性
-              if (match.toLowerCase() === match) return newKeyword;
-              if (match.toUpperCase() === match) return newKeyword.toUpperCase();
-              return newKeyword;
-            });
-          });
-        }
-        
-        return { ...seg, sceneDescription: updatedDescription };
-      });
-
-      updateSegments(updatedSegments);
-
-      // 自动保存到后端
-      if (project?.id) {
-        try {
-          await apiRequest("PATCH", `/api/projects/${project.id}`, {
-            ...project,
-            aspectRatio: newRatio,
-            segments: updatedSegments,
-          });
-          
+        // 检查是否有已生成的描述词
+        const hasDescriptions = segments.some(s => s.sceneDescription);
+        if (hasDescriptions) {
           toast({
             title: "比例已更新",
-            description: "描述词中的尺寸信息已同步更新",
+            description: "已有描述词将显示警告标识，建议重新生成",
+            variant: "default",
           });
-        } catch (error) {
-          console.error("Failed to save aspect ratio change:", error);
         }
-      }
-    } else {
-      // 如果没有描述词，只保存比例变更
-      if (project?.id) {
-        try {
-          await apiRequest("PATCH", `/api/projects/${project.id}`, {
-            ...project,
-            aspectRatio: newRatio,
-          });
-        } catch (error) {
-          console.error("Failed to save aspect ratio:", error);
-        }
+      } catch (error) {
+        console.error("Failed to save aspect ratio immediately:", error);
       }
     }
   };
@@ -187,8 +119,13 @@ export default function DescriptionsPage() {
       return { segmentId, description: data.description };
     },
     onSuccess: async ({ segmentId, description }) => {
+      const currentAspectRatio = project?.aspectRatio || "16:9";
       const updatedSegments = segments.map(seg =>
-        seg.id === segmentId ? { ...seg, sceneDescription: description } : seg
+        seg.id === segmentId ? { 
+          ...seg, 
+          sceneDescription: description,
+          descriptionAspectRatio: currentAspectRatio // 记录生成时的比例
+        } : seg
       );
       updateSegments(updatedSegments);
       
@@ -320,7 +257,11 @@ export default function DescriptionsPage() {
         const data = await response.json();
         
         currentSegments = currentSegments.map(seg =>
-          seg.id === segment.id ? { ...seg, sceneDescription: data.description } : seg
+          seg.id === segment.id ? { 
+            ...seg, 
+            sceneDescription: data.description,
+            descriptionAspectRatio: currentAspectRatio // 记录生成时的比例
+          } : seg
         );
         updateSegments(currentSegments);
       } catch (error) {
@@ -703,6 +644,12 @@ export default function DescriptionsPage() {
                       <div className="relative group">
                         {segment.sceneDescription ? (
                           <>
+                            {/* 比例不匹配警告 */}
+                            {segment.descriptionAspectRatio && segment.descriptionAspectRatio !== aspectRatio && (
+                              <div className="flex items-center gap-1 text-amber-500 text-xs mb-2 font-medium">
+                                <span>⚠️ 比例已变更（{segment.descriptionAspectRatio} → {aspectRatio}），建议重新生成</span>
+                              </div>
+                            )}
                             <div className="bg-muted rounded-md p-3 font-mono text-xs text-foreground leading-relaxed max-h-32 overflow-y-auto">
                               {segment.sceneDescription}
                             </div>
