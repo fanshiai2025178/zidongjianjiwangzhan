@@ -13,6 +13,9 @@ export default function Home() {
   const [loadingMode, setLoadingMode] = useState<string | null>(null);
 
   const handleStartMode = async (mode: string, route: string) => {
+    // 防止重复点击
+    if (loadingMode !== null) return;
+    
     // 立即显示加载状态
     setLoadingMode(mode);
     
@@ -26,7 +29,11 @@ export default function Home() {
       const newProject = await response.json();
       setProject(newProject);
       localStorage.setItem("currentProjectId", newProject.id);
-      setLocation(route);
+      
+      // 使用setTimeout确保状态更新完成后再导航
+      setTimeout(() => {
+        setLocation(route);
+      }, 0);
     } catch (error) {
       console.error("Failed to create project:", error);
       setLoadingMode(null); // 出错时重置加载状态
