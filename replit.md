@@ -6,14 +6,15 @@ This is an AI-powered video creation platform that enables users to create profe
 
 ## Recent Changes (October 15, 2025)
 
-**API 迁移至官方 OpenAI API（最新）**
-- **服务提供商**: OpenAI 官方 API (https://api.openai.com)
-- **文本生成模型**: GPT-4o-mini (智能分段、翻译、描述词生成)
-- **图片生成模型**: DALL-E 3 (1024x1024 标准质量)
-- **统一密钥**: 使用 OPENAI_API_KEY 环境变量
+**API 迁移至聚光Chat中转服务（最新）**
+- **服务提供商**: 聚光Chat (https://ai.juguang.chat) - Gemini API 中转服务
+- **文本生成模型**: gemini-2.5-flash-preview (智能分段、翻译、描述词生成)
+- **图片生成模型**: gemini-2.5-flash-image-preview (Base64编码返回)
+- **统一密钥**: 使用 JUGUANG_API_KEY 环境变量
 - **提示词优化**: 图片生成自动添加画面比例和质量提示
-- **功能覆盖**: 翻译、分段、描述词生成、图片生成全部使用 OpenAI API
-- 移除对 DEEPSEEK_API_KEY、GEMINI_API_KEY、THIRD_PARTY_API_KEY 和 VOLCENGINE 相关环境变量的依赖
+- **功能覆盖**: 翻译、分段、描述词生成、图片生成全部使用聚光Chat API
+- **图片格式**: API返回Base64编码，自动转换为Data URL格式
+- 移除对 DEEPSEEK_API_KEY、GEMINI_API_KEY、OPENAI_API_KEY、THIRD_PARTY_API_KEY 和 VOLCENGINE 相关环境变量的依赖
 
 **描述词生成优化 - 遵循Seedream 4.0规范**
 - **专业提示词规范**: 按照火山引擎Seedream 4.0官方规范优化提示词生成
