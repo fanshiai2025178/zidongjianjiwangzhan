@@ -4,6 +4,34 @@
 
 This is an AI-powered video creation platform designed to streamline professional video production through various creation modes. It features a comprehensive 5-step workflow for AI-original video creation (Style → Script → Segments → Descriptions → Result), with future plans for commentary and reference video modes. The platform offers a dark-themed creative studio interface, built with a modern tech stack, focused on optimizing content creation workflows. Key capabilities include smart description generation with character and style consistency, intelligent aspect ratio handling, and advanced prompt optimization for video and image generation.
 
+## Recent Changes (October 15, 2025)
+
+**描述词英文输出 + 批量生成停止功能（最新）**
+- **描述词英文化**：所有AI生成的描述词现在以英文输出，更适合主流AI图片/视频生成模型
+- **批量生成停止**：所有批量生成操作（描述词/图片/视频）在进行中时显示"生成中...（停止）"
+- **即时停止控制**：点击停止按钮可立即中断批量生成，已生成内容保留
+- **智能反馈**：停止后显示实际生成数量，如"已停止，成功生成 3 个描述"
+
+**智能描述词生成系统 - 角色/风格一致性**
+- **角色一致性保障**：强制要求AI在所有镜头中保持相同角色特征（外貌、服装、姿态）
+- **风格融合深化**：详细的预设风格描述映射（8种风格：Cinema、Anime、Realistic、Fantasy、Retro、Minimalist、Noir、Cyberpunk）
+- **参考图指导增强**：角色参考图和风格参考图的具体要求明确化（英文指令）
+- **文生视频vs文生图差异化**：
+  - 文生视频：强调动态动作、镜头运动、时间演进（push/pull/pan/tilt等镜头语言）
+  - 文生图：强调静态定格、空间构图、瞬间捕捉（层次、质感、氛围）
+- **故事连贯性**：确保多个片段保持视觉风格和角色形象的完全统一
+
+**比例变更智能提示系统**
+- **自动追踪比例**：每个描述词记录生成时的比例（descriptionAspectRatio字段）
+- **比例不匹配警告**：显示"⚠️ 比例已变更（16:9 → 9:16），建议重新生成"
+- **智能批量生成**：自动识别需要重新生成的片段（无描述词或比例不匹配）
+- **单个重新生成**：点击重新生成按钮只影响当前片段，不会全部重新生成
+
+**UI交互优化**
+- **图片预览改进**：悬浮显示居中放大图标，不遮挡画面内容
+- **错误提示优化**：识别内容过滤错误，提示"内容被过滤，请重新生成或编辑描述词"
+- **翻译状态简化**：未翻译片段显示红色斜体"请稍等"
+
 ## User Preferences
 
 Preferred communication style: Simple, everyday language.

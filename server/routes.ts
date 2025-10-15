@@ -145,36 +145,36 @@ export async function registerRoutes(app: Express): Promise<Server> {
         ? `${text}\n(中文翻译: ${translation})`
         : text;
 
-      // 预设风格映射表（与前端保持一致）
+      // 预设风格映射表（英文描述）
       const presetStyleDescriptions: Record<string, string> = {
-        "cinema": "电影级质感，使用电影镜头语言（景深、移动镜头、专业打光），画面层次丰富，色彩分级明确，氛围营造强烈",
-        "anime": "日系动漫画风，线条清晰，色彩鲜艳饱和，人物表情夸张生动，背景简化处理，光影效果动漫化",
-        "realistic": "照片级写实风格，真实自然的光影效果，细节丰富，材质质感真实，色彩自然准确，符合物理规律",
-        "fantasy": "奇幻魔法氛围，神秘梦幻的色调（紫、蓝、金色为主），魔法光效，古堡建筑元素，超现实场景",
-        "retro": "80-90年代复古风，胶片颗粒感，褪色效果，怀旧色调（暖黄、橙红、棕色），老式滤镜质感",
-        "minimalist": "极简主义，大量留白，简洁构图，色彩克制（单色或双色为主），注重几何形状和线条",
-        "noir": "黑色电影风格，黑白或低饱和度，强烈明暗对比，戏剧性光影，悬疑压抑氛围",
-        "cyberpunk": "赛博朋克未来感，霓虹灯光效果（蓝、粉、紫色），科技元素，城市夜景，雨后反光质感"
+        "cinema": "Cinematic quality with film language (depth of field, camera movements, professional lighting), rich visual layers, clear color grading, strong atmospheric presence",
+        "anime": "Japanese anime style with clean lines, vivid saturated colors, exaggerated character expressions, simplified backgrounds, anime-style lighting effects",
+        "realistic": "Photorealistic style with natural lighting effects, rich details, authentic material textures, accurate natural colors, follows physical laws",
+        "fantasy": "Fantasy magical atmosphere with mystical dreamy tones (purple, blue, gold dominant), magical light effects, castle architecture elements, surreal scenes",
+        "retro": "80s-90s retro vibe with film grain, faded effects, nostalgic color palette (warm yellow, orange-red, brown), vintage filter textures",
+        "minimalist": "Minimalist approach with ample negative space, clean composition, restrained colors (monochrome or dual-color), emphasis on geometric shapes and lines",
+        "noir": "Film noir style with black-white or desaturated tones, strong contrast between light and shadow, dramatic lighting, suspenseful oppressive atmosphere",
+        "cyberpunk": "Cyberpunk futuristic feel with neon lighting effects (blue, pink, purple), tech elements, urban nightscape, rain-soaked reflective textures"
       };
 
-      // 构建风格参考信息
+      // 构建风格参考信息（英文）
       let styleContext = "";
       if (styleSettings) {
         // 角色参考
         if (styleSettings.useCharacterReference && styleSettings.characterImageUrl) {
-          styleContext += "\n\n【角色一致性要求 - 必须严格遵守】\n用户已上传角色参考图。在所有镜头描述中：\n• 主角必须保持相同的外貌特征（性别、年龄段、发型、体型、服装风格）\n• 描述具体特征：如\"年轻女性，齐肩黑发，白色衬衫\"而非\"主角\"或\"她\"\n• 确保整个故事中角色形象完全一致，不能出现不同的人物形象\n• 如无法确定具体特征，使用\"同一位角色\"并保持描述统一";
+          styleContext += "\n\n[CHARACTER CONSISTENCY REQUIREMENTS - MUST STRICTLY FOLLOW]\nUser has uploaded a character reference image. In all shot descriptions:\n• Main character must maintain the same appearance features (gender, age, hairstyle, body type, clothing style)\n• Describe specific features: e.g., 'young woman with shoulder-length black hair in white shirt' rather than 'protagonist' or 'she'\n• Ensure character image is completely consistent throughout the story, no different character appearances\n• If specific features cannot be determined, use 'the same character' and keep descriptions uniform";
         }
         
         // 风格参考
         if (styleSettings.useStyleReference && styleSettings.styleImageUrl) {
-          styleContext += "\n\n【视觉风格要求 - 必须严格遵守】\n用户已上传风格参考图。所有镜头必须保持：\n• 相同的色调和色彩方案\n• 一致的光影风格和氛围\n• 统一的艺术表现手法\n• 相似的视觉质感和细节处理";
+          styleContext += "\n\n[VISUAL STYLE REQUIREMENTS - MUST STRICTLY FOLLOW]\nUser has uploaded a style reference image. All shots must maintain:\n• Same color tones and color schemes\n• Consistent lighting style and atmosphere\n• Unified artistic expression techniques\n• Similar visual textures and detail treatment";
         }
         
         // 预设风格
         if (styleSettings.usePresetStyle && styleSettings.presetStyleId) {
           const styleDesc = presetStyleDescriptions[styleSettings.presetStyleId];
           if (styleDesc) {
-            styleContext += `\n\n【预设风格要求 - 必须严格遵守】\n风格：${styleSettings.presetStyleId}\n特征：${styleDesc}\n\n所有镜头描述必须体现以上风格特征，保持视觉风格的完全统一。`;
+            styleContext += `\n\n[PRESET STYLE REQUIREMENTS - MUST STRICTLY FOLLOW]\nStyle: ${styleSettings.presetStyleId}\nCharacteristics: ${styleDesc}\n\nAll shot descriptions must reflect the above style characteristics and maintain complete visual style unity.`;
           }
         }
       }
@@ -184,88 +184,90 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       if (generationMode === "text-to-video") {
         // 文生视频：生成视频场景描述（强调动态、运动、镜头运动）
-        descriptionPrompt = `请为以下文案生成一个专业的AI视频生成提示词。
+        descriptionPrompt = `Generate a professional AI video generation prompt for the following content.
 
-文案内容：
+Content:
 ${contentToDescribe}
 
-画面比例：${aspectRatio}（${aspectRatio === '9:16' || aspectRatio === '3:4' ? '竖屏' : aspectRatio === '1:1' ? '方形' : '横屏'}）
+Aspect Ratio: ${aspectRatio} (${aspectRatio === '9:16' || aspectRatio === '3:4' ? 'Vertical/Portrait' : aspectRatio === '1:1' ? 'Square' : 'Horizontal/Landscape'})
 
-【视频提示词核心要求】
-1. **动态表现**：必须描述清晰的动作和运动（人物移动、物体变化、镜头运动等）
-2. **镜头语言**：明确镜头运动方式（推进、拉远、平移、跟随、摇镜等）
-3. **时间演进**：描述画面的时间流动和变化过程
-4. **适配比例**：针对${aspectRatio}${aspectRatio === '9:16' || aspectRatio === '3:4' ? '竖屏' : aspectRatio === '1:1' ? '方形' : '横屏'}构图优化动态表现
-5. **中文撰写**：使用中文，描述具体生动
+[VIDEO PROMPT CORE REQUIREMENTS]
+1. **Dynamic Expression**: Must describe clear actions and movements (character movement, object changes, camera movements, etc.)
+2. **Camera Language**: Specify camera movement methods (push in, pull out, pan, follow, tilt, etc.)
+3. **Time Evolution**: Describe temporal flow and progression of the scene
+4. **Ratio Adaptation**: Optimize dynamic performance for ${aspectRatio} ${aspectRatio === '9:16' || aspectRatio === '3:4' ? 'vertical' : aspectRatio === '1:1' ? 'square' : 'horizontal'} composition
+5. **English Output**: Write in English with specific, vivid descriptions
 
-【视频特有元素（区别于静态图片）】
-• **动作描述**：人物/物体的具体动作和姿态变化（如"缓缓转身"、"抬手遮挡"）
-• **镜头运动**：明确镜头移动方式（如"镜头从远处推进至特写"、"跟随人物平移"）
-• **时间流程**：画面的起始→发展→结束（如"开始时...然后...最后..."）
-• **动态元素**：环境中的运动元素（如"飘落的树叶"、"流动的人群"）
-• **节奏控制**：动作的速度和节奏（如"缓慢"、"急促"、"停顿"）
+[VIDEO-SPECIFIC ELEMENTS (Distinguished from Static Images)]
+• **Action Description**: Specific actions and posture changes of characters/objects (e.g., "slowly turns around", "raises hand to shield")
+• **Camera Movement**: Clear camera motion methods (e.g., "camera pushes from distance to close-up", "follows character panning")
+• **Temporal Flow**: Scene progression from start → development → end (e.g., "begins with... then... finally...")
+• **Dynamic Elements**: Moving elements in environment (e.g., "falling leaves", "flowing crowd")
+• **Rhythm Control**: Speed and rhythm of actions (e.g., "slowly", "rapidly", "pause")
 
-【必须包含的元素】
-• 主体动作：具体的动作描述，不能是静止状态
-• 场景环境：具体场所、氛围、动态光影变化
-• 镜头运动：推拉摇移等专业镜头术语
-• 视觉细节：色彩、质感、运动轨迹
-• 情绪演进：情绪的变化和起伏${styleContext}
+[REQUIRED ELEMENTS]
+• Subject Action: Specific action descriptions, not static states
+• Scene Environment: Specific location, atmosphere, dynamic lighting changes
+• Camera Movement: Professional camera terms like push/pull/pan/tilt
+• Visual Details: Colors, textures, motion trajectories
+• Emotional Evolution: Changes and fluctuations in emotion${styleContext}
 
-【格式要求】
-- 限制在200字以内
-- 避免抽象概念，使用具象化动作描述
-- 不使用markdown格式
+[FORMAT REQUIREMENTS]
+- Limit to 200 words
+- Avoid abstract concepts, use concrete action descriptions
+- No markdown formatting
+- Output in English
 
-直接输出提示词，无需其他说明。`;
+Output the prompt directly without additional explanation.`;
         
-        systemPrompt = "你是专业的AI视频提示词撰写专家，深刻理解镜头语言、运动美学和视觉叙事。你擅长将文字转化为动态画面描述，精确指导AI生成流畅自然的视频内容。";
+        systemPrompt = "You are a professional AI video prompt expert with deep understanding of cinematography, movement aesthetics, and visual storytelling. You excel at transforming text into dynamic scene descriptions that precisely guide AI to generate smooth, natural video content.";
       } else {
         // 文生图+图生视频：生成静态图片描述（强调画面、构图、色彩、氛围）
         const orientationDescription = aspectRatio === '9:16' || aspectRatio === '3:4' 
-          ? '竖屏（纵向构图，高度大于宽度，适合人物特写、全身像）' 
+          ? 'Vertical/Portrait (height > width, suitable for character close-ups, full body shots)' 
           : aspectRatio === '1:1' 
-          ? '方形（正方形构图，宽高相等，适合居中对称布局）' 
-          : '横屏（横向构图，宽度大于高度，适合风景、场景叙事）';
+          ? 'Square (equal width and height, suitable for centered symmetric layouts)' 
+          : 'Horizontal/Landscape (width > height, suitable for scenery, scene narratives)';
 
-        descriptionPrompt = `请为以下文案生成一个专业的AI图片生成提示词（遵循Seedream 4.0规范）。
+        descriptionPrompt = `Generate a professional AI image generation prompt (following Seedream 4.0 specifications) for the following content.
 
-文案内容：
+Content:
 ${contentToDescribe}
 
-画面比例：${aspectRatio} ${orientationDescription}
+Aspect Ratio: ${aspectRatio} ${orientationDescription}
 
-【图片提示词核心要求】
-1. **静态定格**：描述一个静止的瞬间画面，不包含动作过程
-2. **空间构图**：明确画面空间布局和元素位置关系
-3. **视觉细节**：强调色彩、质感、光影等视觉元素
-4. **适配比例**：针对${aspectRatio}${aspectRatio === '9:16' || aspectRatio === '3:4' ? '竖屏' : aspectRatio === '1:1' ? '方形' : '横屏'}优化构图
-5. **中文撰写**：使用中文，遵循"主体+环境+细节"结构
+[IMAGE PROMPT CORE REQUIREMENTS]
+1. **Static Freeze Frame**: Describe a still moment, not an action process
+2. **Spatial Composition**: Clearly define spatial layout and element positioning
+3. **Visual Details**: Emphasize colors, textures, lighting, and other visual elements
+4. **Ratio Adaptation**: Optimize composition for ${aspectRatio} ${aspectRatio === '9:16' || aspectRatio === '3:4' ? 'vertical' : aspectRatio === '1:1' ? 'square' : 'horizontal'} format
+5. **English Output**: Write in English following "Subject + Environment + Details" structure
 
-【图片特有元素（区别于视频）】
-• **静态姿态**：人物的固定姿态和表情（如"站立"、"侧身回眸"），不描述动作过程
-• **瞬间定格**：捕捉一个决定性瞬间（如"泪水滑落脸颊的瞬间"）
-• **空间布局**：前景、中景、后景的层次安排
-• **细节刻画**：材质、纹理、光影细节的精确描述
-• **氛围营造**：通过静态元素营造情绪（色调、光线、环境）
+[IMAGE-SPECIFIC ELEMENTS (Distinguished from Video)]
+• **Static Posture**: Fixed postures and expressions of characters (e.g., "standing", "side glance"), not action processes
+• **Decisive Moment**: Capture a decisive instant (e.g., "the moment tear slides down cheek")
+• **Spatial Layout**: Layering of foreground, midground, and background
+• **Detail Rendering**: Precise description of materials, textures, and lighting details
+• **Atmosphere Creation**: Convey emotions through static elements (tones, lighting, environment)
 
-【必须包含的元素】
-• 主体描述：人物/物体的静态姿态、表情、服饰特征（具体化）
-• 环境场景：具体场所、时间、天气、空间层次
-• 构图说明：**明确标注"采用${aspectRatio}${aspectRatio === '9:16' || aspectRatio === '3:4' ? '竖构图' : aspectRatio === '1:1' ? '方形构图' : '横构图'}"**
-• 光影效果：光源位置、方向、明暗对比、氛围
-• 色彩方案：主色调、配色、饱和度、色彩情绪
-• 质感细节：材质、纹理、表面质感${styleContext}
+[REQUIRED ELEMENTS]
+• Subject Description: Static posture, expression, and clothing features of characters/objects (specific)
+• Environment Scene: Specific location, time, weather, spatial layers
+• Composition Note: **Explicitly mark "using ${aspectRatio} ${aspectRatio === '9:16' || aspectRatio === '3:4' ? 'vertical composition' : aspectRatio === '1:1' ? 'square composition' : 'horizontal composition'}"**
+• Lighting Effects: Light source position, direction, contrast, atmosphere
+• Color Scheme: Main tone, color pairing, saturation, color emotion
+• Texture Details: Materials, textures, surface qualities${styleContext}
 
-【格式要求】
-- 限制在200字以内
-- 避免抽象词汇，使用具象化视觉描述
-- 不使用markdown格式
-- 不包含版权内容（品牌、明星、艺术家名字）
+[FORMAT REQUIREMENTS]
+- Limit to 200 words
+- Avoid abstract terms, use concrete visual descriptions
+- No markdown formatting
+- No copyrighted content (brands, celebrities, artist names)
+- Output in English
 
-直接输出提示词，无需其他说明。`;
+Output the prompt directly without additional explanation.`;
         
-        systemPrompt = "你是专业的AI图片提示词撰写专家，精通Seedream 4.0图片生成规范和视觉艺术。你擅长将文字转化为静态画面描述，准确指导AI生成高质量、艺术性强的图片内容。";
+        systemPrompt = "You are a professional AI image prompt expert, proficient in Seedream 4.0 image generation specifications and visual arts. You excel at transforming text into static scene descriptions, accurately guiding AI to generate high-quality, artistic image content.";
       }
       
       const description = await callDeepSeekAPI(descriptionPrompt, systemPrompt);

@@ -46,6 +46,9 @@ export default function DescriptionsPage() {
   const [currentGeneratingImageId, setCurrentGeneratingImageId] = useState<string | null>(null);
   const [currentGeneratingVideoId, setCurrentGeneratingVideoId] = useState<string | null>(null);
   const [previewImage, setPreviewImage] = useState<{ url: string; number: number } | null>(null);
+  const [shouldStopDescriptions, setShouldStopDescriptions] = useState(false);
+  const [shouldStopImages, setShouldStopImages] = useState(false);
+  const [shouldStopVideos, setShouldStopVideos] = useState(false);
 
   const segments = (project?.segments as Segment[]) || [];
   const generationMode = project?.generationMode || "text-to-image-to-video";
@@ -237,9 +240,17 @@ export default function DescriptionsPage() {
     }
 
     setBatchGeneratingDescriptions(true);
+    setShouldStopDescriptions(false); // 重置停止标志
     let currentSegments = [...segments];
+    let generatedCount = 0;
 
     for (const segment of segmentsToGenerate) {
+      // 检查是否需要停止
+      if (shouldStopDescriptions) {
+        console.log("[Batch] Stopped descriptions generation by user");
+        break;
+      }
+
       setCurrentGeneratingDescId(segment.id);
       try {
         // 确保使用最新的aspectRatio
@@ -268,6 +279,7 @@ export default function DescriptionsPage() {
           } : seg
         );
         updateSegments(currentSegments);
+        generatedCount++;
       } catch (error) {
         console.error("Failed to generate description:", error);
       }
@@ -287,9 +299,15 @@ export default function DescriptionsPage() {
 
     setCurrentGeneratingDescId(null);
     setBatchGeneratingDescriptions(false);
+    setShouldStopDescriptions(false);
+    
+    const message = shouldStopDescriptions 
+      ? `已停止，成功生成 ${generatedCount} 个描述`
+      : `成功生成 ${generatedCount} 个描述`;
+    
     toast({
-      title: "批量生成完成",
-      description: `成功生成 ${segmentsToGenerate.length} 个描述`,
+      title: shouldStopDescriptions ? "已停止生成" : "批量生成完成",
+      description: message,
     });
   };
 
@@ -306,21 +324,36 @@ export default function DescriptionsPage() {
     }
 
     setBatchGeneratingImages(true);
+    setShouldStopImages(false); // 重置停止标志
     let currentSegments = [...segments];
+    let generatedCount = 0;
 
     for (const segment of segmentsWithDescription) {
+      // 检查是否需要停止
+      if (shouldStopImages) {
+        console.log("[Batch] Stopped images generation by user");
+        break;
+      }
+
       setCurrentGeneratingImageId(segment.id);
       const updated = await generateSingleImage(segment.id, currentSegments);
       if (updated) {
         currentSegments = updated;
+        generatedCount++;
       }
     }
 
     setCurrentGeneratingImageId(null);
     setBatchGeneratingImages(false);
+    setShouldStopImages(false);
+    
+    const message = shouldStopImages 
+      ? `已停止，成功生成 ${generatedCount} 张图片`
+      : `成功生成 ${generatedCount} 张图片`;
+    
     toast({
-      title: "批量生成完成",
-      description: `成功生成 ${segmentsWithDescription.length} 张图片`,
+      title: shouldStopImages ? "已停止生成" : "批量生成完成",
+      description: message,
     });
   };
 
@@ -410,17 +443,32 @@ export default function DescriptionsPage() {
     }
 
     setBatchGeneratingVideos(true);
+    setShouldStopVideos(false); // 重置停止标志
+    let generatedCount = 0;
 
     for (const segment of segmentsToGenerate) {
+      // 检查是否需要停止
+      if (shouldStopVideos) {
+        console.log("[Batch] Stopped videos generation by user");
+        break;
+      }
+
       setCurrentGeneratingVideoId(segment.id);
       await generateSingleVideo(segment.id);
+      generatedCount++;
     }
 
     setCurrentGeneratingVideoId(null);
     setBatchGeneratingVideos(false);
+    setShouldStopVideos(false);
+    
+    const message = shouldStopVideos 
+      ? `已停止，成功生成 ${generatedCount} 个视频`
+      : `成功生成 ${generatedCount} 个视频`;
+    
     toast({
-      title: "批量生成完成",
-      description: `成功生成 ${segmentsToGenerate.length} 个视频`,
+      title: shouldStopVideos ? "已停止生成" : "批量生成完成",
+      description: message,
     });
   };
 
@@ -525,8 +573,8 @@ export default function DescriptionsPage() {
                 <div className={`${isTextToVideo ? 'col-span-3' : 'col-span-3'} p-3 border-r border-border`}>
                   <Button
                     size="sm"
-                    onClick={handleBatchGenerateDescriptions}
-                    disabled={batchGeneratingDescriptions || segments.every(s => 
+                    onClick={batchGeneratingDescriptions ? () => setShouldStopDescriptions(true) : handleBatchGenerateDescriptions}
+                    disabled={!batchGeneratingDescriptions && segments.every(s => 
                       s.sceneDescription && (!s.descriptionAspectRatio || s.descriptionAspectRatio === aspectRatio)
                     )}
                     className="w-full"
@@ -535,7 +583,7 @@ export default function DescriptionsPage() {
                     {batchGeneratingDescriptions ? (
                       <>
                         <Loader2 className="h-3 w-3 mr-1 animate-spin" />
-                        生成中...
+                        生成中...（停止）
                       </>
                     ) : (
                       <>
@@ -549,15 +597,15 @@ export default function DescriptionsPage() {
                   <div className="col-span-2 p-3 border-r border-border">
                     <Button
                       size="sm"
-                      onClick={handleBatchGenerateImages}
-                      disabled={batchGeneratingImages || segments.every(s => !s.sceneDescription || s.imageUrl)}
+                      onClick={batchGeneratingImages ? () => setShouldStopImages(true) : handleBatchGenerateImages}
+                      disabled={!batchGeneratingImages && segments.every(s => !s.sceneDescription || s.imageUrl)}
                       className="w-full"
                       data-testid="button-batch-generate-images"
                     >
                       {batchGeneratingImages ? (
                         <>
                           <Loader2 className="h-3 w-3 mr-1 animate-spin" />
-                          生成中...
+                          生成中...（停止）
                         </>
                       ) : (
                         <>
@@ -571,15 +619,15 @@ export default function DescriptionsPage() {
                 <div className="col-span-2 p-3">
                   <Button
                     size="sm"
-                    onClick={handleBatchGenerateVideos}
-                    disabled={batchGeneratingVideos || segments.every(s => isTextToVideo ? !s.sceneDescription || s.videoUrl : !s.imageUrl || s.videoUrl)}
+                    onClick={batchGeneratingVideos ? () => setShouldStopVideos(true) : handleBatchGenerateVideos}
+                    disabled={!batchGeneratingVideos && segments.every(s => isTextToVideo ? !s.sceneDescription || s.videoUrl : !s.imageUrl || s.videoUrl)}
                     className="w-full"
                     data-testid="button-batch-generate-videos"
                   >
                     {batchGeneratingVideos ? (
                       <>
                         <Loader2 className="h-3 w-3 mr-1 animate-spin" />
-                        生成中...
+                        生成中...（停止）
                       </>
                     ) : (
                       <>
