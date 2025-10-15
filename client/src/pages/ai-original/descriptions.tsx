@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
-import { ArrowLeft, Sparkles, Edit, Image as ImageIcon, Video, Loader2, Download, FileDown, ChevronDown, RefreshCw, ZoomIn } from "lucide-react";
+import { ArrowLeft, ArrowRight, Sparkles, Edit, Image as ImageIcon, Video, Loader2, Download, FileDown, ChevronDown, RefreshCw, ZoomIn } from "lucide-react";
 import { useProject } from "@/hooks/use-project";
 import { useMutation } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
@@ -515,7 +515,8 @@ export default function DescriptionsPage() {
     { number: 3, label: "智能分段", isCompleted: currentStep > 3, isCurrent: currentStep === 3 },
     { number: 4, label: "选择流程", isCompleted: currentStep > 4, isCurrent: currentStep === 4 },
     { number: 5, label: "生成描述", isCompleted: currentStep > 5, isCurrent: currentStep === 5 },
-    { number: 6, label: "导出成片", isCompleted: currentStep > 6, isCurrent: currentStep === 6 },
+    { number: 6, label: "生成素材", isCompleted: currentStep > 6, isCurrent: currentStep === 6 },
+    { number: 7, label: "导出成片", isCompleted: currentStep > 7, isCurrent: currentStep === 7 },
   ];
 
   return (
@@ -566,11 +567,11 @@ export default function DescriptionsPage() {
             {/* 表格容器 */}
             <div className="border border-border rounded-lg overflow-hidden">
               {/* 表头 */}
-              <div className={`grid ${isTextToVideo ? 'grid-cols-10' : 'grid-cols-12'} gap-0 bg-muted/30 border-b border-border`}>
+              <div className="grid grid-cols-8 gap-0 bg-muted/30 border-b border-border">
                 <div className="col-span-1 p-3 text-sm text-muted-foreground border-r border-border">编号</div>
                 <div className="col-span-2 p-3 text-sm text-muted-foreground border-r border-border">文案</div>
                 <div className="col-span-2 p-3 text-sm text-muted-foreground border-r border-border">翻译</div>
-                <div className={`${isTextToVideo ? 'col-span-3' : 'col-span-3'} p-3 border-r border-border`}>
+                <div className="col-span-3 p-3">
                   <Button
                     size="sm"
                     onClick={batchGeneratingDescriptions ? () => setShouldStopDescriptions(true) : handleBatchGenerateDescriptions}
@@ -593,55 +594,11 @@ export default function DescriptionsPage() {
                     )}
                   </Button>
                 </div>
-                {!isTextToVideo && (
-                  <div className="col-span-2 p-3 border-r border-border">
-                    <Button
-                      size="sm"
-                      onClick={batchGeneratingImages ? () => setShouldStopImages(true) : handleBatchGenerateImages}
-                      disabled={!batchGeneratingImages && segments.every(s => !s.sceneDescription || s.imageUrl)}
-                      className="w-full"
-                      data-testid="button-batch-generate-images"
-                    >
-                      {batchGeneratingImages ? (
-                        <>
-                          <Loader2 className="h-3 w-3 mr-1 animate-spin" />
-                          生成中...（停止）
-                        </>
-                      ) : (
-                        <>
-                          <ImageIcon className="h-3 w-3 mr-1" />
-                          批量生成图片
-                        </>
-                      )}
-                    </Button>
-                  </div>
-                )}
-                <div className="col-span-2 p-3">
-                  <Button
-                    size="sm"
-                    onClick={batchGeneratingVideos ? () => setShouldStopVideos(true) : handleBatchGenerateVideos}
-                    disabled={!batchGeneratingVideos && segments.every(s => isTextToVideo ? !s.sceneDescription || s.videoUrl : !s.imageUrl || s.videoUrl)}
-                    className="w-full"
-                    data-testid="button-batch-generate-videos"
-                  >
-                    {batchGeneratingVideos ? (
-                      <>
-                        <Loader2 className="h-3 w-3 mr-1 animate-spin" />
-                        生成中...（停止）
-                      </>
-                    ) : (
-                      <>
-                        <Video className="h-3 w-3 mr-1" />
-                        批量生成视频
-                      </>
-                    )}
-                  </Button>
-                </div>
               </div>
 
               {/* 片段列表 */}
               {segments.map((segment, index) => (
-                <div key={segment.id} className={`grid ${isTextToVideo ? 'grid-cols-10' : 'grid-cols-12'} gap-0 ${index !== segments.length - 1 ? 'border-b border-border' : ''}`} data-testid={`row-segment-${segment.number}`}>
+                <div key={segment.id} className={`grid grid-cols-8 gap-0 ${index !== segments.length - 1 ? 'border-b border-border' : ''}`} data-testid={`row-segment-${segment.number}`}>
                   {/* 编号 */}
                   <div className="col-span-1 p-3 border-r border-border flex items-center">
                     <Badge variant="secondary" className="font-mono">
@@ -667,7 +624,7 @@ export default function DescriptionsPage() {
                   </div>
 
                   {/* 分镜描述 */}
-                  <div className="col-span-3 p-3 border-r border-border">
+                  <div className="col-span-3 p-3">
                     {editingId === segment.id ? (
                       <div className="space-y-2">
                         <Textarea
@@ -761,172 +718,29 @@ export default function DescriptionsPage() {
                       </div>
                     )}
                   </div>
-
-                  {/* 生成图片列 - 仅文生图+图生视频模式显示 */}
-                  {!isTextToVideo && (
-                    <div className="col-span-2 p-3 border-r border-border">
-                      {segment.imageUrl ? (
-                        <div className="space-y-2">
-                          <div 
-                            className="relative aspect-video bg-muted rounded-md overflow-hidden group cursor-pointer hover-elevate active-elevate-2"
-                            onClick={() => setPreviewImage({ url: segment.imageUrl!, number: segment.number })}
-                          >
-                            <img 
-                              src={segment.imageUrl} 
-                              alt={`Scene ${segment.number}`}
-                              className="w-full h-full object-cover"
-                              data-testid={`image-${segment.number}`}
-                            />
-                            {/* 悬浮时显示放大图标 - 居中显示 */}
-                            <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-black/20">
-                              <div className="bg-background/90 backdrop-blur-sm rounded-full p-3">
-                                <ZoomIn className="h-5 w-5 text-foreground" />
-                              </div>
-                            </div>
-                          </div>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => generateSingleImage(segment.id)}
-                            disabled={generatingImages.has(segment.id) || batchGeneratingImages}
-                            className="w-full"
-                            data-testid={`button-regenerate-image-${segment.number}`}
-                          >
-                            {generatingImages.has(segment.id) || currentGeneratingImageId === segment.id ? (
-                              <>
-                                <Loader2 className="h-3 w-3 mr-1 animate-spin" />
-                                生成中
-                              </>
-                            ) : (
-                              <>
-                                <RefreshCw className="h-3 w-3 mr-1" />
-                                重新生成
-                              </>
-                            )}
-                          </Button>
-                        </div>
-                      ) : (
-                        <Button
-                          size="sm"
-                          variant="default"
-                          onClick={() => generateSingleImage(segment.id)}
-                          disabled={!segment.sceneDescription || generatingImages.has(segment.id) || batchGeneratingImages}
-                          className="w-full"
-                          data-testid={`button-generate-image-${segment.number}`}
-                        >
-                          {generatingImages.has(segment.id) || currentGeneratingImageId === segment.id ? (
-                            <>
-                              <Loader2 className="h-3 w-3 mr-1 animate-spin" />
-                              生成中
-                            </>
-                          ) : batchGeneratingImages && segment.sceneDescription && !segment.imageUrl ? (
-                            <>
-                              <Loader2 className="h-3 w-3 mr-1 animate-spin opacity-50" />
-                              等待生成
-                            </>
-                          ) : (
-                            "生成"
-                          )}
-                        </Button>
-                      )}
-                    </div>
-                  )}
-
-                  {/* 生成视频列 */}
-                  <div className="col-span-2 p-3">
-                    <Button
-                      size="sm"
-                      variant={segment.videoUrl ? "outline" : "default"}
-                      onClick={() => generateSingleVideo(segment.id)}
-                      disabled={
-                        isTextToVideo 
-                          ? !segment.sceneDescription || generatingVideos.has(segment.id) || batchGeneratingVideos
-                          : !segment.imageUrl || generatingVideos.has(segment.id) || batchGeneratingVideos
-                      }
-                      className="w-full"
-                      data-testid={`button-generate-video-${segment.number}`}
-                    >
-                      {generatingVideos.has(segment.id) || currentGeneratingVideoId === segment.id ? (
-                        <>
-                          <Loader2 className="h-3 w-3 mr-1 animate-spin" />
-                          生成中
-                        </>
-                      ) : batchGeneratingVideos && (isTextToVideo ? segment.sceneDescription : segment.imageUrl) && !segment.videoUrl ? (
-                        <>
-                          <Loader2 className="h-3 w-3 mr-1 animate-spin opacity-50" />
-                          等待生成
-                        </>
-                      ) : segment.videoUrl ? (
-                        <>
-                          <RefreshCw className="h-3 w-3 mr-1" />
-                          重新生成
-                        </>
-                      ) : (
-                        "生成视频"
-                      )}
-                    </Button>
-                  </div>
                 </div>
               ))}
             </div>
           </div>
 
-          {/* 右侧导出面板 */}
+          {/* 右侧下一步面板 */}
           <div className="w-80 flex-shrink-0">
             <Card className="p-6 sticky top-24">
-              <div className="flex items-center gap-2 mb-6">
-                <Download className="h-5 w-5" />
-                <h2 className="text-lg font-semibold">导出成片</h2>
-              </div>
+              <h2 className="text-lg font-semibold mb-4">下一步</h2>
+              
+              <p className="text-sm text-muted-foreground mb-6">
+                描述词生成完成后，继续生成图片和视频素材
+              </p>
 
-              <div className="grid grid-cols-2 gap-4 mb-6">
-                <div>
-                  <p className="text-sm text-muted-foreground mb-1">总分镜数</p>
-                  <p className="text-2xl font-bold" data-testid="text-total-segments">
-                    {segments.length}
-                  </p>
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground mb-1">总时长</p>
-                  <p className="text-2xl font-bold" data-testid="text-total-duration">
-                    {minutes}:{seconds.toString().padStart(2, '0')}
-                  </p>
-                </div>
-              </div>
-
-              <div className="space-y-3">
-                <Button
-                  className="w-full"
-                  variant="default"
-                  data-testid="button-download-zip"
-                >
-                  <Download className="h-4 w-4 mr-2" />
-                  下载所有镜头 (ZIP)
-                </Button>
-                <Button
-                  className="w-full"
-                  variant="outline"
-                  data-testid="button-export-draft"
-                >
-                  <FileDown className="h-4 w-4 mr-2" />
-                  导出剪映草稿
-                </Button>
-              </div>
-
-              <Collapsible className="mt-4">
-                <CollapsibleTrigger className="flex items-center justify-between w-full p-3 rounded-md hover-elevate">
-                  <span className="text-sm text-foreground">如何导入剪映？</span>
-                  <ChevronDown className="h-4 w-4 text-muted-foreground" />
-                </CollapsibleTrigger>
-                <CollapsibleContent className="mt-2 p-3 bg-muted/50 rounded-md">
-                  <ol className="text-sm text-muted-foreground space-y-2">
-                    <li>1. 下载剪映草稿文件</li>
-                    <li>2. 打开剪映专业版</li>
-                    <li>3. 导入草稿文件</li>
-                    <li>4. 开始编辑视频</li>
-                  </ol>
-                </CollapsibleContent>
-              </Collapsible>
+              <Button
+                className="w-full"
+                size="lg"
+                onClick={() => setLocation("/ai-original/materials")}
+                data-testid="button-next-materials"
+              >
+                <ArrowRight className="h-4 w-4 mr-2" />
+                进入素材生成
+              </Button>
             </Card>
           </div>
         </div>

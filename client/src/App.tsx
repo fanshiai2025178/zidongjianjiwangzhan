@@ -14,6 +14,7 @@ import ScriptPage from "@/pages/ai-original/script";
 import SegmentsPage from "@/pages/ai-original/segments";
 import GenerationModePage from "@/pages/ai-original/generation-mode";
 import DescriptionsPage from "@/pages/ai-original/descriptions";
+import MaterialsPage from "@/pages/ai-original/materials";
 import ResultPage from "@/pages/ai-original/result";
 import CommentaryPage from "@/pages/commentary";
 import ReferencePage from "@/pages/reference";
@@ -29,6 +30,7 @@ function Router() {
       <Route path="/ai-original/segments" component={SegmentsPage} />
       <Route path="/ai-original/generation-mode" component={GenerationModePage} />
       <Route path="/ai-original/descriptions" component={DescriptionsPage} />
+      <Route path="/ai-original/materials" component={MaterialsPage} />
       <Route path="/ai-original/result" component={ResultPage} />
       
       {/* Other Creation Modes */}

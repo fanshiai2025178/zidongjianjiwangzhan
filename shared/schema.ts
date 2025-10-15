@@ -46,6 +46,7 @@ export interface Segment {
   translation?: string;
   sceneDescription?: string;
   descriptionAspectRatio?: string; // 记录生成描述词时的比例
+  optimizedDescription?: string; // 优化后的描述词
   imageUrl?: string;
   videoUrl?: string;
 }
