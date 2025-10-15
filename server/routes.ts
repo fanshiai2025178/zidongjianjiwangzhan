@@ -126,6 +126,43 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // 生成分镜描述API
+  app.post("/api/descriptions/generate", async (req, res) => {
+    try {
+      const { text, translation, language } = req.body;
+      if (!text) {
+        return res.status(400).json({ error: "Text is required" });
+      }
+
+      console.log("[Description] Generating description for:", text.substring(0, 30) + "...");
+
+      // 构建提示词
+      const contentToDescribe = language === "English" && translation 
+        ? `${text}\n(中文翻译: ${translation})`
+        : text;
+
+      const descriptionPrompt = `请为以下文案生成一个详细的视频分镜画面描述。描述应该包括场景、人物、动作、镜头角度等细节，使用英文编写，格式类似于电影剧本的场景描述。
+
+文案内容：
+${contentToDescribe}
+
+请使用以下格式（纯文本，不要markdown格式）：
+Scene: [场景描述]
+Shot: [镜头角度和类型]
+Action: [具体动作和细节]`;
+      
+      const systemPrompt = "You are a professional video scene description writer. Generate detailed, visual scene descriptions in English for video production.";
+      
+      const description = await callDeepSeekAPI(descriptionPrompt, systemPrompt);
+      console.log("[Description] Generated description successfully");
+      
+      res.json({ description: description.trim() });
+    } catch (error) {
+      console.error("[Description] Error:", error);
+      res.status(500).json({ error: "Failed to generate description", details: error instanceof Error ? error.message : String(error) });
+    }
+  });
+
   // 智能分段API
   app.post("/api/segments/generate", async (req, res) => {
     try {
