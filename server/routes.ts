@@ -129,13 +129,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // 生成分镜描述API
   app.post("/api/descriptions/generate", async (req, res) => {
     try {
-      const { text, translation, language, generationMode = "text-to-image-to-video" } = req.body;
+      const { text, translation, language, generationMode = "text-to-image-to-video", aspectRatio = "16:9" } = req.body;
       if (!text) {
         return res.status(400).json({ error: "Text is required" });
       }
 
       console.log("[Description] Generating description for:", text.substring(0, 30) + "...");
       console.log("[Description] Generation mode:", generationMode);
+      console.log("[Description] Aspect ratio:", aspectRatio);
 
       // 构建提示词
       const contentToDescribe = language === "English" && translation 
@@ -152,12 +153,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
 文案内容：
 ${contentToDescribe}
 
+画面比例：${aspectRatio}
+
 请直接生成视频场景描述，包含以下要素：
 - 场景环境和氛围
 - 人物或主体的动作和表情变化
 - 镜头运动（推拉摇移、升降等）
 - 画面转场和节奏
 - 动态元素和运动细节
+- 注意画面比例为${aspectRatio}，在构图描述中考虑${aspectRatio === '9:16' || aspectRatio === '3:4' ? '竖屏' : aspectRatio === '1:1' ? '方形' : '横屏'}画面特点
 
 要求：使用中文，描述具体生动，强调动态感和运动感，200字以内，不要使用markdown格式。`;
         
@@ -169,12 +173,15 @@ ${contentToDescribe}
 文案内容：
 ${contentToDescribe}
 
+画面比例：${aspectRatio}
+
 请直接生成静态画面描述，包含以下要素：
 - 场景环境和氛围
 - 人物或主体的姿态和表情（静态定格）
 - 画面构图和视角（俯拍、仰拍、特写等）
 - 色彩基调和光影效果
 - 细节元素和质感
+- 注意画面比例为${aspectRatio}，在构图描述中考虑${aspectRatio === '9:16' || aspectRatio === '3:4' ? '竖屏' : aspectRatio === '1:1' ? '方形' : '横屏'}画面特点
 
 要求：使用中文，描述具体生动，强调画面感和氛围感，200字以内，不要使用markdown格式。`;
         
@@ -194,7 +201,7 @@ ${contentToDescribe}
   // 火山引擎图片生成API
   app.post("/api/images/generate", async (req, res) => {
     try {
-      const { prompt } = req.body;
+      const { prompt, aspectRatio = "16:9" } = req.body;
       if (!prompt) {
         return res.status(400).json({ error: "Prompt is required" });
       }
@@ -212,16 +219,28 @@ ${contentToDescribe}
         return res.status(500).json({ error: "火山引擎Endpoint ID未配置，请设置VOLCENGINE_ENDPOINT_ID环境变量" });
       }
 
+      // 根据比例设置图片尺寸
+      const sizeMap: Record<string, string> = {
+        "9:16": "576x1024",
+        "3:4": "768x1024",
+        "1:1": "1024x1024",
+        "16:9": "1024x576",
+        "4:3": "1024x768",
+      };
+      const size = sizeMap[aspectRatio] || "1024x1024";
+
       console.log("[Image] Generating image...");
       console.log("[Image] Endpoint ID:", endpointId);
       console.log("[Image] API Key (first 10 chars):", apiKey.substring(0, 10) + "...");
+      console.log("[Image] Aspect Ratio:", aspectRatio);
+      console.log("[Image] Size:", size);
       console.log("[Image] Prompt:", prompt.substring(0, 100) + "...");
 
       // 调用火山引擎图片生成API
       const requestBody = {
         model: endpointId,
         prompt: prompt,
-        size: "1024x1024",
+        size: size,
         n: 1,
       };
       
