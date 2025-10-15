@@ -126,6 +126,7 @@ export default function DescriptionsPage() {
           language: segment.language,
           generationMode: generationMode,
           aspectRatio: aspectRatio,
+          styleSettings: project?.styleSettings,
         }
       );
       const data = await response.json();
@@ -254,6 +255,8 @@ export default function DescriptionsPage() {
             translation: segment.translation,
             language: segment.language,
             generationMode: generationMode,
+            aspectRatio: aspectRatio,
+            styleSettings: project?.styleSettings,
           }
         );
         const data = await response.json();

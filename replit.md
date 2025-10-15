@@ -6,7 +6,17 @@ This is an AI-powered video creation platform that enables users to create profe
 
 ## Recent Changes (October 15, 2025)
 
-**Aspect Ratio System & Auto-Update (Latest)**
+**描述词生成优化 - 遵循Seedream 4.0规范（最新）**
+- **专业提示词规范**: 按照火山引擎Seedream 4.0官方规范优化提示词生成
+- **结构化描述**: 遵循"主体+环境+细节"结构，包含必要元素（姿态、场景、构图、光影、色彩、质感）
+- **风格融合**: 自动整合用户上传的角色参考图、风格参考图和预设风格
+- **比例适配**: 提示词根据画面比例提供针对性构图建议（竖屏/横屏/方形）
+- **视频优化**: 文生视频模式强调镜头语言（推拉摇移）和动态表现
+- **图片优化**: 文生图模式强调画面层次、光影氛围和质感细节
+- **避免违规**: 自动过滤版权内容（品牌、明星、艺术家名字）
+- API层面深度理解Seedream 4.0规则，生成更精准、专业的提示词
+
+**Aspect Ratio System & Auto-Update**
 - **Aspect Ratio Selector**: Global aspect ratio selector above table (9:16, 3:4, 1:1, 16:9, 4:3)
 - **Auto-Update Descriptions**: When ratio changes, all existing descriptions auto-update with new ratio info
 - **Smart Text Replacement**: Automatically replaces ratio numbers (e.g., "16:9" → "9:16") and orientation text (e.g., "横屏" → "竖屏")

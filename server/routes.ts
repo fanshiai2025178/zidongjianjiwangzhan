@@ -129,7 +129,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // 生成分镜描述API
   app.post("/api/descriptions/generate", async (req, res) => {
     try {
-      const { text, translation, language, generationMode = "text-to-image-to-video", aspectRatio = "16:9" } = req.body;
+      const { text, translation, language, generationMode = "text-to-image-to-video", aspectRatio = "16:9", styleSettings } = req.body;
       if (!text) {
         return res.status(400).json({ error: "Text is required" });
       }
@@ -137,55 +137,103 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log("[Description] Generating description for:", text.substring(0, 30) + "...");
       console.log("[Description] Generation mode:", generationMode);
       console.log("[Description] Aspect ratio:", aspectRatio);
+      console.log("[Description] Style settings:", styleSettings ? "Provided" : "None");
 
       // 构建提示词
       const contentToDescribe = language === "English" && translation 
         ? `${text}\n(中文翻译: ${translation})`
         : text;
 
+      // 构建风格参考信息
+      let styleContext = "";
+      if (styleSettings) {
+        if (styleSettings.useCharacterReference && styleSettings.characterImageUrl) {
+          styleContext += "\n\n【角色参考】\n已提供角色参考图，请在描述中保持角色的基本特征和风格一致性。";
+        }
+        if (styleSettings.useStyleReference && styleSettings.styleImageUrl) {
+          styleContext += "\n\n【风格参考】\n已提供风格参考图，请在描述中体现相似的视觉风格、色调和艺术表现手法。";
+        }
+        if (styleSettings.usePresetStyle && styleSettings.presetStyleId) {
+          styleContext += `\n\n【预设风格】\n使用预设风格：${styleSettings.presetStyleId}，请在描述中体现该风格的特点。`;
+        }
+      }
+
       let descriptionPrompt: string;
       let systemPrompt: string;
 
       if (generationMode === "text-to-video") {
         // 文生视频：生成视频场景描述（强调动态、运动、镜头运动）
-        descriptionPrompt = `请为以下文案生成一个详细的视频场景描述。描述应该强调动态画面、人物动作、镜头运动等视频特有的元素，使用中文编写。
+        descriptionPrompt = `请为以下文案生成一个专业的AI视频生成提示词。
 
 文案内容：
 ${contentToDescribe}
 
-画面比例：${aspectRatio}
+画面比例：${aspectRatio}（${aspectRatio === '9:16' || aspectRatio === '3:4' ? '竖屏' : aspectRatio === '1:1' ? '方形' : '横屏'}）
 
-请直接生成视频场景描述，包含以下要素：
-- 场景环境和氛围
-- 人物或主体的动作和表情变化
-- 镜头运动（推拉摇移、升降等）
-- 画面转场和节奏
-- 动态元素和运动细节
-- 注意画面比例为${aspectRatio}，在构图描述中考虑${aspectRatio === '9:16' || aspectRatio === '3:4' ? '竖屏' : aspectRatio === '1:1' ? '方形' : '横屏'}画面特点
+请按照以下要求生成视频提示词：
 
-要求：使用中文，描述具体生动，强调动态感和运动感，200字以内，不要使用markdown格式。`;
+【核心要求】
+1. 使用中文撰写
+2. 描述具体、生动、富有细节
+3. 强调动态变化和镜头运动
+4. 适配${aspectRatio}${aspectRatio === '9:16' || aspectRatio === '3:4' ? '竖屏' : aspectRatio === '1:1' ? '方形' : '横屏'}构图
+
+【必须包含的元素】
+• 主体描述：人物/物体的动作、表情、姿态变化
+• 场景环境：具体的场所、氛围、光影效果
+• 镜头语言：推拉摇移、特写、全景等镜头运动
+• 视觉细节：色彩、质感、动态元素
+• 节奏变化：画面转场、速度变化、情绪起伏
+
+【注意事项】
+- 避免抽象概念，使用具象化描述
+- 避免重复描述，每个细节只说一次
+- 限制在200字以内
+- 不使用markdown格式${styleContext}
+
+直接输出提示词，无需其他说明。`;
         
-        systemPrompt = "你是一位专业的视频场景描述撰写专家。请生成强调动态、运动和镜头语言的中文视频场景描述，适合用于AI视频生成。";
+        systemPrompt = "你是专业的AI视频提示词撰写专家，深刻理解镜头语言和视觉叙事。你的提示词能够准确指导AI生成高质量的动态视频内容。";
       } else {
         // 文生图+图生视频：生成静态图片描述（强调画面、构图、色彩、氛围）
-        descriptionPrompt = `请为以下文案生成一个详细的静态画面描述。描述应该强调画面构图、色彩氛围、光影效果等静态视觉元素，使用中文编写，适合用于AI图片生成。
+        descriptionPrompt = `请为以下文案生成一个专业的AI图片生成提示词（遵循Seedream 4.0规范）。
 
 文案内容：
 ${contentToDescribe}
 
-画面比例：${aspectRatio}
+画面比例：${aspectRatio}（${aspectRatio === '9:16' || aspectRatio === '3:4' ? '竖屏' : aspectRatio === '1:1' ? '方形' : '横屏'}）
 
-请直接生成静态画面描述，包含以下要素：
-- 场景环境和氛围
-- 人物或主体的姿态和表情（静态定格）
-- 画面构图和视角（俯拍、仰拍、特写等）
-- 色彩基调和光影效果
-- 细节元素和质感
-- 注意画面比例为${aspectRatio}，在构图描述中考虑${aspectRatio === '9:16' || aspectRatio === '3:4' ? '竖屏' : aspectRatio === '1:1' ? '方形' : '横屏'}画面特点
+请按照以下要求生成图片提示词：
 
-要求：使用中文，描述具体生动，强调画面感和氛围感，200字以内，不要使用markdown格式。`;
+【核心要求】
+1. 使用中文撰写，表述清晰准确
+2. 描述具体、可视化、富有细节
+3. 适配${aspectRatio}${aspectRatio === '9:16' || aspectRatio === '3:4' ? '竖屏' : aspectRatio === '1:1' ? '方形' : '横屏'}构图特点
+4. 遵循"主体+环境+细节"结构
+
+【必须包含的元素】
+• 主体描述：人物/物体的姿态、表情、服饰、特征（具体化）
+• 环境场景：具体场所、时间、天气、空间感
+• 构图视角：${aspectRatio === '9:16' || aspectRatio === '3:4' ? '竖构图，适合人物特写或全身像' : aspectRatio === '1:1' ? '方形构图，居中对称或三分法' : '横构图，适合风景或场景叙事'}
+• 光影效果：光源方向、明暗对比、氛围营造
+• 色彩基调：主色调、色彩搭配、情绪表达
+• 质感细节：材质、纹理、质感表现
+
+【优化技巧】
+- 主体放在前面：先描述最重要的元素
+- 使用具象词汇：避免"美丽""震撼"等抽象词
+- 画面层次感：前景、中景、后景的关系
+- 情绪氛围：通过环境和光影传达情感
+
+【注意事项】
+- 避免重复描述，每个细节只说一次
+- 限制在200字以内
+- 不使用markdown格式
+- 不包含版权内容（品牌、明星、艺术家名字）${styleContext}
+
+直接输出提示词，无需其他说明。`;
         
-        systemPrompt = "你是一位专业的图片场景描述撰写专家。请生成详细、具象化的中文静态画面描述，适合用于AI图片生成。";
+        systemPrompt = "你是专业的AI图片提示词撰写专家，精通Seedream 4.0图片生成规范。你的提示词能够准确指导AI生成高质量、符合预期的图片内容，具有出色的视觉表现力和艺术性。";
       }
       
       const description = await callDeepSeekAPI(descriptionPrompt, systemPrompt);
