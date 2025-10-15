@@ -218,6 +218,7 @@ export default function StylePage() {
 
               {useCharacterRef && (
                 <div className="ml-7">
+                  <p className="text-sm font-medium text-foreground mb-3">人物形象参考</p>
                   <input
                     ref={characterInputRef}
                     type="file"
@@ -226,16 +227,16 @@ export default function StylePage() {
                     className="hidden"
                   />
                   {characterImage ? (
-                    <div className="relative border-2 border-border rounded-xl overflow-hidden bg-muted">
-                      <img src={characterImage} alt="人物形象参考" className="w-full h-64 object-contain" />
-                      <Button
-                        variant="destructive"
-                        size="icon"
-                        className="absolute top-2 right-2"
-                        onClick={() => setCharacterImage(null)}
-                      >
-                        <X className="h-4 w-4" />
-                      </Button>
+                    <div 
+                      className="border-2 border-dashed border-border rounded-xl p-8 text-center hover-elevate transition-all cursor-pointer"
+                      onClick={() => characterInputRef.current?.click()}
+                    >
+                      <div className="bg-white rounded-lg p-4 mb-4 inline-block">
+                        <img src={characterImage} alt="人物形象参考" className="max-w-[240px] max-h-[240px] object-contain" />
+                      </div>
+                      <p className="text-sm text-muted-foreground">
+                        点击更换图片
+                      </p>
                     </div>
                   ) : (
                     <div 
@@ -271,6 +272,7 @@ export default function StylePage() {
 
               {useStyleRef && (
                 <div className="ml-7">
+                  <p className="text-sm font-medium text-foreground mb-3">风格参考图片</p>
                   <input
                     ref={styleInputRef}
                     type="file"
@@ -279,16 +281,16 @@ export default function StylePage() {
                     className="hidden"
                   />
                   {styleImage ? (
-                    <div className="relative border-2 border-border rounded-xl overflow-hidden bg-muted">
-                      <img src={styleImage} alt="风格参考" className="w-full h-64 object-contain" />
-                      <Button
-                        variant="destructive"
-                        size="icon"
-                        className="absolute top-2 right-2"
-                        onClick={() => setStyleImage(null)}
-                      >
-                        <X className="h-4 w-4" />
-                      </Button>
+                    <div 
+                      className="border-2 border-dashed border-border rounded-xl p-8 text-center hover-elevate transition-all cursor-pointer"
+                      onClick={() => styleInputRef.current?.click()}
+                    >
+                      <div className="bg-white rounded-lg p-4 mb-4 inline-block">
+                        <img src={styleImage} alt="风格参考" className="max-w-[240px] max-h-[240px] object-contain" />
+                      </div>
+                      <p className="text-sm text-muted-foreground">
+                        点击更换图片
+                      </p>
                     </div>
                   ) : (
                     <div 
