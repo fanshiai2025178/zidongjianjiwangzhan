@@ -6,14 +6,17 @@ This is an AI-powered video creation platform that enables users to create profe
 
 ## Recent Changes (October 15, 2025)
 
-**Image and Video Generation Integration (Latest)**
-- Consolidated image/video generation into descriptions page for streamlined workflow
-- Integrated VolcEngine (火山引擎) API for AI image generation from scene descriptions
-- Added complete image and video generation flow with preview functionality
-- Implemented progress tracking panel showing completion status for descriptions, images, and videos
-- Added "完成并导出" button with next-step guidance that appears when all content is generated
+**Batch Generation UI Redesign (Latest)**
+- Redesigned descriptions page following user's design specifications
+- Added batch generation buttons: "批量生成图片" and "批量生成视频" (top-right placement)
+- Implemented table-based grid layout (编号 | 文案 | 翻译 | 分镜画面描述词 | 操作按钮)
+- Individual segment actions: "生成" (image) and "生成视频" buttons per row
+- Button state management: shows "已生成" after successful generation
+- Loading states with spinners for all generation operations
+- Inline description editing with hover-activated edit button
+- Sequential batch processing for images and videos
+- Image generation API (placeholder implementation - ready for VolcEngine integration)
 - Fixed home page navigation bug (double-click issue) with setTimeout solution
-- Updated segment schema to include imageUrl and videoUrl fields
 
 **Description Generation Page Implementation**
 - Created complete descriptions page following design reference

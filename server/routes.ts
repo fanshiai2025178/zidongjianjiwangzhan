@@ -163,7 +163,7 @@ Action: [具体动作和细节]`;
     }
   });
 
-  // 火山引擎图片生成API
+  // 火山引擎图片生成API（占位符实现）
   app.post("/api/images/generate", async (req, res) => {
     try {
       const { prompt } = req.body;
@@ -171,42 +171,37 @@ Action: [具体动作和细节]`;
         return res.status(400).json({ error: "Prompt is required" });
       }
 
-      const accessKey = process.env.VOLCENGINE_ACCESS_KEY;
-      const secretKey = process.env.VOLCENGINE_SECRET_KEY;
+      const apiKey = process.env.VOLCENGINE_ACCESS_KEY;
       
-      if (!accessKey || !secretKey) {
+      if (!apiKey) {
         return res.status(500).json({ error: "火山引擎API密钥未配置" });
       }
 
       console.log("[Image] Generating image with prompt:", prompt.substring(0, 50) + "...");
 
-      // 调用火山引擎文生图API
-      const response = await fetch("https://visual.volcengineapi.com", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          req_key: "t2i_xl_img2img",
-          prompt: prompt,
-          return_url: true,
-          model_version: "general_v2.0",
-        }),
-      });
+      // TODO: 实现真正的火山引擎API调用
+      // 火山方舟图片生成API示例：
+      // const response = await fetch("https://ark.cn-beijing.volces.com/api/v3/images/generations", {
+      //   method: "POST",
+      //   headers: {
+      //     "Content-Type": "application/json",
+      //     "Authorization": `Bearer ${apiKey}`,
+      //   },
+      //   body: JSON.stringify({
+      //     model: "doubao-seedream-3.0-t2i", // 或 doubao-seedream-4.0
+      //     prompt: prompt,
+      //     n: 1,
+      //     size: "1024x1024",
+      //   }),
+      // });
 
-      if (!response.ok) {
-        const error = await response.text();
-        console.error("[Image] 火山引擎API错误:", error);
-        return res.status(500).json({ error: "图片生成失败", details: error });
-      }
-
-      const data = await response.json();
-      console.log("[Image] Image generated successfully");
+      // 暂时返回占位符图片
+      const placeholderImageUrl = `https://via.placeholder.com/1024x512/1a1a1a/4A9EFF?text=${encodeURIComponent(prompt.substring(0, 30))}`;
       
-      // 返回图片URL
+      console.log("[Image] Returning placeholder image");
+      
       res.json({ 
-        imageUrl: data.data?.image_urls?.[0] || "",
-        rawResponse: data 
+        imageUrl: placeholderImageUrl,
       });
     } catch (error) {
       console.error("[Image] Error:", error);
