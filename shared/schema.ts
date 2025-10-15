@@ -13,6 +13,7 @@ export const projects = pgTable("projects", {
   scriptContent: text("script_content"),
   segments: jsonb("segments"),
   generationMode: text("generation_mode"),
+  aspectRatio: text("aspect_ratio").default("16:9"), // '9:16' | '3:4' | '1:1' | '16:9' | '4:3'
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });

@@ -37,6 +37,10 @@ export function ProjectProvider({ children }: { children: React.ReactNode }) {
     setProject((prev) => prev ? { ...prev, generationMode: mode } : null);
   }, []);
 
+  const updateAspectRatio = useCallback((ratio: string) => {
+    setProject((prev) => prev ? { ...prev, aspectRatio: ratio } : null);
+  }, []);
+
   const updateCurrentStep = useCallback((step: number) => {
     setProject((prev) => prev ? { ...prev, currentStep: step } : null);
   }, []);
@@ -64,6 +68,7 @@ export function ProjectProvider({ children }: { children: React.ReactNode }) {
           scriptContent: project.scriptContent,
           segments: project.segments,
           generationMode: project.generationMode,
+          aspectRatio: project.aspectRatio,
         });
         const newProject = await response.json();
         setProject(newProject as Project);
@@ -91,6 +96,7 @@ export function ProjectProvider({ children }: { children: React.ReactNode }) {
         updateScriptContent,
         updateSegments,
         updateGenerationMode,
+        updateAspectRatio,
         updateCurrentStep,
         saveProject,
       }}

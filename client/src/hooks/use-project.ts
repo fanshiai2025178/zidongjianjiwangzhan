@@ -8,6 +8,7 @@ interface ProjectContextType {
   updateScriptContent: (content: string) => void;
   updateSegments: (segments: Segment[]) => void;
   updateGenerationMode: (mode: string) => void;
+  updateAspectRatio: (ratio: string) => void;
   updateCurrentStep: (step: number) => void;
   saveProject: () => Promise<void>;
 }
