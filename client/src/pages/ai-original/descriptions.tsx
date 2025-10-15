@@ -436,27 +436,30 @@ export default function DescriptionsPage() {
               </p>
             </div>
 
+            {/* 比例选择器 */}
+            <div className="mb-4 flex items-center gap-3">
+              <span className="text-sm text-muted-foreground">画面比例：</span>
+              <Select value={aspectRatio} onValueChange={updateAspectRatio}>
+                <SelectTrigger className="w-32" data-testid="select-aspect-ratio">
+                  <SelectValue placeholder="选择比例" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="9:16">9:16 竖屏</SelectItem>
+                  <SelectItem value="3:4">3:4 竖屏</SelectItem>
+                  <SelectItem value="1:1">1:1 方形</SelectItem>
+                  <SelectItem value="16:9">16:9 横屏</SelectItem>
+                  <SelectItem value="4:3">4:3 横屏</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
             {/* 表格容器 */}
             <div className="border border-border rounded-lg overflow-hidden">
               {/* 表头 */}
-              <div className={`grid ${isTextToVideo ? 'grid-cols-11' : 'grid-cols-13'} gap-0 bg-muted/30 border-b border-border`}>
+              <div className={`grid ${isTextToVideo ? 'grid-cols-10' : 'grid-cols-12'} gap-0 bg-muted/30 border-b border-border`}>
                 <div className="col-span-1 p-3 text-sm text-muted-foreground border-r border-border">编号</div>
                 <div className="col-span-2 p-3 text-sm text-muted-foreground border-r border-border">文案</div>
                 <div className="col-span-2 p-3 text-sm text-muted-foreground border-r border-border">翻译</div>
-                <div className="col-span-1 p-3 border-r border-border">
-                  <Select value={aspectRatio} onValueChange={updateAspectRatio}>
-                    <SelectTrigger className="h-8 text-xs" data-testid="select-aspect-ratio">
-                      <SelectValue placeholder="比例" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="9:16">9:16</SelectItem>
-                      <SelectItem value="3:4">3:4</SelectItem>
-                      <SelectItem value="1:1">1:1</SelectItem>
-                      <SelectItem value="16:9">16:9</SelectItem>
-                      <SelectItem value="4:3">4:3</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
                 <div className={`${isTextToVideo ? 'col-span-3' : 'col-span-3'} p-3 border-r border-border`}>
                   <Button
                     size="sm"
@@ -526,7 +529,7 @@ export default function DescriptionsPage() {
 
               {/* 片段列表 */}
               {segments.map((segment, index) => (
-                <div key={segment.id} className={`grid ${isTextToVideo ? 'grid-cols-11' : 'grid-cols-13'} gap-0 ${index !== segments.length - 1 ? 'border-b border-border' : ''}`} data-testid={`row-segment-${segment.number}`}>
+                <div key={segment.id} className={`grid ${isTextToVideo ? 'grid-cols-10' : 'grid-cols-12'} gap-0 ${index !== segments.length - 1 ? 'border-b border-border' : ''}`} data-testid={`row-segment-${segment.number}`}>
                   {/* 编号 */}
                   <div className="col-span-1 p-3 border-r border-border flex items-center">
                     <Badge variant="secondary" className="font-mono">
@@ -549,11 +552,6 @@ export default function DescriptionsPage() {
                         {segment.translation}
                       </p>
                     )}
-                  </div>
-
-                  {/* 比例（空列） */}
-                  <div className="col-span-1 p-3 border-r border-border flex items-center justify-center">
-                    <span className="text-xs text-muted-foreground">{aspectRatio}</span>
                   </div>
 
                   {/* 分镜描述 */}
