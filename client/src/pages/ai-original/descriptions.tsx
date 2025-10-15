@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
-import { ArrowLeft, Sparkles, Edit, Image as ImageIcon, Video, Loader2, Download, FileDown, ChevronDown } from "lucide-react";
+import { ArrowLeft, Sparkles, Edit, Image as ImageIcon, Video, Loader2, Download, FileDown, ChevronDown, RefreshCw } from "lucide-react";
 import { useProject } from "@/hooks/use-project";
 import { useMutation } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
@@ -555,15 +555,29 @@ export default function DescriptionsPage() {
                             <div className="bg-muted rounded-md p-3 font-mono text-xs text-foreground leading-relaxed">
                               {segment.sceneDescription}
                             </div>
-                            <Button
-                              size="icon"
-                              variant="ghost"
-                              onClick={() => handleEdit(segment)}
-                              className="absolute top-1 right-1 h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
-                              data-testid={`button-edit-${segment.number}`}
-                            >
-                              <Edit className="h-3 w-3" />
-                            </Button>
+                            <div className="flex gap-1 mt-2">
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => handleEdit(segment)}
+                                className="flex-1"
+                                data-testid={`button-edit-${segment.number}`}
+                              >
+                                <Edit className="h-3 w-3 mr-1" />
+                                编辑
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => generateDescriptionMutation.mutate(segment.id)}
+                                disabled={generateDescriptionMutation.isPending || batchGeneratingDescriptions}
+                                className="flex-1"
+                                data-testid={`button-regenerate-description-${segment.number}`}
+                              >
+                                <RefreshCw className="h-3 w-3 mr-1" />
+                                重新生成
+                              </Button>
+                            </div>
                           </>
                         ) : (
                           <Button
@@ -679,7 +693,10 @@ export default function DescriptionsPage() {
                           等待生成
                         </>
                       ) : segment.videoUrl ? (
-                        "已生成"
+                        <>
+                          <RefreshCw className="h-3 w-3 mr-1" />
+                          重新生成
+                        </>
                       ) : (
                         "生成视频"
                       )}
