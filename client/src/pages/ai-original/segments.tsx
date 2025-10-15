@@ -181,6 +181,20 @@ export default function SegmentsPage() {
   };
 
   const handleContinue = () => {
+    // 检查是否所有英文片段都有翻译
+    const untranslatedSegments = segments.filter(
+      seg => seg.language === 'English' && !seg.translation
+    );
+    
+    if (untranslatedSegments.length > 0) {
+      toast({
+        title: "无法继续",
+        description: `还有 ${untranslatedSegments.length} 个英文片段未翻译，请先完成翻译`,
+        variant: "destructive",
+      });
+      return;
+    }
+    
     updateSegments(segments);
     updateCurrentStep(4);
     setLocation("/ai-original/generation-mode");
@@ -531,7 +545,20 @@ export default function SegmentsPage() {
                           重新翻译
                         </Button>
                       </div>
-                    ) : null
+                    ) : (
+                      <div className="mt-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleRetranslate(segment)}
+                          className="h-8 text-destructive border-destructive hover:bg-destructive/10"
+                          data-testid={`button-translate-${segment.number}`}
+                        >
+                          <RefreshCw className="h-3 w-3 mr-1" />
+                          点击翻译
+                        </Button>
+                      </div>
+                    )
                   )}
                 </div>
               </div>
@@ -542,9 +569,12 @@ export default function SegmentsPage() {
             onClick={() => handleContinue()}
             className="w-full"
             size="lg"
+            disabled={segments.some(seg => seg.language === 'English' && !seg.translation)}
             data-testid="button-continue-generation"
           >
-            下一步：选择流程
+            {segments.some(seg => seg.language === 'English' && !seg.translation) 
+              ? '请先完成所有片段的翻译' 
+              : '下一步：选择流程'}
           </Button>
         </div>
       </main>
