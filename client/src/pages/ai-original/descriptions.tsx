@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
-import { ArrowLeft, Sparkles, Edit, Image as ImageIcon, Video, Loader2, Download, FileDown, ChevronDown, RefreshCw } from "lucide-react";
+import { ArrowLeft, Sparkles, Edit, Image as ImageIcon, Video, Loader2, Download, FileDown, ChevronDown, RefreshCw, ZoomIn } from "lucide-react";
 import { useProject } from "@/hooks/use-project";
 import { useMutation } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
@@ -17,10 +17,23 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 export default function DescriptionsPage() {
   const [, setLocation] = useLocation();
-  const { project, updateSegments } = useProject();
+  const { project, updateSegments, updateAspectRatio } = useProject();
   const { toast } = useToast();
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editedDescription, setEditedDescription] = useState("");
@@ -32,10 +45,12 @@ export default function DescriptionsPage() {
   const [currentGeneratingDescId, setCurrentGeneratingDescId] = useState<string | null>(null);
   const [currentGeneratingImageId, setCurrentGeneratingImageId] = useState<string | null>(null);
   const [currentGeneratingVideoId, setCurrentGeneratingVideoId] = useState<string | null>(null);
+  const [previewImage, setPreviewImage] = useState<{ url: string; number: number } | null>(null);
 
   const segments = (project?.segments as Segment[]) || [];
   const generationMode = project?.generationMode || "text-to-image-to-video";
   const isTextToVideo = generationMode === "text-to-video";
+  const aspectRatio = project?.aspectRatio || "16:9";
   const totalDuration = Math.ceil(segments.length * 5);
   const minutes = Math.floor(totalDuration / 60);
   const seconds = totalDuration % 60;
@@ -54,6 +69,7 @@ export default function DescriptionsPage() {
           translation: segment.translation,
           language: segment.language,
           generationMode: generationMode,
+          aspectRatio: aspectRatio,
         }
       );
       const data = await response.json();
@@ -112,6 +128,7 @@ export default function DescriptionsPage() {
         "/api/images/generate",
         {
           prompt: segment.sceneDescription,
+          aspectRatio: aspectRatio,
         }
       );
       const data = await response.json();
@@ -422,10 +439,24 @@ export default function DescriptionsPage() {
             {/* 表格容器 */}
             <div className="border border-border rounded-lg overflow-hidden">
               {/* 表头 */}
-              <div className={`grid ${isTextToVideo ? 'grid-cols-10' : 'grid-cols-12'} gap-0 bg-muted/30 border-b border-border`}>
+              <div className={`grid ${isTextToVideo ? 'grid-cols-11' : 'grid-cols-13'} gap-0 bg-muted/30 border-b border-border`}>
                 <div className="col-span-1 p-3 text-sm text-muted-foreground border-r border-border">编号</div>
                 <div className="col-span-2 p-3 text-sm text-muted-foreground border-r border-border">文案</div>
                 <div className="col-span-2 p-3 text-sm text-muted-foreground border-r border-border">翻译</div>
+                <div className="col-span-1 p-3 border-r border-border">
+                  <Select value={aspectRatio} onValueChange={updateAspectRatio}>
+                    <SelectTrigger className="h-8 text-xs" data-testid="select-aspect-ratio">
+                      <SelectValue placeholder="比例" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="9:16">9:16</SelectItem>
+                      <SelectItem value="3:4">3:4</SelectItem>
+                      <SelectItem value="1:1">1:1</SelectItem>
+                      <SelectItem value="16:9">16:9</SelectItem>
+                      <SelectItem value="4:3">4:3</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
                 <div className={`${isTextToVideo ? 'col-span-3' : 'col-span-3'} p-3 border-r border-border`}>
                   <Button
                     size="sm"
@@ -495,7 +526,7 @@ export default function DescriptionsPage() {
 
               {/* 片段列表 */}
               {segments.map((segment, index) => (
-                <div key={segment.id} className={`grid ${isTextToVideo ? 'grid-cols-10' : 'grid-cols-12'} gap-0 ${index !== segments.length - 1 ? 'border-b border-border' : ''}`} data-testid={`row-segment-${segment.number}`}>
+                <div key={segment.id} className={`grid ${isTextToVideo ? 'grid-cols-11' : 'grid-cols-13'} gap-0 ${index !== segments.length - 1 ? 'border-b border-border' : ''}`} data-testid={`row-segment-${segment.number}`}>
                   {/* 编号 */}
                   <div className="col-span-1 p-3 border-r border-border flex items-center">
                     <Badge variant="secondary" className="font-mono">
@@ -518,6 +549,11 @@ export default function DescriptionsPage() {
                         {segment.translation}
                       </p>
                     )}
+                  </div>
+
+                  {/* 比例（空列） */}
+                  <div className="col-span-1 p-3 border-r border-border flex items-center justify-center">
+                    <span className="text-xs text-muted-foreground">{aspectRatio}</span>
                   </div>
 
                   {/* 分镜描述 */}
@@ -552,7 +588,7 @@ export default function DescriptionsPage() {
                       <div className="relative group">
                         {segment.sceneDescription ? (
                           <>
-                            <div className="bg-muted rounded-md p-3 font-mono text-xs text-foreground leading-relaxed">
+                            <div className="bg-muted rounded-md p-3 font-mono text-xs text-foreground leading-relaxed max-h-32 overflow-y-auto">
                               {segment.sceneDescription}
                             </div>
                             <div className="flex gap-1 mt-2">
@@ -615,13 +651,22 @@ export default function DescriptionsPage() {
                     <div className="col-span-2 p-3 border-r border-border">
                       {segment.imageUrl ? (
                         <div className="space-y-2">
-                          <div className="relative aspect-video bg-muted rounded-md overflow-hidden">
+                          <div className="relative aspect-video bg-muted rounded-md overflow-hidden group/image">
                             <img 
                               src={segment.imageUrl} 
                               alt={`Scene ${segment.number}`}
                               className="w-full h-full object-cover"
                               data-testid={`image-${segment.number}`}
                             />
+                            <Button
+                              size="icon"
+                              variant="secondary"
+                              className="absolute top-2 right-2 opacity-0 group-hover/image:opacity-100 transition-opacity"
+                              onClick={() => setPreviewImage({ url: segment.imageUrl!, number: segment.number })}
+                              data-testid={`button-preview-image-${segment.number}`}
+                            >
+                              <ZoomIn className="h-4 w-4" />
+                            </Button>
                           </div>
                           <Button
                             size="sm"
@@ -637,7 +682,10 @@ export default function DescriptionsPage() {
                                 生成中
                               </>
                             ) : (
-                              "重新生成"
+                              <>
+                                <RefreshCw className="h-3 w-3 mr-1" />
+                                重新生成
+                              </>
                             )}
                           </Button>
                         </div>
@@ -767,6 +815,25 @@ export default function DescriptionsPage() {
           </div>
         </div>
       </main>
+
+      {/* 图片预览Dialog */}
+      <Dialog open={!!previewImage} onOpenChange={() => setPreviewImage(null)}>
+        <DialogContent className="max-w-4xl">
+          <DialogHeader>
+            <DialogTitle>分镜 #{previewImage?.number} - 图片预览</DialogTitle>
+          </DialogHeader>
+          {previewImage && (
+            <div className="relative w-full">
+              <img 
+                src={previewImage.url} 
+                alt={`Scene ${previewImage.number}`}
+                className="w-full h-auto rounded-md"
+                data-testid="dialog-preview-image"
+              />
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
