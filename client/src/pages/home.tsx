@@ -1,4 +1,5 @@
-import { Sparkles, Film, Video } from "lucide-react";
+import { useState } from "react";
+import { Sparkles, Film, Video, Loader2 } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useLocation } from "wouter";
@@ -9,8 +10,12 @@ import { apiRequest } from "@/lib/queryClient";
 export default function Home() {
   const [, setLocation] = useLocation();
   const { setProject } = useProject();
+  const [loadingMode, setLoadingMode] = useState<string | null>(null);
 
   const handleStartMode = async (mode: string, route: string) => {
+    // 立即显示加载状态
+    setLoadingMode(mode);
+    
     // 创建新项目并保存到后端
     try {
       const response = await apiRequest("POST", "/api/projects", {
@@ -24,6 +29,7 @@ export default function Home() {
       setLocation(route);
     } catch (error) {
       console.error("Failed to create project:", error);
+      setLoadingMode(null); // 出错时重置加载状态
     }
   };
 
@@ -91,22 +97,32 @@ export default function Home() {
                 <Button
                   onClick={() => handleStartMode(mode.id, mode.route)}
                   className="w-full"
+                  disabled={loadingMode !== null}
                   data-testid={`button-start-${mode.id}`}
                 >
-                  开始制作
-                  <svg
-                    className="ml-2 h-4 w-4"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M9 5l7 7-7 7"
-                    />
-                  </svg>
+                  {loadingMode === mode.id ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      创建中...
+                    </>
+                  ) : (
+                    <>
+                      开始制作
+                      <svg
+                        className="ml-2 h-4 w-4"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M9 5l7 7-7 7"
+                        />
+                      </svg>
+                    </>
+                  )}
                 </Button>
               </div>
             </Card>
