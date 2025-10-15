@@ -245,9 +245,17 @@ export default function SegmentsPage() {
                   )}
                 </div>
               </div>
-              <div className="space-y-2">
-                <p className="text-sm text-muted-foreground">文案片段</p>
-                <p className="text-base text-foreground">{segment.text}</p>
+              <div className="space-y-3">
+                <div>
+                  <p className="text-sm text-muted-foreground">文案片段</p>
+                  <p className="text-base text-foreground">{segment.text}</p>
+                </div>
+                {segment.translation && (
+                  <div>
+                    <p className="text-sm text-muted-foreground">中文翻译</p>
+                    <p className="text-base text-foreground">{segment.translation}</p>
+                  </div>
+                )}
               </div>
             </Card>
           ))}

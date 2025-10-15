@@ -4,7 +4,7 @@ import { storage } from "./storage";
 import { insertProjectSchema } from "@shared/schema";
 
 // DeepSeek API调用
-async function callDeepSeekAPI(prompt: string): Promise<string> {
+async function callDeepSeekAPI(prompt: string, systemPrompt?: string): Promise<string> {
   const apiKey = process.env.DEEPSEEK_API_KEY;
   if (!apiKey) {
     throw new Error("DEEPSEEK_API_KEY is not configured");
@@ -21,7 +21,7 @@ async function callDeepSeekAPI(prompt: string): Promise<string> {
       messages: [
         {
           role: "system",
-          content: "你是一个专业的视频脚本分段助手。你的任务是将用户提供的文案智能地分成多个适合视频拍摄的镜头片段。每个片段应该是一个完整的语义单元，长度适中（建议20-50字）。请以JSON数组格式返回，每个元素包含text字段。"
+          content: systemPrompt || "你是一个专业的AI助手。"
         },
         {
           role: "user",
@@ -112,9 +112,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       console.log("[Segments] Starting generation for script:", scriptContent.substring(0, 50) + "...");
 
-      const prompt = `请将以下文案分成适合视频拍摄的镜头片段。每个片段应该是一个完整的语义单元，长度适中。请直接返回JSON数组格式，每个元素只包含text字段：\n\n${scriptContent}`;
+      // 检测语言
+      const isChinese = /[\u4e00-\u9fa5]/.test(scriptContent);
+      const language = isChinese ? "Chinese" : "English";
+
+      // 第一步：智能分段
+      const segmentPrompt = `请将以下文案分成适合视频拍摄的镜头片段。每个片段应该是一个完整的语义单元，长度适中（建议20-50字）。请直接返回JSON数组格式，每个元素只包含text字段：\n\n${scriptContent}`;
       
-      const result = await callDeepSeekAPI(prompt);
+      const result = await callDeepSeekAPI(segmentPrompt, "你是一个专业的视频脚本分段助手。");
       console.log("[Segments] DeepSeek API response:", result);
       
       // 尝试解析AI返回的JSON
@@ -127,16 +132,40 @@ export async function registerRoutes(app: Express): Promise<Server> {
       } catch (parseError) {
         console.log("[Segments] JSON parse failed, using fallback segmentation");
         // 如果解析失败，使用简单的段落分割作为备选
-        segments = scriptContent.split(/[。！？\n]+/).filter((text: string) => text.trim()).map((text: string) => ({ text: text.trim() }));
+        const splitPattern = isChinese ? /[。！？\n]+/ : /[.!?\n]+/;
+        segments = scriptContent
+          .split(splitPattern)
+          .filter((text: string) => text.trim())
+          .map((text: string) => ({ text: text.trim() }));
+      }
+
+      // 第二步：如果是英文，翻译每个片段
+      if (language === "English") {
+        console.log("[Segments] Translating English segments to Chinese...");
+        const translationPrompt = `请将以下英文文本片段翻译成中文，保持原意和专业性。直接返回JSON数组格式，每个元素包含translation字段：\n\n${JSON.stringify(segments.map((s: any) => s.text || s))}`;
+        
+        try {
+          const translationResult = await callDeepSeekAPI(translationPrompt, "你是一个专业的英中翻译助手。");
+          const cleanTranslation = translationResult.replace(/```json\n?|\n?```/g, '').trim();
+          const translations = JSON.parse(cleanTranslation);
+          
+          // 合并翻译
+          segments = segments.map((seg: any, index: number) => ({
+            text: seg.text || seg,
+            translation: translations[index]?.translation || translations[index] || ""
+          }));
+        } catch (translationError) {
+          console.log("[Segments] Translation failed, segments will have no translation");
+        }
       }
 
       // 为每个片段添加ID和序号
       const formattedSegments = segments.map((seg: any, index: number) => ({
         id: `seg-${Date.now()}-${index}`,
         number: index + 1,
-        language: "Chinese",
+        language: language,
         text: seg.text || seg,
-        translation: "",
+        translation: seg.translation || "",
         sceneDescription: "",
       }));
 
