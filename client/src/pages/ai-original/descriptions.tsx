@@ -73,6 +73,13 @@ export default function DescriptionsPage() {
     const oldOrientation = getOrientationText(aspectRatio);
     const newOrientation = getOrientationText(newRatio);
 
+    // 定义方向相关的关键词映射
+    const orientationKeywords = {
+      '竖屏': ['竖屏', '竖构图', '竖版', '纵向', 'portrait'],
+      '横屏': ['横屏', '横构图', '横版', '横向', 'landscape'],
+      '方形': ['方形', '方形构图', '正方形', 'square']
+    };
+
     // 更新所有描述词中的比例信息
     const updatedSegments = segments.map(seg => {
       if (!seg.sceneDescription) return seg;
@@ -82,9 +89,21 @@ export default function DescriptionsPage() {
       // 替换比例数值（如 16:9 -> 9:16）
       updatedDescription = updatedDescription.replace(new RegExp(aspectRatio, 'g'), newRatio);
       
-      // 替换方向描述（如 横屏 -> 竖屏）
+      // 替换方向描述及其相关词汇
       if (oldOrientation !== newOrientation) {
-        updatedDescription = updatedDescription.replace(new RegExp(oldOrientation, 'g'), newOrientation);
+        const oldKeywords = orientationKeywords[oldOrientation as keyof typeof orientationKeywords] || [oldOrientation];
+        const newKeyword = newOrientation;
+        
+        oldKeywords.forEach(keyword => {
+          // 使用全局替换，且考虑中英文混合的情况
+          const regex = new RegExp(keyword, 'gi');
+          updatedDescription = updatedDescription.replace(regex, (match) => {
+            // 保持英文大小写一致性
+            if (match.toLowerCase() === match) return newKeyword;
+            if (match.toUpperCase() === match) return newKeyword.toUpperCase();
+            return newKeyword;
+          });
+        });
       }
       
       return { ...seg, sceneDescription: updatedDescription };
