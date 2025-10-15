@@ -286,9 +286,18 @@ ${contentToDescribe}
       });
     } catch (error) {
       console.error("[Gemini Image] Error:", error);
+      
+      // 检查是否是内容过滤错误
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      const isContentFilter = errorMessage.includes("empty response") || 
+                             errorMessage.includes("no meaningful content") ||
+                             errorMessage.includes("channel:empty_response");
+      
       res.status(500).json({ 
-        error: "图片生成失败", 
-        details: error instanceof Error ? error.message : String(error) 
+        error: isContentFilter ? "内容被过滤" : "图片生成失败",
+        details: isContentFilter 
+          ? "提示词包含敏感内容被API过滤，请尝试重新生成描述词或编辑描述词" 
+          : errorMessage
       });
     }
   });

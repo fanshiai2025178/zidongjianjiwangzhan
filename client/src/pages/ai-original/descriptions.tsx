@@ -720,7 +720,7 @@ export default function DescriptionsPage() {
                       {segment.imageUrl ? (
                         <div className="space-y-2">
                           <div 
-                            className="relative aspect-video bg-muted rounded-md overflow-hidden cursor-pointer hover-elevate active-elevate-2"
+                            className="relative aspect-video bg-muted rounded-md overflow-hidden group cursor-pointer hover-elevate active-elevate-2"
                             onClick={() => setPreviewImage({ url: segment.imageUrl!, number: segment.number })}
                           >
                             <img 
@@ -729,9 +729,11 @@ export default function DescriptionsPage() {
                               className="w-full h-full object-cover"
                               data-testid={`image-${segment.number}`}
                             />
-                            <div className="absolute top-2 right-2 bg-background/80 backdrop-blur-sm rounded-md px-2 py-1 flex items-center gap-1">
-                              <ZoomIn className="h-3 w-3 text-muted-foreground" />
-                              <span className="text-xs text-muted-foreground">点击放大</span>
+                            {/* 悬浮时显示放大图标 - 居中显示 */}
+                            <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-black/20">
+                              <div className="bg-background/90 backdrop-blur-sm rounded-full p-3">
+                                <ZoomIn className="h-5 w-5 text-foreground" />
+                              </div>
                             </div>
                           </div>
                           <Button
