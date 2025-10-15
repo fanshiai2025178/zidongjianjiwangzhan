@@ -8,13 +8,16 @@ This is an AI-powered video creation platform designed to streamline professiona
 
 **火山引擎DeepSeek批量生成接入（最新）**
 - **专属批量API**：创建 `/api/descriptions/batch-generate` 专门用于批量生成描述词
-- **火山引擎集成**：使用火山引擎DeepSeek API（带签名认证）提供批量描述词生成服务
+- **火山引擎DeepSeek集成**：使用火山引擎DeepSeek API专用端点提供批量描述词生成服务
+- **独立密钥配置**：
+  - `VOLCENGINE_DEEPSEEK_ENDPOINT_ID`: 火山引擎DeepSeek端点ID（如：ep-20251016061331-8bgnk）
+  - `VOLCENGINE_DEEPSEEK_API_KEY`: 火山引擎DeepSeek API密钥
 - **API分离策略**：
   - 单个生成：使用原有DeepSeek API（`/api/descriptions/generate`）
-  - 批量生成：使用火山引擎DeepSeek API（`/api/descriptions/batch-generate`）
+  - 批量生成：使用火山引擎DeepSeek API（`/api/descriptions/batch-generate`）- **仅用于批量生成**
   - 提示词优化：使用原有DeepSeek API（`/api/descriptions/optimize`）
 - **批量处理优势**：一次性提交多个片段，服务端批量处理，提升效率
-- **完整火山引擎支持**：实现HMAC-SHA256签名、区域配置、endpoint管理
+- **专用API保障**：批量生成使用专属火山引擎端点，不影响其他功能
 
 **API架构优化：描述生成与提示词优化分离**
 - **独立API端点**：创建专门的 `/api/descriptions/optimize` 优化API，与描述生成API（`/api/descriptions/generate`）完全分离

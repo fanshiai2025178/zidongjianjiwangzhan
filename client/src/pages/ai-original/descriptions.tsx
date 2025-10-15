@@ -301,7 +301,7 @@ export default function DescriptionsPage() {
       
       toast({
         title: "批量生成完成",
-        description: `成功生成 ${successCount} 个描述（使用PLMS专属API）`,
+        description: `成功生成 ${successCount} 个描述（使用火山引擎DeepSeek）`,
       });
     } catch (error) {
       console.error("[Batch - Volcengine] Error:", error);

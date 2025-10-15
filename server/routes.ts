@@ -281,7 +281,7 @@ Output the prompt directly without additional explanation.`;
     }
   });
 
-  // 批量生成描述词API（使用DeepSeek官方API - PLMS密钥）
+  // 批量生成描述词API（专用火山引擎DeepSeek）
   app.post("/api/descriptions/batch-generate", async (req, res) => {
     try {
       const { segments, generationMode = "text-to-image-to-video", aspectRatio = "16:9", styleSettings } = req.body;
@@ -289,14 +289,17 @@ Output the prompt directly without additional explanation.`;
         return res.status(400).json({ error: "Segments array is required" });
       }
 
-      const plmsApiKey = process.env.PLMS;
-      if (!plmsApiKey) {
-        return res.status(500).json({ error: "PLMS API key is not configured" });
+      const volcengineEndpointId = process.env.VOLCENGINE_DEEPSEEK_ENDPOINT_ID;
+      const volcengineApiKey = process.env.VOLCENGINE_DEEPSEEK_API_KEY;
+      
+      if (!volcengineEndpointId || !volcengineApiKey) {
+        return res.status(500).json({ error: "Volcengine DeepSeek credentials are not configured" });
       }
 
-      console.log("[Batch Description - PLMS] Generating", segments.length, "descriptions");
-      console.log("[Batch Description - PLMS] Generation mode:", generationMode);
-      console.log("[Batch Description - PLMS] Aspect ratio:", aspectRatio);
+      console.log("[Batch Description - Volcengine DeepSeek] Generating", segments.length, "descriptions");
+      console.log("[Batch Description - Volcengine DeepSeek] Endpoint:", volcengineEndpointId);
+      console.log("[Batch Description - Volcengine DeepSeek] Generation mode:", generationMode);
+      console.log("[Batch Description - Volcengine DeepSeek] Aspect ratio:", aspectRatio);
 
       const results = [];
 
@@ -404,15 +407,15 @@ Output the prompt directly without additional explanation.`;
         }
 
         try {
-          // 使用PLMS密钥调用DeepSeek API
-          const response = await fetch("https://api.deepseek.com/v1/chat/completions", {
+          // 使用火山引擎DeepSeek API（专用于批量生成）
+          const response = await fetch("https://ark.cn-beijing.volces.com/api/v3/chat/completions", {
             method: "POST",
             headers: {
               "Content-Type": "application/json",
-              "Authorization": `Bearer ${plmsApiKey}`,
+              "Authorization": `Bearer ${volcengineApiKey}`,
             },
             body: JSON.stringify({
-              model: "deepseek-chat",
+              model: volcengineEndpointId,
               messages: [
                 {
                   role: "system",
@@ -429,7 +432,7 @@ Output the prompt directly without additional explanation.`;
 
           if (!response.ok) {
             const error = await response.text();
-            throw new Error(`DeepSeek API error: ${error}`);
+            throw new Error(`Volcengine DeepSeek API error: ${error}`);
           }
 
           const data = await response.json();
@@ -439,9 +442,9 @@ Output the prompt directly without additional explanation.`;
             id: segment.id,
             description: description.trim(),
           });
-          console.log(`[Batch Description - PLMS] Generated description for segment ${segment.id}`);
+          console.log(`[Batch Description - Volcengine DeepSeek] Generated description for segment ${segment.id}`);
         } catch (error) {
-          console.error(`[Batch Description - PLMS] Error for segment ${segment.id}:`, error);
+          console.error(`[Batch Description - Volcengine DeepSeek] Error for segment ${segment.id}:`, error);
           results.push({
             id: segment.id,
             error: error instanceof Error ? error.message : "Failed to generate description",
@@ -449,10 +452,10 @@ Output the prompt directly without additional explanation.`;
         }
       }
 
-      console.log("[Batch Description - PLMS] Successfully generated", results.filter(r => !r.error).length, "descriptions");
+      console.log("[Batch Description - Volcengine DeepSeek] Successfully generated", results.filter(r => !r.error).length, "descriptions");
       res.json({ results });
     } catch (error) {
-      console.error("[Batch Description - PLMS] Error:", error);
+      console.error("[Batch Description - Volcengine DeepSeek] Error:", error);
       res.status(500).json({ error: "Failed to batch generate descriptions", details: error instanceof Error ? error.message : String(error) });
     }
   });
