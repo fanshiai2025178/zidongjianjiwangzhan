@@ -5,27 +5,157 @@ import { StepProgress } from "@/components/step-progress";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, Scissors } from "lucide-react";
+import { ArrowLeft, Scissors, ArrowUpCircle, ArrowDownCircle } from "lucide-react";
 import { useProject } from "@/hooks/use-project";
+import { apiRequest } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Slider } from "@/components/ui/slider";
+
+interface Segment {
+  id: string;
+  number: number;
+  language: string;
+  text: string;
+  translation?: string;
+  sceneDescription?: string;
+}
 
 export default function SegmentsPage() {
   const [, setLocation] = useLocation();
   const { project, updateSegments, updateCurrentStep } = useProject();
+  const { toast } = useToast();
   
-  // 模拟分段 - 实际应该由AI生成
-  const [segments, setSegments] = useState((project?.segments as any) || [
-    {
-      id: "1",
-      number: 1,
-      language: "English",
-      text: project?.scriptContent || "123343543",
-    },
-  ]);
+  const [segments, setSegments] = useState<Segment[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [cutDialogOpen, setCutDialogOpen] = useState(false);
+  const [selectedSegment, setSelectedSegment] = useState<Segment | null>(null);
+  const [cutPosition, setCutPosition] = useState(50);
+
+  // 加载或生成分段
+  useEffect(() => {
+    if (project?.segments && Array.isArray(project.segments) && (project.segments as any).length > 0) {
+      setSegments(project.segments as Segment[]);
+    } else if (project?.scriptContent) {
+      generateSegments();
+    }
+  }, [project]);
+
+  const generateSegments = async () => {
+    if (!project?.scriptContent) return;
+    
+    setIsLoading(true);
+    try {
+      const response = await apiRequest("POST", "/api/segments/generate", {
+        scriptContent: project.scriptContent,
+      });
+      const data = await response.json();
+      setSegments(data.segments);
+      toast({
+        title: "分段成功",
+        description: `AI已将文案分成 ${data.segments.length} 个片段`,
+      });
+    } catch (error) {
+      toast({
+        title: "分段失败",
+        description: "无法生成智能分段，请重试",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const handleContinue = () => {
     updateSegments(segments);
     updateCurrentStep(4);
     setLocation("/ai-original/generation-mode");
+  };
+
+  const openCutDialog = (segment: Segment) => {
+    setSelectedSegment(segment);
+    setCutPosition(Math.floor(segment.text.length / 2));
+    setCutDialogOpen(true);
+  };
+
+  const handleCut = () => {
+    if (!selectedSegment) return;
+
+    const text = selectedSegment.text;
+    const part1Text = text.slice(0, cutPosition).trim();
+    const part2Text = text.slice(cutPosition).trim();
+
+    if (!part1Text || !part2Text) {
+      toast({
+        title: "切割失败",
+        description: "切割位置不合适，请调整位置",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const segmentIndex = segments.findIndex(s => s.id === selectedSegment.id);
+    const newSegments = [...segments];
+    
+    // 创建两个新片段
+    const part1: Segment = {
+      ...selectedSegment,
+      id: `seg-${Date.now()}-1`,
+      text: part1Text,
+    };
+    
+    const part2: Segment = {
+      ...selectedSegment,
+      id: `seg-${Date.now()}-2`,
+      text: part2Text,
+    };
+
+    // 替换原片段
+    newSegments.splice(segmentIndex, 1, part1, part2);
+    
+    // 重新编号
+    newSegments.forEach((seg, index) => {
+      seg.number = index + 1;
+    });
+
+    setSegments(newSegments);
+    setCutDialogOpen(false);
+    toast({
+      title: "切割成功",
+      description: "片段已成功切割为两部分",
+    });
+  };
+
+  const handleMerge = (index: number) => {
+    if (index >= segments.length - 1) return;
+
+    const newSegments = [...segments];
+    const current = newSegments[index];
+    const next = newSegments[index + 1];
+    
+    // 合并文本
+    current.text = current.text + " " + next.text;
+    
+    // 删除下一个片段
+    newSegments.splice(index + 1, 1);
+    
+    // 重新编号
+    newSegments.forEach((seg, idx) => {
+      seg.number = idx + 1;
+    });
+
+    setSegments(newSegments);
+    toast({
+      title: "合并成功",
+      description: "片段已成功合并",
+    });
   };
 
   const currentStep = project?.currentStep || 3;
@@ -37,6 +167,21 @@ export default function SegmentsPage() {
     { number: 5, label: "生成描述", isCompleted: currentStep > 5, isCurrent: currentStep === 5 },
     { number: 6, label: "导出成片", isCompleted: currentStep > 6, isCurrent: currentStep === 6 },
   ];
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-background">
+        <TopNavbar />
+        <StepProgress steps={steps} />
+        <main className="container mx-auto max-w-4xl px-6 pb-16">
+          <div className="text-center py-20">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+            <p className="text-muted-foreground">AI正在智能分段中...</p>
+          </div>
+        </main>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background">
@@ -59,12 +204,12 @@ export default function SegmentsPage() {
             智能分段
           </h1>
           <p className="text-muted-foreground">
-            AI已为您将文案智能分为 1 个分镜片段，您可以编辑或继续合并段
+            AI已为您将文案智能分为 {segments.length} 个分镜片段，您可以切割或合并片段
           </p>
         </div>
 
         <div className="space-y-6">
-          {segments.map((segment: any) => (
+          {segments.map((segment, index) => (
             <Card
               key={segment.id}
               className="p-6 border border-card-border"
@@ -77,13 +222,28 @@ export default function SegmentsPage() {
                   </Badge>
                   <Badge variant="outline">{segment.language}</Badge>
                 </div>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  data-testid={`button-cut-${segment.number}`}
-                >
-                  <Scissors className="h-4 w-4" />
-                </Button>
+                <div className="flex gap-2">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => openCutDialog(segment)}
+                    data-testid={`button-cut-${segment.number}`}
+                    title="切割分段"
+                  >
+                    <Scissors className="h-4 w-4" />
+                  </Button>
+                  {index < segments.length - 1 && (
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => handleMerge(index)}
+                      data-testid={`button-merge-${segment.number}`}
+                      title="向下合并"
+                    >
+                      <ArrowDownCircle className="h-4 w-4" />
+                    </Button>
+                  )}
+                </div>
               </div>
               <div className="space-y-2">
                 <p className="text-sm text-muted-foreground">文案片段</p>
@@ -105,10 +265,72 @@ export default function SegmentsPage() {
         <Card className="mt-6 p-6 bg-muted/50 border border-muted-foreground/20">
           <h3 className="font-medium text-foreground mb-2">分段成功</h3>
           <p className="text-sm text-muted-foreground">
-            已生成 1 个分段，您可以继续编辑或继续模板
+            已生成 {segments.length} 个分段，您可以继续编辑或进入下一步
           </p>
         </Card>
       </main>
+
+      {/* 切割对话框 */}
+      <Dialog open={cutDialogOpen} onOpenChange={setCutDialogOpen}>
+        <DialogContent className="sm:max-w-[600px]">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Scissors className="h-5 w-5" />
+              切割分段
+            </DialogTitle>
+            <DialogDescription>
+              拖动滑块选择切割点，将文案分成两个独立的分段
+            </DialogDescription>
+          </DialogHeader>
+          
+          {selectedSegment && (
+            <div className="space-y-6 py-4">
+              <div>
+                <p className="text-sm text-muted-foreground mb-3">
+                  切割位置：第 {cutPosition} 个字符
+                </p>
+                <Slider
+                  value={[cutPosition]}
+                  onValueChange={(value) => setCutPosition(value[0])}
+                  min={1}
+                  max={selectedSegment.text.length - 1}
+                  step={1}
+                  className="w-full"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <Card className="p-4 bg-muted">
+                  <p className="text-sm text-muted-foreground mb-2">
+                    第一部分 ({cutPosition} 字符)
+                  </p>
+                  <p className="text-sm text-foreground">
+                    {selectedSegment.text.slice(0, cutPosition).trim()}
+                  </p>
+                </Card>
+                
+                <Card className="p-4 bg-muted">
+                  <p className="text-sm text-muted-foreground mb-2">
+                    第二部分 ({selectedSegment.text.length - cutPosition} 字符)
+                  </p>
+                  <p className="text-sm text-foreground">
+                    {selectedSegment.text.slice(cutPosition).trim()}
+                  </p>
+                </Card>
+              </div>
+            </div>
+          )}
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setCutDialogOpen(false)}>
+              取消
+            </Button>
+            <Button onClick={handleCut} data-testid="button-confirm-cut">
+              确认切割
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

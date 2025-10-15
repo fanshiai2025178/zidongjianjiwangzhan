@@ -3,6 +3,44 @@ import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { insertProjectSchema } from "@shared/schema";
 
+// DeepSeek API调用
+async function callDeepSeekAPI(prompt: string): Promise<string> {
+  const apiKey = process.env.DEEPSEEK_API_KEY;
+  if (!apiKey) {
+    throw new Error("DEEPSEEK_API_KEY is not configured");
+  }
+
+  const response = await fetch("https://api.deepseek.com/v1/chat/completions", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "Authorization": `Bearer ${apiKey}`,
+    },
+    body: JSON.stringify({
+      model: "deepseek-chat",
+      messages: [
+        {
+          role: "system",
+          content: "你是一个专业的视频脚本分段助手。你的任务是将用户提供的文案智能地分成多个适合视频拍摄的镜头片段。每个片段应该是一个完整的语义单元，长度适中（建议20-50字）。请以JSON数组格式返回，每个元素包含text字段。"
+        },
+        {
+          role: "user",
+          content: prompt
+        }
+      ],
+      temperature: 0.7,
+    }),
+  });
+
+  if (!response.ok) {
+    const error = await response.text();
+    throw new Error(`DeepSeek API error: ${error}`);
+  }
+
+  const data = await response.json();
+  return data.choices[0]?.message?.content || "";
+}
+
 export async function registerRoutes(app: Express): Promise<Server> {
   // 获取所有项目
   app.get("/api/projects", async (req, res) => {
@@ -61,6 +99,46 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(204).send();
     } catch (error) {
       res.status(500).json({ error: "Failed to delete project" });
+    }
+  });
+
+  // 智能分段API
+  app.post("/api/segments/generate", async (req, res) => {
+    try {
+      const { scriptContent } = req.body;
+      if (!scriptContent) {
+        return res.status(400).json({ error: "Script content is required" });
+      }
+
+      const prompt = `请将以下文案分成适合视频拍摄的镜头片段。每个片段应该是一个完整的语义单元，长度适中。请直接返回JSON数组格式，每个元素只包含text字段：\n\n${scriptContent}`;
+      
+      const result = await callDeepSeekAPI(prompt);
+      
+      // 尝试解析AI返回的JSON
+      let segments;
+      try {
+        // 移除可能的markdown代码块标记
+        const cleanResult = result.replace(/```json\n?|\n?```/g, '').trim();
+        segments = JSON.parse(cleanResult);
+      } catch (parseError) {
+        // 如果解析失败，使用简单的段落分割作为备选
+        segments = scriptContent.split(/[。！？\n]+/).filter((text: string) => text.trim()).map((text: string) => ({ text: text.trim() }));
+      }
+
+      // 为每个片段添加ID和序号
+      const formattedSegments = segments.map((seg: any, index: number) => ({
+        id: `seg-${Date.now()}-${index}`,
+        number: index + 1,
+        language: "Chinese",
+        text: seg.text || seg,
+        translation: "",
+        sceneDescription: "",
+      }));
+
+      res.json({ segments: formattedSegments });
+    } catch (error) {
+      console.error("Segment generation error:", error);
+      res.status(500).json({ error: "Failed to generate segments" });
     }
   });
 
