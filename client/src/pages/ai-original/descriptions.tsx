@@ -222,12 +222,16 @@ export default function DescriptionsPage() {
 
   // 批量生成描述词
   const handleBatchGenerateDescriptions = async () => {
-    const segmentsWithoutDescription = segments.filter(s => !s.sceneDescription);
+    // 过滤出：没有描述词 OR 比例不匹配的片段
+    const segmentsToGenerate = segments.filter(s => 
+      !s.sceneDescription || // 没有描述词
+      (s.descriptionAspectRatio && s.descriptionAspectRatio !== aspectRatio) // 比例不匹配
+    );
     
-    if (segmentsWithoutDescription.length === 0) {
+    if (segmentsToGenerate.length === 0) {
       toast({
         title: "提示",
-        description: "所有镜头已有描述",
+        description: "所有镜头已有匹配的描述",
       });
       return;
     }
@@ -235,7 +239,7 @@ export default function DescriptionsPage() {
     setBatchGeneratingDescriptions(true);
     let currentSegments = [...segments];
 
-    for (const segment of segmentsWithoutDescription) {
+    for (const segment of segmentsToGenerate) {
       setCurrentGeneratingDescId(segment.id);
       try {
         // 确保使用最新的aspectRatio
@@ -285,7 +289,7 @@ export default function DescriptionsPage() {
     setBatchGeneratingDescriptions(false);
     toast({
       title: "批量生成完成",
-      description: `成功生成 ${segmentsWithoutDescription.length} 个描述`,
+      description: `成功生成 ${segmentsToGenerate.length} 个描述`,
     });
   };
 
@@ -522,7 +526,9 @@ export default function DescriptionsPage() {
                   <Button
                     size="sm"
                     onClick={handleBatchGenerateDescriptions}
-                    disabled={batchGeneratingDescriptions || segments.every(s => s.sceneDescription)}
+                    disabled={batchGeneratingDescriptions || segments.every(s => 
+                      s.sceneDescription && (!s.descriptionAspectRatio || s.descriptionAspectRatio === aspectRatio)
+                    )}
                     className="w-full"
                     data-testid="button-batch-generate-descriptions"
                   >
