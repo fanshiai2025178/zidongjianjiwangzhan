@@ -556,18 +556,7 @@ export default function SegmentsPage() {
                         </Button>
                       </div>
                     ) : (
-                      <div className="mt-2">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleRetranslate(segment)}
-                          className="h-8 text-destructive border-destructive hover:bg-destructive/10"
-                          data-testid={`button-translate-${segment.number}`}
-                        >
-                          <RefreshCw className="h-3 w-3 mr-1" />
-                          点击翻译
-                        </Button>
-                      </div>
+                      <p className="text-sm text-destructive italic">未翻译（需要翻译才能继续）</p>
                     )
                   )}
                 </div>
