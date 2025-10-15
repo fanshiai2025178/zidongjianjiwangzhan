@@ -219,13 +219,13 @@ ${contentToDescribe}
         return res.status(500).json({ error: "火山引擎Endpoint ID未配置，请设置VOLCENGINE_ENDPOINT_ID环境变量" });
       }
 
-      // 根据比例设置图片尺寸
+      // 根据比例设置图片尺寸（火山引擎要求至少921600像素）
       const sizeMap: Record<string, string> = {
-        "9:16": "576x1024",
-        "3:4": "768x1024",
-        "1:1": "1024x1024",
-        "16:9": "1024x576",
-        "4:3": "1024x768",
+        "9:16": "720x1280",   // 921600 pixels
+        "3:4": "864x1152",    // 995328 pixels
+        "1:1": "1024x1024",   // 1048576 pixels
+        "16:9": "1280x720",   // 921600 pixels
+        "4:3": "1152x864",    // 995328 pixels
       };
       const size = sizeMap[aspectRatio] || "1024x1024";
 

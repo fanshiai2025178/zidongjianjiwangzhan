@@ -6,7 +6,17 @@ This is an AI-powered video creation platform that enables users to create profe
 
 ## Recent Changes (October 15, 2025)
 
-**UI Optimization & Image Display (Latest)**
+**Aspect Ratio System & Auto-Update (Latest)**
+- **Aspect Ratio Selector**: Global aspect ratio selector above table (9:16, 3:4, 1:1, 16:9, 4:3)
+- **Auto-Update Descriptions**: When ratio changes, all existing descriptions auto-update with new ratio info
+- **Smart Text Replacement**: Automatically replaces ratio numbers (e.g., "16:9" → "9:16") and orientation text (e.g., "横屏" → "竖屏")
+- **Description Scrolling**: Fixed max height (max-h-32) with vertical scrolling for long descriptions
+- **Image Preview**: Hover over images to show zoom button, click to view full-size in dialog
+- **Re-translate Button**: Added "重新翻译" button for English segments on segments page
+- **Size-aware Generation**: Images generated with correct dimensions based on selected ratio
+- Ratio-to-size mapping: 9:16→720x1280, 3:4→864x1152, 1:1→1024x1024, 16:9→1280x720, 4:3→1152x864 (all ≥921600px as required by Volcengine)
+
+**UI Optimization & Image Display**
 - **UI Improvements**: Description text fully visible (no truncation), edit button as hover-only icon
 - **Image Display**: Added image preview with aspect-video ratio, regenerate button
 - **Status Display**: Real-time batch generation status - "生成中" and "等待生成" indicators

@@ -55,6 +55,62 @@ export default function DescriptionsPage() {
   const minutes = Math.floor(totalDuration / 60);
   const seconds = totalDuration % 60;
 
+  // 获取比例的方向描述
+  const getOrientationText = (ratio: string) => {
+    if (ratio === '9:16' || ratio === '3:4') return '竖屏';
+    if (ratio === '1:1') return '方形';
+    return '横屏';
+  };
+
+  // 更新描述词中的比例信息
+  const handleAspectRatioChange = async (newRatio: string) => {
+    updateAspectRatio(newRatio);
+    
+    // 如果有已生成的描述词，更新它们
+    const hasDescriptions = segments.some(s => s.sceneDescription);
+    if (!hasDescriptions) return;
+
+    const oldOrientation = getOrientationText(aspectRatio);
+    const newOrientation = getOrientationText(newRatio);
+
+    // 更新所有描述词中的比例信息
+    const updatedSegments = segments.map(seg => {
+      if (!seg.sceneDescription) return seg;
+      
+      let updatedDescription = seg.sceneDescription;
+      
+      // 替换比例数值（如 16:9 -> 9:16）
+      updatedDescription = updatedDescription.replace(new RegExp(aspectRatio, 'g'), newRatio);
+      
+      // 替换方向描述（如 横屏 -> 竖屏）
+      if (oldOrientation !== newOrientation) {
+        updatedDescription = updatedDescription.replace(new RegExp(oldOrientation, 'g'), newOrientation);
+      }
+      
+      return { ...seg, sceneDescription: updatedDescription };
+    });
+
+    updateSegments(updatedSegments);
+
+    // 自动保存到后端
+    if (project?.id) {
+      try {
+        await apiRequest("PATCH", `/api/projects/${project.id}`, {
+          ...project,
+          aspectRatio: newRatio,
+          segments: updatedSegments,
+        });
+        
+        toast({
+          title: "比例已更新",
+          description: "描述词中的尺寸信息已同步更新",
+        });
+      } catch (error) {
+        console.error("Failed to save aspect ratio change:", error);
+      }
+    }
+  };
+
   // 生成描述API调用
   const generateDescriptionMutation = useMutation({
     mutationFn: async (segmentId: string) => {
@@ -439,7 +495,7 @@ export default function DescriptionsPage() {
             {/* 比例选择器 */}
             <div className="mb-4 flex items-center gap-3">
               <span className="text-sm text-muted-foreground">画面比例：</span>
-              <Select value={aspectRatio} onValueChange={updateAspectRatio}>
+              <Select value={aspectRatio} onValueChange={handleAspectRatioChange}>
                 <SelectTrigger className="w-32" data-testid="select-aspect-ratio">
                   <SelectValue placeholder="选择比例" />
                 </SelectTrigger>
