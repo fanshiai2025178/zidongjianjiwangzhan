@@ -75,8 +75,8 @@ export default function SegmentsPage() {
 
   const handleContinue = () => {
     updateSegments(segments);
-    updateCurrentStep(4);
-    setLocation("/ai-original/generation-mode");
+    updateCurrentStep(5);
+    setLocation("/ai-original/descriptions");
   };
 
   const openCutDialog = (segment: Segment) => {
@@ -384,7 +384,7 @@ export default function SegmentsPage() {
             size="lg"
             data-testid="button-continue-generation"
           >
-            继续选择生成方式
+            下一步：生成描述
           </Button>
         </div>
 
