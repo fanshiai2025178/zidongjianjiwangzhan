@@ -12,29 +12,49 @@ const presetStyles = [
   {
     id: "cinema",
     name: "电影风格",
-    nameEn: "Cinema",
-    description: "电影级的视觉氛围，真实电影的的感觉",
+    description: "电影级的视觉氛围，真实电影质感的场景",
     imageUrl: "/api/placeholder/400/225",
   },
   {
     id: "anime",
     name: "动漫风格",
-    nameEn: "Anime",
-    description: "梦幻多彩红颜搭配，华服细节渲染吸睛",
+    description: "日系动漫画风，鲜艳色彩和夸张的动作表现",
     imageUrl: "/api/placeholder/400/225",
   },
   {
-    id: "snow",
-    name: "雪景风格",
-    nameEn: "Snow Scene",
-    description: "远山雾雪迷蒙笼罩，白茫茫积雪飘逸",
+    id: "realistic",
+    name: "写实风格",
+    description: "真实世界的效果，自然场景和真实光影",
     imageUrl: "/api/placeholder/400/225",
   },
   {
     id: "fantasy",
     name: "奇幻风格",
-    nameEn: "Fantasy",
-    description: "魔法古堡神秘壮观，建筑细节宏伟氛围惊叹",
+    description: "魔法古堡神秘壮观，自然场景和高耸建筑交织",
+    imageUrl: "/api/placeholder/400/225",
+  },
+  {
+    id: "retro",
+    name: "复古风格",
+    description: "80-90年代复古氛围，胶片质感与怀旧色调",
+    imageUrl: "/api/placeholder/400/225",
+  },
+  {
+    id: "minimalist",
+    name: "极简风格",
+    description: "简洁干净的画面，注重留白和核心元素",
+    imageUrl: "/api/placeholder/400/225",
+  },
+  {
+    id: "noir",
+    name: "黑色电影",
+    description: "黑白或低饱和度色调，强烈的明暗对比",
+    imageUrl: "/api/placeholder/400/225",
+  },
+  {
+    id: "cyberpunk",
+    name: "赛博朋克",
+    description: "未来科技感，霓虹灯光和赛博空间氛围",
     imageUrl: "/api/placeholder/400/225",
   },
 ];
@@ -45,7 +65,7 @@ export default function StylePage() {
   
   const [useCharacterRef, setUseCharacterRef] = useState(false);
   const [useStyleRef, setUseStyleRef] = useState(false);
-  const [usePreset, setUsePreset] = useState(true);
+  const [usePreset, setUsePreset] = useState(false);
   const [selectedStyle, setSelectedStyle] = useState("cinema");
 
   useEffect(() => {
@@ -57,10 +77,26 @@ export default function StylePage() {
       const settings = project.styleSettings as any;
       setUseCharacterRef(settings.useCharacterReference || false);
       setUseStyleRef(settings.useStyleReference || false);
-      setUsePreset(settings.usePresetStyle || true);
+      setUsePreset(settings.usePresetStyle || false);
       setSelectedStyle(settings.presetStyleId || "cinema");
     }
   }, [project, setLocation]);
+
+  // 处理风格参考勾选（与预设互斥）
+  const handleStyleRefChange = (checked: boolean) => {
+    setUseStyleRef(checked as boolean);
+    if (checked) {
+      setUsePreset(false); // 取消预设风格
+    }
+  };
+
+  // 处理预设风格勾选（与风格参考互斥）
+  const handlePresetChange = (checked: boolean) => {
+    setUsePreset(checked as boolean);
+    if (checked) {
+      setUseStyleRef(false); // 取消风格参考
+    }
+  };
 
   const handleContinue = () => {
     updateStyleSettings({
@@ -146,22 +182,31 @@ export default function StylePage() {
                 <Checkbox
                   id="style-ref"
                   checked={useStyleRef}
-                  onCheckedChange={(checked) => setUseStyleRef(checked as boolean)}
+                  onCheckedChange={handleStyleRefChange}
                   data-testid="checkbox-style-ref"
                 />
                 <label
                   htmlFor="style-ref"
                   className="text-sm font-medium text-foreground cursor-pointer"
                 >
-                  上传风格参考 <span className="text-muted-foreground">(有预设风格时失效)</span>
+                  上传风格参考 <span className="text-muted-foreground">(与预设风格互斥)</span>
                 </label>
               </div>
+
+              {useStyleRef && (
+                <div className="ml-7 border-2 border-dashed border-border rounded-xl p-12 text-center hover-elevate transition-all">
+                  <Upload className="h-12 w-12 mx-auto text-muted-foreground mb-3" />
+                  <p className="text-sm text-muted-foreground">
+                    点击上传风格参考图片
+                  </p>
+                </div>
+              )}
 
               <div className="flex items-center space-x-3">
                 <Checkbox
                   id="preset-style"
                   checked={usePreset}
-                  onCheckedChange={(checked) => setUsePreset(checked as boolean)}
+                  onCheckedChange={handlePresetChange}
                   data-testid="checkbox-preset-style"
                 />
                 <label
