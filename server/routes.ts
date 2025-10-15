@@ -141,9 +141,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const language = isChinese ? "Chinese" : "English";
 
       // 第一步：智能分段
-      const segmentPrompt = `请将以下文案分成适合视频拍摄的镜头片段。每个片段应该是一个完整的语义单元，长度适中（建议20-50字）。请直接返回JSON数组格式，每个元素只包含text字段：\n\n${scriptContent}`;
+      const segmentPrompt = language === "English" 
+        ? `Please split the following English script into video shot segments. Each segment should be a complete semantic unit with moderate length (suggest 10-20 words). Keep the original English text. Return JSON array format directly, each element contains only a text field:\n\n${scriptContent}`
+        : `请将以下文案分成适合视频拍摄的镜头片段。每个片段应该是一个完整的语义单元，长度适中（建议20-50字）。请直接返回JSON数组格式，每个元素只包含text字段：\n\n${scriptContent}`;
       
-      const result = await callDeepSeekAPI(segmentPrompt, "你是一个专业的视频脚本分段助手。");
+      const systemPrompt = language === "English" 
+        ? "You are a professional video script segmentation assistant. Always keep the original English text."
+        : "你是一个专业的视频脚本分段助手。";
+      
+      const result = await callDeepSeekAPI(segmentPrompt, systemPrompt);
       console.log("[Segments] DeepSeek API response:", result);
       
       // 尝试解析AI返回的JSON

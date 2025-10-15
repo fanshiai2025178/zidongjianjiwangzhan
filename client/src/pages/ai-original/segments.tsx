@@ -335,50 +335,45 @@ export default function SegmentsPage() {
                 <div className="flex gap-2">
                   <Button
                     variant="ghost"
-                    size="icon"
+                    size="sm"
                     onClick={() => openCutDialog(segment)}
                     data-testid={`button-cut-${segment.number}`}
-                    title="切割分段"
                   >
-                    <Scissors className="h-4 w-4" />
+                    <Scissors className="h-4 w-4 mr-1" />
+                    切割
                   </Button>
                   {index > 0 && (
                     <Button
                       variant="ghost"
-                      size="icon"
+                      size="sm"
                       onClick={() => handleMergeUp(index)}
                       data-testid={`button-merge-up-${segment.number}`}
-                      title="向上合并"
                     >
-                      <ArrowUpCircle className="h-4 w-4" />
+                      <ArrowUpCircle className="h-4 w-4 mr-1" />
+                      向上合并
                     </Button>
                   )}
                   {index < segments.length - 1 && (
                     <Button
                       variant="ghost"
-                      size="icon"
+                      size="sm"
                       onClick={() => handleMergeDown(index)}
                       data-testid={`button-merge-down-${segment.number}`}
-                      title="向下合并"
                     >
-                      <ArrowDownCircle className="h-4 w-4" />
+                      <ArrowDownCircle className="h-4 w-4 mr-1" />
+                      向下合并
                     </Button>
                   )}
                 </div>
               </div>
               <div className="space-y-3">
                 <div>
-                  <p className="text-sm text-muted-foreground">
-                    {segment.language === 'English' ? '英文原文' : '文案片段'}
-                  </p>
-                  <p className="text-base text-foreground">{segment.text}</p>
+                  <p className="text-sm text-muted-foreground mb-2">文案片段</p>
+                  <p className="text-base text-foreground mb-2">{segment.text}</p>
+                  {segment.language === 'English' && segment.translation && (
+                    <p className="text-base text-muted-foreground">{segment.translation}</p>
+                  )}
                 </div>
-                {segment.language === 'English' && segment.translation && (
-                  <div>
-                    <p className="text-sm text-muted-foreground">中文翻译</p>
-                    <p className="text-base text-foreground">{segment.translation}</p>
-                  </div>
-                )}
               </div>
             </Card>
           ))}
