@@ -38,6 +38,7 @@ export default function SegmentsPage() {
   const [cutDialogOpen, setCutDialogOpen] = useState(false);
   const [selectedSegment, setSelectedSegment] = useState<Segment | null>(null);
   const [cutPosition, setCutPosition] = useState(50);
+  const [translatingSegments, setTranslatingSegments] = useState<Set<string>>(new Set());
 
   // 加载或生成分段
   useEffect(() => {
@@ -87,6 +88,9 @@ export default function SegmentsPage() {
       // 检查是否有英文片段需要翻译
       const englishSegments = generatedSegments.filter((seg: Segment) => seg.language === 'English');
       if (englishSegments.length > 0) {
+        // 标记正在翻译的片段
+        setTranslatingSegments(new Set(englishSegments.map((seg: Segment) => seg.id)));
+        
         toast({
           title: "正在翻译",
           description: `正在翻译 ${englishSegments.length} 个英文片段...`,
@@ -109,12 +113,16 @@ export default function SegmentsPage() {
           // 保存翻译后的segments
           await saveSegmentsToProject(translatedSegments);
           
+          // 清除翻译状态
+          setTranslatingSegments(new Set());
+          
           toast({
             title: "翻译完成",
             description: "所有英文片段已翻译为中文",
           });
         } catch (error) {
           console.error("Translation failed:", error);
+          setTranslatingSegments(new Set());
           toast({
             title: "翻译失败",
             description: "部分片段翻译失败，请稍后重试",
@@ -200,6 +208,9 @@ export default function SegmentsPage() {
 
     // 如果是英文，异步翻译新片段
     if (selectedSegment.language === 'English') {
+      // 标记正在翻译
+      setTranslatingSegments(new Set([part1.id, part2.id]));
+      
       try {
         const response = await apiRequest("POST", "/api/segments/translate", {
           segments: [
@@ -220,12 +231,16 @@ export default function SegmentsPage() {
         // 保存翻译后的segments
         await saveSegmentsToProject(translatedSegments);
         
+        // 清除翻译状态
+        setTranslatingSegments(new Set());
+        
         toast({
           title: "翻译完成",
           description: "新片段已完成翻译",
         });
       } catch (error) {
         console.error("Translation failed:", error);
+        setTranslatingSegments(new Set());
       }
     }
   };
@@ -262,6 +277,8 @@ export default function SegmentsPage() {
 
     // 如果是英文，翻译合并后的片段
     if (current.language === 'English') {
+      setTranslatingSegments(new Set([current.id]));
+      
       try {
         const response = await apiRequest("POST", "/api/segments/translate", {
           segments: [{ id: current.id, text: mergedText }]
@@ -279,12 +296,15 @@ export default function SegmentsPage() {
         // 保存翻译后的segments
         await saveSegmentsToProject(translatedSegments);
         
+        setTranslatingSegments(new Set());
+        
         toast({
           title: "翻译完成",
           description: "合并后的片段已完成翻译",
         });
       } catch (error) {
         console.error("Translation failed:", error);
+        setTranslatingSegments(new Set());
       }
     }
   };
@@ -321,6 +341,8 @@ export default function SegmentsPage() {
 
     // 如果是英文，翻译合并后的片段
     if (previous.language === 'English') {
+      setTranslatingSegments(new Set([previous.id]));
+      
       try {
         const response = await apiRequest("POST", "/api/segments/translate", {
           segments: [{ id: previous.id, text: mergedText }]
@@ -338,12 +360,15 @@ export default function SegmentsPage() {
         // 保存翻译后的segments
         await saveSegmentsToProject(translatedSegments);
         
+        setTranslatingSegments(new Set());
+        
         toast({
           title: "翻译完成",
           description: "合并后的片段已完成翻译",
         });
       } catch (error) {
         console.error("Translation failed:", error);
+        setTranslatingSegments(new Set());
       }
     }
   };
@@ -450,8 +475,12 @@ export default function SegmentsPage() {
                 <div>
                   <p className="text-sm text-muted-foreground mb-2">文案片段</p>
                   <p className="text-base text-foreground mb-2">{segment.text}</p>
-                  {segment.language === 'English' && segment.translation && (
-                    <p className="text-base text-muted-foreground">{segment.translation}</p>
+                  {segment.language === 'English' && (
+                    translatingSegments.has(segment.id) ? (
+                      <p className="text-sm text-muted-foreground italic">正在翻译...</p>
+                    ) : segment.translation ? (
+                      <p className="text-base text-muted-foreground">{segment.translation}</p>
+                    ) : null
                   )}
                 </div>
               </div>
