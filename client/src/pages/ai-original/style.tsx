@@ -146,9 +146,9 @@ export default function StylePage() {
   const handleContinue = () => {
     updateStyleSettings({
       useCharacterReference: useCharacterRef,
-      characterImageUrl: characterImage,
+      characterImageUrl: characterImage || undefined,
       useStyleReference: useStyleRef,
-      styleImageUrl: styleImage,
+      styleImageUrl: styleImage || undefined,
       usePresetStyle: usePreset,
       presetStyleId: selectedStyle,
     });
@@ -369,7 +369,7 @@ export default function StylePage() {
               onClick={() => handleContinue()}
               data-testid="button-confirm-style"
             >
-              确认风格设置
+              确认选择
             </Button>
           </div>
         </div>
