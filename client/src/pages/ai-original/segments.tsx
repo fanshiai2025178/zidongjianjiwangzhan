@@ -181,6 +181,16 @@ export default function SegmentsPage() {
   };
 
   const handleContinue = () => {
+    // 检查是否有正在翻译的片段
+    if (translatingSegments.size > 0) {
+      toast({
+        title: "无法继续",
+        description: "请等待翻译完成后再继续",
+        variant: "destructive",
+      });
+      return;
+    }
+    
     // 检查是否所有英文片段都有翻译
     const untranslatedSegments = segments.filter(
       seg => seg.language === 'English' && !seg.translation
@@ -569,12 +579,17 @@ export default function SegmentsPage() {
             onClick={() => handleContinue()}
             className="w-full"
             size="lg"
-            disabled={segments.some(seg => seg.language === 'English' && !seg.translation)}
+            disabled={
+              translatingSegments.size > 0 || 
+              segments.some(seg => seg.language === 'English' && !seg.translation)
+            }
             data-testid="button-continue-generation"
           >
-            {segments.some(seg => seg.language === 'English' && !seg.translation) 
-              ? '请先完成所有片段的翻译' 
-              : '下一步：选择流程'}
+            {translatingSegments.size > 0
+              ? '翻译进行中，请稍候...'
+              : segments.some(seg => seg.language === 'English' && !seg.translation) 
+                ? '请先完成所有片段的翻译' 
+                : '下一步：选择流程'}
           </Button>
         </div>
       </main>
