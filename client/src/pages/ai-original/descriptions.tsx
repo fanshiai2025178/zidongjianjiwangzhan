@@ -248,13 +248,28 @@ export default function DescriptionsPage() {
   // 生成单个视频
   const generateSingleVideo = async (segmentId: string) => {
     const segment = segments.find(s => s.id === segmentId);
-    if (!segment?.imageUrl) {
-      toast({
-        title: "提示",
-        description: "请先生成图片",
-        variant: "destructive",
-      });
-      return;
+    
+    // 根据生成模式检查前置条件
+    if (isTextToVideo) {
+      // 文生视频：需要场景描述
+      if (!segment?.sceneDescription) {
+        toast({
+          title: "提示",
+          description: "请先生成场景描述",
+          variant: "destructive",
+        });
+        return;
+      }
+    } else {
+      // 文生图+图生视频：需要图片
+      if (!segment?.imageUrl) {
+        toast({
+          title: "提示",
+          description: "请先生成图片",
+          variant: "destructive",
+        });
+        return;
+      }
     }
 
     setGeneratingVideos(prev => new Set(prev).add(segmentId));
@@ -263,8 +278,9 @@ export default function DescriptionsPage() {
       // TODO: 实现真正的视频生成API
       await new Promise(resolve => setTimeout(resolve, 2000));
       
+      const videoUrl = isTextToVideo ? segment.sceneDescription : segment.imageUrl;
       const updatedSegments = segments.map(seg =>
-        seg.id === segmentId ? { ...seg, videoUrl: segment.imageUrl } : seg
+        seg.id === segmentId ? { ...seg, videoUrl } : seg
       );
       updateSegments(updatedSegments);
       
@@ -301,9 +317,12 @@ export default function DescriptionsPage() {
 
   // 批量生成视频
   const handleBatchGenerateVideos = async () => {
-    const segmentsWithImage = segments.filter(s => s.imageUrl && !s.videoUrl);
+    // 根据生成模式筛选可生成视频的片段
+    const segmentsToGenerate = isTextToVideo
+      ? segments.filter(s => s.sceneDescription && !s.videoUrl)  // 文生视频：需要描述
+      : segments.filter(s => s.imageUrl && !s.videoUrl);  // 文生图+图生视频：需要图片
     
-    if (segmentsWithImage.length === 0) {
+    if (segmentsToGenerate.length === 0) {
       toast({
         title: "提示",
         description: "没有需要生成视频的镜头",
@@ -313,7 +332,7 @@ export default function DescriptionsPage() {
 
     setBatchGeneratingVideos(true);
 
-    for (const segment of segmentsWithImage) {
+    for (const segment of segmentsToGenerate) {
       setCurrentGeneratingVideoId(segment.id);
       await generateSingleVideo(segment.id);
     }
@@ -322,7 +341,7 @@ export default function DescriptionsPage() {
     setBatchGeneratingVideos(false);
     toast({
       title: "批量生成完成",
-      description: `成功生成 ${segmentsWithImage.length} 个视频`,
+      description: `成功生成 ${segmentsToGenerate.length} 个视频`,
     });
   };
 

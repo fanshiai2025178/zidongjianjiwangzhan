@@ -135,8 +135,8 @@ export default function SegmentsPage() {
 
   const handleContinue = () => {
     updateSegments(segments);
-    updateCurrentStep(5);
-    setLocation("/ai-original/descriptions");
+    updateCurrentStep(4);
+    setLocation("/ai-original/generation-mode");
   };
 
   const openCutDialog = (segment: Segment) => {
