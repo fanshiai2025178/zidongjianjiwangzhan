@@ -6,6 +6,15 @@ This is an AI-powered video creation platform that enables users to create profe
 
 ## Recent Changes (October 15, 2025)
 
+**Image and Video Generation Integration (Latest)**
+- Consolidated image/video generation into descriptions page for streamlined workflow
+- Integrated VolcEngine (火山引擎) API for AI image generation from scene descriptions
+- Added complete image and video generation flow with preview functionality
+- Implemented progress tracking panel showing completion status for descriptions, images, and videos
+- Added "完成并导出" button with next-step guidance that appears when all content is generated
+- Fixed home page navigation bug (double-click issue) with setTimeout solution
+- Updated segment schema to include imageUrl and videoUrl fields
+
 **Description Generation Page Implementation**
 - Created complete descriptions page following design reference
 - Implemented DeepSeek API integration for scene description generation
@@ -13,7 +22,6 @@ This is an AI-powered video creation platform that enables users to create profe
 - Integrated edit functionality with textarea and save/cancel actions
 - Built export panel with segment count and duration calculation
 - Added collapsible help section for export guidance
-- Updated workflow: Segments → Descriptions (skipping generation mode for now)
 
 ## User Preferences
 
