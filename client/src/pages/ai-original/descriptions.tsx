@@ -53,6 +53,7 @@ export default function DescriptionsPage() {
           text: segment.text,
           translation: segment.translation,
           language: segment.language,
+          generationMode: generationMode,
         }
       );
       const data = await response.json();
@@ -179,6 +180,7 @@ export default function DescriptionsPage() {
             text: segment.text,
             translation: segment.translation,
             language: segment.language,
+            generationMode: generationMode,
           }
         );
         const data = await response.json();

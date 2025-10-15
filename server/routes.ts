@@ -129,32 +129,57 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // 生成分镜描述API
   app.post("/api/descriptions/generate", async (req, res) => {
     try {
-      const { text, translation, language } = req.body;
+      const { text, translation, language, generationMode = "text-to-image-to-video" } = req.body;
       if (!text) {
         return res.status(400).json({ error: "Text is required" });
       }
 
       console.log("[Description] Generating description for:", text.substring(0, 30) + "...");
+      console.log("[Description] Generation mode:", generationMode);
 
       // 构建提示词
       const contentToDescribe = language === "English" && translation 
         ? `${text}\n(中文翻译: ${translation})`
         : text;
 
-      const descriptionPrompt = `请为以下文案生成一个详细的视频分镜画面描述。描述应该包括场景、人物、动作、镜头角度等细节，使用中文编写，适合用于AI图片生成的提示词。
+      let descriptionPrompt: string;
+      let systemPrompt: string;
+
+      if (generationMode === "text-to-video") {
+        // 文生视频：生成视频场景描述（强调动态、运动、镜头运动）
+        descriptionPrompt = `请为以下文案生成一个详细的视频场景描述。描述应该强调动态画面、人物动作、镜头运动等视频特有的元素，使用中文编写。
 
 文案内容：
 ${contentToDescribe}
 
-请直接生成场景描述，包含以下要素：
+请直接生成视频场景描述，包含以下要素：
 - 场景环境和氛围
-- 人物或主体（如有）
-- 具体动作和细节
-- 画面构图和镜头角度
+- 人物或主体的动作和表情变化
+- 镜头运动（推拉摇移、升降等）
+- 画面转场和节奏
+- 动态元素和运动细节
 
-要求：使用中文，描述具体生动，200字以内，不要使用markdown格式。`;
-      
-      const systemPrompt = "你是一位专业的视频分镜描述撰写专家。请生成详细、具象化的中文场景描述，适合用于AI图片生成。";
+要求：使用中文，描述具体生动，强调动态感和运动感，200字以内，不要使用markdown格式。`;
+        
+        systemPrompt = "你是一位专业的视频场景描述撰写专家。请生成强调动态、运动和镜头语言的中文视频场景描述，适合用于AI视频生成。";
+      } else {
+        // 文生图+图生视频：生成静态图片描述（强调画面、构图、色彩、氛围）
+        descriptionPrompt = `请为以下文案生成一个详细的静态画面描述。描述应该强调画面构图、色彩氛围、光影效果等静态视觉元素，使用中文编写，适合用于AI图片生成。
+
+文案内容：
+${contentToDescribe}
+
+请直接生成静态画面描述，包含以下要素：
+- 场景环境和氛围
+- 人物或主体的姿态和表情（静态定格）
+- 画面构图和视角（俯拍、仰拍、特写等）
+- 色彩基调和光影效果
+- 细节元素和质感
+
+要求：使用中文，描述具体生动，强调画面感和氛围感，200字以内，不要使用markdown格式。`;
+        
+        systemPrompt = "你是一位专业的图片场景描述撰写专家。请生成详细、具象化的中文静态画面描述，适合用于AI图片生成。";
+      }
       
       const description = await callDeepSeekAPI(descriptionPrompt, systemPrompt);
       console.log("[Description] Generated description successfully");
