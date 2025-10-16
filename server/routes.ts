@@ -136,11 +136,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: "Text is required" });
       }
 
-      const volcengineEndpointId = process.env.VOLCENGINE_DEEPSEEK_ENDPOINT_ID;
-      const accessKeyId = process.env.VOLCENGINE_ACCESS_KEY_ID;
-      const secretKey = process.env.VOLCENGINE_SECRET_ACCESS_KEY;
+      const volcengineEndpointId = process.env.VOLCENGINE_DEEPSEEK_API_KEY;
+      const apiKey = process.env.VOLCENGINE_ACCESS_KEY;
       
-      if (!volcengineEndpointId || !accessKeyId || !secretKey) {
+      if (!volcengineEndpointId || !apiKey) {
         return res.status(500).json({ error: "Volcengine DeepSeek credentials are not configured" });
       }
 
@@ -280,9 +279,7 @@ Output the prompt directly without additional explanation.`;
         systemPrompt = "You are a professional AI image prompt expert, proficient in Seedream 4.0 image generation specifications and visual arts. You excel at transforming text into static scene descriptions, accurately guiding AI to generate high-quality, artistic image content.";
       }
       
-      // 使用火山引擎SDK进行AK/SK签名
-      const { Signer } = await import("@volcengine/openapi");
-      
+      // 使用Bearer Token认证
       const requestBody = JSON.stringify({
         model: volcengineEndpointId,
         messages: [
@@ -298,23 +295,12 @@ Output the prompt directly without additional explanation.`;
         temperature: 0.7,
       });
 
-      const requestData = {
-        region: "cn-beijing",
-        method: "POST",
-        pathname: "/api/v3/chat/completions",
-        params: {},
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: requestBody,
-      };
-
-      const signer = new Signer(requestData, "ark");
-      signer.addAuthorization({ accessKeyId, secretKey, sessionToken: "" });
-
       const response = await fetch("https://ark.cn-beijing.volces.com/api/v3/chat/completions", {
         method: "POST",
-        headers: requestData.headers as Record<string, string>,
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${apiKey}`,
+        },
         body: requestBody,
       });
 
@@ -343,11 +329,10 @@ Output the prompt directly without additional explanation.`;
         return res.status(400).json({ error: "Segments array is required" });
       }
 
-      const volcengineEndpointId = process.env.VOLCENGINE_DEEPSEEK_ENDPOINT_ID;
-      const accessKeyId = process.env.VOLCENGINE_ACCESS_KEY_ID;
-      const secretKey = process.env.VOLCENGINE_SECRET_ACCESS_KEY;
+      const volcengineEndpointId = process.env.VOLCENGINE_DEEPSEEK_API_KEY;
+      const apiKey = process.env.VOLCENGINE_ACCESS_KEY;
       
-      if (!volcengineEndpointId || !accessKeyId || !secretKey) {
+      if (!volcengineEndpointId || !apiKey) {
         return res.status(500).json({ error: "Volcengine DeepSeek credentials are not configured" });
       }
 
@@ -355,8 +340,6 @@ Output the prompt directly without additional explanation.`;
       console.log("[Batch Description - Volcengine DeepSeek] Endpoint:", volcengineEndpointId);
       console.log("[Batch Description - Volcengine DeepSeek] Generation mode:", generationMode);
       console.log("[Batch Description - Volcengine DeepSeek] Aspect ratio:", aspectRatio);
-
-      const { Signer } = await import("@volcengine/openapi");
 
       const results = [];
 
@@ -464,7 +447,7 @@ Output the prompt directly without additional explanation.`;
         }
 
         try {
-          // 使用火山引擎SDK进行AK/SK签名（专用于批量生成）
+          // 使用Bearer Token认证（专用于批量生成）
           const requestBody = JSON.stringify({
             model: volcengineEndpointId,
             messages: [
@@ -480,23 +463,12 @@ Output the prompt directly without additional explanation.`;
             temperature: 0.7,
           });
 
-          const requestData = {
-            region: "cn-beijing",
-            method: "POST",
-            pathname: "/api/v3/chat/completions",
-            params: {},
-            headers: {
-              "Content-Type": "application/json",
-            },
-            body: requestBody,
-          };
-
-          const signer = new Signer(requestData, "ark");
-          signer.addAuthorization({ accessKeyId, secretKey, sessionToken: "" });
-
           const response = await fetch("https://ark.cn-beijing.volces.com/api/v3/chat/completions", {
             method: "POST",
-            headers: requestData.headers as Record<string, string>,
+            headers: {
+              "Content-Type": "application/json",
+              "Authorization": `Bearer ${apiKey}`,
+            },
             body: requestBody,
           });
 
@@ -530,7 +502,7 @@ Output the prompt directly without additional explanation.`;
     }
   });
 
-  // 关键词提取API（专用火山引擎DeepSeek - 使用AK/SK认证）
+  // 关键词提取API（专用火山引擎DeepSeek - 使用Bearer Token认证）
   app.post("/api/keywords/extract", async (req, res) => {
     try {
       const { description } = req.body;
@@ -538,11 +510,10 @@ Output the prompt directly without additional explanation.`;
         return res.status(400).json({ error: "Description is required" });
       }
 
-      const volcengineEndpointId = process.env.VOLCENGINE_KEYWORD_ENDPOINT_ID;
-      const accessKeyId = process.env.VOLCENGINE_ACCESS_KEY_ID;
-      const secretKey = process.env.VOLCENGINE_SECRET_ACCESS_KEY;
+      const volcengineEndpointId = process.env.VOLCENGINE_KEYWORD_API_KEY;
+      const apiKey = process.env.VOLCENGINE_ACCESS_KEY;
       
-      if (!volcengineEndpointId || !accessKeyId || !secretKey) {
+      if (!volcengineEndpointId || !apiKey) {
         return res.status(500).json({ error: "Volcengine Keyword API credentials are not configured" });
       }
 
@@ -577,27 +548,13 @@ ${description}
         temperature: 0.3,
       });
 
-      // 使用火山引擎SDK进行AK/SK签名
-      const { Signer } = await import("@volcengine/openapi");
-      
-      const requestData = {
-        region: "cn-beijing",
-        method: "POST",
-        pathname: "/api/v3/chat/completions",
-        params: {},
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: requestBody,
-      };
-
-      const signer = new Signer(requestData, "ark");
-      signer.addAuthorization({ accessKeyId, secretKey, sessionToken: "" });
-
-      // 使用签名后的headers发起请求
+      // 使用Bearer Token认证
       const response = await fetch("https://ark.cn-beijing.volces.com/api/v3/chat/completions", {
         method: "POST",
-        headers: requestData.headers as Record<string, string>,
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${apiKey}`,
+        },
         body: requestBody,
       });
 
@@ -618,7 +575,7 @@ ${description}
     }
   });
 
-  // 批量关键词提取API（专用火山引擎DeepSeek - 使用AK/SK认证）
+  // 批量关键词提取API（专用火山引擎DeepSeek - 使用Bearer Token认证）
   app.post("/api/keywords/batch-extract", async (req, res) => {
     try {
       const { segments } = req.body;
@@ -626,17 +583,15 @@ ${description}
         return res.status(400).json({ error: "Segments array is required" });
       }
 
-      const volcengineEndpointId = process.env.VOLCENGINE_KEYWORD_ENDPOINT_ID;
-      const accessKeyId = process.env.VOLCENGINE_ACCESS_KEY_ID;
-      const secretKey = process.env.VOLCENGINE_SECRET_ACCESS_KEY;
+      const volcengineEndpointId = process.env.VOLCENGINE_KEYWORD_API_KEY;
+      const apiKey = process.env.VOLCENGINE_ACCESS_KEY;
       
-      if (!volcengineEndpointId || !accessKeyId || !secretKey) {
+      if (!volcengineEndpointId || !apiKey) {
         return res.status(500).json({ error: "Volcengine Keyword API credentials are not configured" });
       }
 
       console.log("[Batch Keyword Extract] Extracting keywords for", segments.length, "segments");
 
-      const { Signer } = await import("@volcengine/openapi");
       const results = [];
       const systemPrompt = "你是一个专业的关键词提取专家，擅长从AI生成提示词中提取核心关键词。";
 
@@ -677,23 +632,13 @@ ${segment.sceneDescription}
             temperature: 0.3,
           });
 
-          const requestData = {
-            region: "cn-beijing",
-            method: "POST",
-            pathname: "/api/v3/chat/completions",
-            params: {},
-            headers: {
-              "Content-Type": "application/json",
-            },
-            body: requestBody,
-          };
-
-          const signer = new Signer(requestData, "ark");
-          signer.addAuthorization({ accessKeyId, secretKey, sessionToken: "" });
-
+          // 使用Bearer Token认证
           const response = await fetch("https://ark.cn-beijing.volces.com/api/v3/chat/completions", {
             method: "POST",
-            headers: requestData.headers as Record<string, string>,
+            headers: {
+              "Content-Type": "application/json",
+              "Authorization": `Bearer ${apiKey}`,
+            },
             body: requestBody,
           });
 

@@ -3,15 +3,18 @@ import { Signer } from "@volcengine/openapi";
 async function testVolcengineAuth() {
   // 使用环境变量中的AK/SK
   const accessKeyId = process.env.VOLCENGINE_ACCESS_KEY_ID;
-  const secretKey = process.env.VOLCENGINE_SECRET_ACCESS_KEY;
-  const endpointId = process.env.VOLCENGINE_KEYWORD_ENDPOINT_ID; // 使用关键词提取端点测试
+  const secretKeyBase64 = process.env.VOLCENGINE_SECRET_ACCESS_KEY;
+  const endpointId = process.env.VOLCENGINE_KEYWORD_API_KEY; // 使用关键词提取端点测试（正确的endpoint ID在这个变量里）
 
   console.log("=== 火山引擎ARK API认证测试 ===");
   console.log("Access Key ID:", accessKeyId?.substring(0, 20) + "...");
-  console.log("Secret Key:", secretKey?.substring(0, 20) + "...");
+  console.log("Secret Key:", secretKeyBase64?.substring(0, 20) + "...");
   console.log("Endpoint ID:", endpointId);
   console.log("");
-
+  
+  // 尝试两种方式：原始Base64和解码后
+  const secretKey = secretKeyBase64 || '';
+  
   if (!accessKeyId || !secretKey || !endpointId) {
     console.error("错误：缺少必要的环境变量");
     process.exit(1);
