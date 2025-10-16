@@ -672,17 +672,25 @@ ${segment.sceneDescription}
     }
   });
 
-  // 优化提示词API（专门用于提示词优化）
-  app.post("/api/descriptions/optimize", async (req, res) => {
+  // 提示词优化API（专用火山引擎DeepSeek - 使用Bearer Token认证）
+  app.post("/api/prompts/optimize", async (req, res) => {
     try {
       const { description, generationMode = "text-to-image-to-video", aspectRatio = "16:9" } = req.body;
       if (!description) {
         return res.status(400).json({ error: "Description is required" });
       }
 
-      console.log("[Optimize] Optimizing description:", description.substring(0, 50) + "...");
-      console.log("[Optimize] Generation mode:", generationMode);
-      console.log("[Optimize] Aspect ratio:", aspectRatio);
+      const volcengineEndpointId = process.env.VOLCENGINE_OPTIMIZE_API_KEY;
+      const apiKey = process.env.VOLCENGINE_ACCESS_KEY;
+      
+      if (!volcengineEndpointId || !apiKey) {
+        return res.status(500).json({ error: "Volcengine Optimize API credentials are not configured" });
+      }
+
+      console.log("[Prompt Optimize] Optimizing prompt:", description.substring(0, 50) + "...");
+      console.log("[Prompt Optimize] Endpoint:", volcengineEndpointId);
+      console.log("[Prompt Optimize] Generation mode:", generationMode);
+      console.log("[Prompt Optimize] Aspect ratio:", aspectRatio);
 
       // 根据生成模式选择优化策略
       let optimizePrompt: string;
@@ -747,13 +755,196 @@ Output the optimized prompt directly, without explanations.`;
         systemPrompt = "You are a professional AI image prompt optimization expert with extensive knowledge of photography, digital art, and AI image generation models. Your optimizations dramatically improve image generation quality and aesthetic appeal.";
       }
 
-      const optimizedDescription = await callDeepSeekAPI(optimizePrompt, systemPrompt);
-      console.log("[Optimize] Successfully optimized description");
+      const requestBody = JSON.stringify({
+        model: volcengineEndpointId,
+        messages: [
+          {
+            role: "system",
+            content: systemPrompt
+          },
+          {
+            role: "user",
+            content: optimizePrompt
+          }
+        ],
+        temperature: 0.7,
+      });
+
+      // 使用Bearer Token认证
+      const response = await fetch("https://ark.cn-beijing.volces.com/api/v3/chat/completions", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${apiKey}`,
+        },
+        body: requestBody,
+      });
+
+      if (!response.ok) {
+        const error = await response.text();
+        throw new Error(`Volcengine Optimize API error: ${error}`);
+      }
+
+      const data = await response.json();
+      const optimizedPrompt = data.choices?.[0]?.message?.content || "";
+
+      console.log("[Prompt Optimize] Successfully optimized prompt");
       
-      res.json({ optimizedDescription: optimizedDescription.trim() });
+      res.json({ optimizedPrompt: optimizedPrompt.trim() });
     } catch (error) {
-      console.error("[Optimize] Error:", error);
-      res.status(500).json({ error: "Failed to optimize description", details: error instanceof Error ? error.message : String(error) });
+      console.error("[Prompt Optimize] Error:", error);
+      res.status(500).json({ error: "Failed to optimize prompt", details: error instanceof Error ? error.message : String(error) });
+    }
+  });
+
+  // 批量提示词优化API（专用火山引擎DeepSeek - 使用Bearer Token认证）
+  app.post("/api/prompts/batch-optimize", async (req, res) => {
+    try {
+      const { segments, generationMode = "text-to-image-to-video", aspectRatio = "16:9" } = req.body;
+      if (!segments || !Array.isArray(segments)) {
+        return res.status(400).json({ error: "Segments array is required" });
+      }
+
+      const volcengineEndpointId = process.env.VOLCENGINE_OPTIMIZE_API_KEY;
+      const apiKey = process.env.VOLCENGINE_ACCESS_KEY;
+      
+      if (!volcengineEndpointId || !apiKey) {
+        return res.status(500).json({ error: "Volcengine Optimize API credentials are not configured" });
+      }
+
+      console.log("[Batch Prompt Optimize] Optimizing", segments.length, "prompts");
+      console.log("[Batch Prompt Optimize] Endpoint:", volcengineEndpointId);
+      console.log("[Batch Prompt Optimize] Generation mode:", generationMode);
+      console.log("[Batch Prompt Optimize] Aspect ratio:", aspectRatio);
+
+      const results = [];
+
+      // 根据生成模式选择优化策略
+      let systemPrompt: string;
+      if (generationMode === "text-to-video") {
+        systemPrompt = "You are a professional AI video prompt optimization expert with deep knowledge of cinematography, motion design, and AI video generation models. Your optimizations significantly improve video generation quality.";
+      } else {
+        systemPrompt = "You are a professional AI image prompt optimization expert with extensive knowledge of photography, digital art, and AI image generation models. Your optimizations dramatically improve image generation quality and aesthetic appeal.";
+      }
+
+      for (const segment of segments) {
+        if (!segment.sceneDescription) {
+          results.push({
+            id: segment.id,
+            error: "No description available",
+          });
+          continue;
+        }
+
+        let optimizePrompt: string;
+        if (generationMode === "text-to-video") {
+          // 文生视频优化策略
+          optimizePrompt = `You are an expert in optimizing prompts for AI video generation. Please enhance the following video generation prompt to make it more effective for AI video models.
+
+Original Prompt:
+${segment.sceneDescription}
+
+Aspect Ratio: ${aspectRatio} (${aspectRatio === '9:16' || aspectRatio === '3:4' ? 'Vertical/Portrait' : aspectRatio === '1:1' ? 'Square' : 'Horizontal/Landscape'})
+
+[OPTIMIZATION GOALS]
+1. **Clarity Enhancement**: Make actions and movements more explicit and clear
+2. **Camera Language Refinement**: Add or improve camera movement descriptions (push in, pull out, pan, tilt, track)
+3. **Temporal Structure**: Ensure clear beginning → middle → end progression
+4. **Technical Details**: Add lighting conditions, frame composition, and motion speed details
+5. **Consistency**: Maintain character and environmental consistency throughout
+
+[OPTIMIZATION REQUIREMENTS]
+• Keep the core content and story intact
+• Add specific technical details (camera angles, movement speed, lighting)
+• Enhance visual and motion descriptions
+• Use professional cinematography terminology
+• Maintain English output
+• Keep length reasonable (250 words max)
+• DO NOT add markdown formatting
+
+Output the optimized prompt directly, without explanations.`;
+        } else {
+          // 文生图优化策略
+          optimizePrompt = `You are an expert in optimizing prompts for AI image generation. Please enhance the following image generation prompt to make it more effective for AI image models.
+
+Original Prompt:
+${segment.sceneDescription}
+
+Aspect Ratio: ${aspectRatio} (${aspectRatio === '9:16' || aspectRatio === '3:4' ? 'Vertical/Portrait' : aspectRatio === '1:1' ? 'Square' : 'Horizontal/Landscape'})
+
+[OPTIMIZATION GOALS]
+1. **Visual Clarity**: Make visual elements more specific and detailed
+2. **Composition Enhancement**: Improve spatial layout and element positioning
+3. **Technical Details**: Add lighting, color palette, texture, and material descriptions
+4. **Artistic Direction**: Enhance artistic style and mood specifications
+5. **Quality Boost**: Add quality-enhancing keywords and technical parameters
+
+[OPTIMIZATION REQUIREMENTS]
+• Keep the core subject and concept intact
+• Add specific visual details (textures, materials, lighting angles)
+• Enhance color and atmosphere descriptions
+• Use professional photography/art terminology
+• Maintain English output
+• Keep length reasonable (250 words max)
+• DO NOT add markdown formatting
+• Focus on static visual elements, NOT motion or time progression
+
+Output the optimized prompt directly, without explanations.`;
+        }
+
+        try {
+          const requestBody = JSON.stringify({
+            model: volcengineEndpointId,
+            messages: [
+              {
+                role: "system",
+                content: systemPrompt
+              },
+              {
+                role: "user",
+                content: optimizePrompt
+              }
+            ],
+            temperature: 0.7,
+          });
+
+          // 使用Bearer Token认证
+          const response = await fetch("https://ark.cn-beijing.volces.com/api/v3/chat/completions", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              "Authorization": `Bearer ${apiKey}`,
+            },
+            body: requestBody,
+          });
+
+          if (!response.ok) {
+            const error = await response.text();
+            throw new Error(`Volcengine Optimize API error: ${error}`);
+          }
+
+          const data = await response.json();
+          const optimizedPrompt = data.choices?.[0]?.message?.content || "";
+
+          results.push({
+            id: segment.id,
+            optimizedPrompt: optimizedPrompt.trim(),
+          });
+          console.log(`[Batch Prompt Optimize] Optimized prompt for segment ${segment.id}`);
+        } catch (error) {
+          console.error(`[Batch Prompt Optimize] Error for segment ${segment.id}:`, error);
+          results.push({
+            id: segment.id,
+            error: error instanceof Error ? error.message : "Failed to optimize prompt",
+          });
+        }
+      }
+
+      console.log("[Batch Prompt Optimize] Successfully optimized", results.filter(r => !r.error).length, "prompts");
+      res.json({ results });
+    } catch (error) {
+      console.error("[Batch Prompt Optimize] Error:", error);
+      res.status(500).json({ error: "Failed to batch optimize prompts", details: error instanceof Error ? error.message : String(error) });
     }
   });
 
