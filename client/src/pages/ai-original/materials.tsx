@@ -678,9 +678,22 @@ export default function MaterialsPage() {
 
                 {/* 描述词 */}
                 <div className="col-span-2 p-3 border-r border-border">
-                  <div className="text-sm max-h-32 overflow-y-auto">
-                    {segment.sceneDescription || (
-                      <span className="text-muted-foreground italic">未生成</span>
+                  <div className="space-y-2">
+                    {segment.sceneDescription ? (
+                      <>
+                        <div className="text-sm">
+                          <span className="text-muted-foreground text-xs">(中文) </span>
+                          <span className="max-h-20 overflow-y-auto inline-block align-top">{segment.sceneDescription}</span>
+                        </div>
+                        {segment.sceneDescriptionEn && (
+                          <div className="text-sm">
+                            <span className="text-muted-foreground text-xs">(英文) </span>
+                            <span className="max-h-20 overflow-y-auto inline-block align-top">{segment.sceneDescriptionEn}</span>
+                          </div>
+                        )}
+                      </>
+                    ) : (
+                      <span className="text-muted-foreground italic text-sm">未生成</span>
                     )}
                   </div>
                 </div>

@@ -617,9 +617,6 @@ export default function DescriptionsPage() {
                   {/* 文案 */}
                   <div className="col-span-2 p-3 border-r border-border">
                     <p className="text-sm text-foreground">{segment.text}</p>
-                    <Badge variant="outline" className="text-xs mt-1">
-                      {segment.language}
-                    </Badge>
                   </div>
 
                   {/* 翻译 */}
