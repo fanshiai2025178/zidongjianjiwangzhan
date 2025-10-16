@@ -46,7 +46,7 @@ export default function Home() {
       title: "AI原创视频制作",
       description: "从零开始，输入您的想法文案，AI帮您打磨成金牌讲解视频画面；打造独一无二的原创视频。",
       icon: Sparkles,
-      route: "/ai-original/style",
+      route: "/ai-original/script",
       iconColor: "text-blue-500",
     },
     {

@@ -514,13 +514,13 @@ export default function DescriptionsPage() {
     setEditedDescription("");
   };
 
-  const currentStep = project?.currentStep || 5;
+  const currentStep = project?.currentStep || 4;
   const steps = [
-    { number: 1, label: "风格定制", isCompleted: currentStep > 1, isCurrent: currentStep === 1 },
-    { number: 2, label: "输入文案", isCompleted: currentStep > 2, isCurrent: currentStep === 2 },
-    { number: 3, label: "智能分段", isCompleted: currentStep > 3, isCurrent: currentStep === 3 },
-    { number: 4, label: "选择流程", isCompleted: currentStep > 4, isCurrent: currentStep === 4 },
-    { number: 5, label: "生成描述", isCompleted: currentStep > 5, isCurrent: currentStep === 5 },
+    { number: 1, label: "输入文案", isCompleted: currentStep > 1, isCurrent: currentStep === 1 },
+    { number: 2, label: "智能分段", isCompleted: currentStep > 2, isCurrent: currentStep === 2 },
+    { number: 3, label: "选择流程", isCompleted: currentStep > 3, isCurrent: currentStep === 3 },
+    { number: 4, label: "生成描述", isCompleted: currentStep > 4, isCurrent: currentStep === 4 },
+    { number: 5, label: "风格定制", isCompleted: currentStep > 5, isCurrent: currentStep === 5 },
     { number: 6, label: "生成素材", isCompleted: currentStep > 6, isCurrent: currentStep === 6 },
     { number: 7, label: "导出成片", isCompleted: currentStep > 7, isCurrent: currentStep === 7 },
   ];
@@ -741,7 +741,7 @@ export default function DescriptionsPage() {
               <Button
                 className="w-full"
                 size="lg"
-                onClick={() => setLocation("/ai-original/materials")}
+                onClick={() => setLocation("/ai-original/style")}
                 data-testid="button-next-materials"
               >
                 <ArrowRight className="h-4 w-4 mr-2" />

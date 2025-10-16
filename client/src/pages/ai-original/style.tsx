@@ -152,18 +152,19 @@ export default function StylePage() {
       usePresetStyle: usePreset,
       presetStyleId: selectedStyle,
     });
-    updateCurrentStep(2);
-    setLocation("/ai-original/script");
+    updateCurrentStep(6);
+    setLocation("/ai-original/materials");
   };
 
-  const currentStep = project?.currentStep || 1;
+  const currentStep = project?.currentStep || 5;
   const steps = [
-    { number: 1, label: "风格定制", isCompleted: currentStep > 1, isCurrent: currentStep === 1 },
-    { number: 2, label: "输入文案", isCompleted: currentStep > 2, isCurrent: currentStep === 2 },
-    { number: 3, label: "智能分段", isCompleted: currentStep > 3, isCurrent: currentStep === 3 },
-    { number: 4, label: "选择流程", isCompleted: currentStep > 4, isCurrent: currentStep === 4 },
-    { number: 5, label: "生成描述", isCompleted: currentStep > 5, isCurrent: currentStep === 5 },
-    { number: 6, label: "导出成片", isCompleted: currentStep > 6, isCurrent: currentStep === 6 },
+    { number: 1, label: "输入文案", isCompleted: currentStep > 1, isCurrent: currentStep === 1 },
+    { number: 2, label: "智能分段", isCompleted: currentStep > 2, isCurrent: currentStep === 2 },
+    { number: 3, label: "选择流程", isCompleted: currentStep > 3, isCurrent: currentStep === 3 },
+    { number: 4, label: "生成描述", isCompleted: currentStep > 4, isCurrent: currentStep === 4 },
+    { number: 5, label: "风格定制", isCompleted: currentStep > 5, isCurrent: currentStep === 5 },
+    { number: 6, label: "生成素材", isCompleted: currentStep > 6, isCurrent: currentStep === 6 },
+    { number: 7, label: "导出成片", isCompleted: currentStep > 7, isCurrent: currentStep === 7 },
   ];
 
   return (
@@ -174,7 +175,7 @@ export default function StylePage() {
       <main className="container mx-auto max-w-6xl px-6 pb-16">
         <Button
           variant="ghost"
-          onClick={() => setLocation("/")}
+          onClick={() => setLocation("/ai-original/descriptions")}
           className="mb-6"
           data-testid="button-back"
         >
