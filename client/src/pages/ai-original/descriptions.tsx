@@ -735,17 +735,17 @@ export default function DescriptionsPage() {
               <h2 className="text-lg font-semibold mb-4">下一步</h2>
               
               <p className="text-sm text-muted-foreground mb-6">
-                描述词生成完成后，继续生成图片和视频素材
+                描述词生成完成后，进行风格定制设置
               </p>
 
               <Button
                 className="w-full"
                 size="lg"
                 onClick={() => setLocation("/ai-original/style")}
-                data-testid="button-next-materials"
+                data-testid="button-next-style"
               >
                 <ArrowRight className="h-4 w-4 mr-2" />
-                进入素材生成
+                进入风格定制
               </Button>
             </Card>
           </div>
