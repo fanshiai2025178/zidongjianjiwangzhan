@@ -119,14 +119,15 @@ export default function DescriptionsPage() {
         }
       );
       const data = await response.json();
-      return { segmentId, description: data.description };
+      return { segmentId, description: data.description, descriptionEn: data.descriptionEn };
     },
-    onSuccess: async ({ segmentId, description }) => {
+    onSuccess: async (data: { segmentId: string, description: string, descriptionEn?: string }) => {
       const currentAspectRatio = project?.aspectRatio || "16:9";
       const updatedSegments = segments.map(seg =>
-        seg.id === segmentId ? { 
+        seg.id === data.segmentId ? { 
           ...seg, 
-          sceneDescription: description,
+          sceneDescription: data.description, // 中文描述词
+          sceneDescriptionEn: data.descriptionEn || data.description, // 英文描述词
           descriptionAspectRatio: currentAspectRatio // 记录生成时的比例
         } : seg
       );
@@ -275,7 +276,8 @@ export default function DescriptionsPage() {
           currentSegments = currentSegments.map(seg =>
             seg.id === result.id ? {
               ...seg,
-              sceneDescription: result.description,
+              sceneDescription: result.description, // 中文描述词
+              sceneDescriptionEn: result.descriptionEn || result.description, // 英文描述词
               descriptionAspectRatio: currentAspectRatio,
             } : seg
           );
@@ -668,7 +670,10 @@ export default function DescriptionsPage() {
                               </div>
                             )}
                             <div className="bg-muted rounded-md p-3 font-mono text-xs text-foreground leading-relaxed max-h-32 overflow-y-auto">
-                              {segment.sceneDescription}
+                              <div className="flex items-start gap-2">
+                                <span className="text-muted-foreground shrink-0">(中文)</span>
+                                <span className="flex-1">{segment.sceneDescription}</span>
+                              </div>
                             </div>
                             <div className="flex gap-1 mt-2">
                               <Button
