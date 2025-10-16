@@ -8,6 +8,7 @@ import { Card } from "@/components/ui/card";
 import { Upload, ArrowLeft, X } from "lucide-react";
 import { useProject } from "@/hooks/use-project";
 import { useToast } from "@/hooks/use-toast";
+import { Segment } from "@shared/schema";
 
 const presetStyles = [
   {
@@ -64,6 +65,8 @@ export default function StylePage() {
   const [, setLocation] = useLocation();
   const { project, updateStyleSettings, updateCurrentStep } = useProject();
   const { toast } = useToast();
+  
+  const segments = (project?.segments as Segment[]) || [];
   
   const [useCharacterRef, setUseCharacterRef] = useState(false);
   const [useStyleRef, setUseStyleRef] = useState(false);
@@ -359,6 +362,35 @@ export default function StylePage() {
               )}
             </div>
           </Card>
+
+          {/* 英文描述词预览 */}
+          {segments.length > 0 && segments.some(s => s.sceneDescriptionEn) && (
+            <Card className="p-6">
+              <h2 className="text-lg font-semibold mb-4">英文描述词预览</h2>
+              <p className="text-sm text-muted-foreground mb-4">
+                查看已生成的英文描述词，用于后续生成素材
+              </p>
+              
+              <div className="space-y-3">
+                {segments.map((segment) => (
+                  segment.sceneDescriptionEn && (
+                    <div key={segment.id} className="border border-border rounded-lg p-4">
+                      <div className="flex items-center gap-2 mb-2">
+                        <span className="text-sm font-medium text-foreground">分镜 #{segment.number}</span>
+                        <span className="text-xs text-muted-foreground">{segment.text?.substring(0, 30)}...</span>
+                      </div>
+                      <div className="bg-muted rounded-md p-3 font-mono text-xs text-foreground leading-relaxed">
+                        <div className="flex items-start gap-2">
+                          <span className="text-muted-foreground shrink-0">(英文)</span>
+                          <span className="flex-1">{segment.sceneDescriptionEn}</span>
+                        </div>
+                      </div>
+                    </div>
+                  )
+                ))}
+              </div>
+            </Card>
+          )}
 
           <div className="flex justify-end gap-3">
             <Button
