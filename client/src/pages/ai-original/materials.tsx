@@ -37,6 +37,11 @@ export default function MaterialsPage() {
   const [previewImage, setPreviewImage] = useState<{ url: string; number: number } | null>(null);
   const [editingKeywordsId, setEditingKeywordsId] = useState<string | null>(null);
   const [editedKeywords, setEditedKeywords] = useState("");
+  const [optimizingPrompts, setOptimizingPrompts] = useState<Set<string>>(new Set());
+  const [batchOptimizingPrompts, setBatchOptimizingPrompts] = useState(false);
+  const [shouldStopOptimize, setShouldStopOptimize] = useState(false);
+  const [editingPromptId, setEditingPromptId] = useState<string | null>(null);
+  const [editedPrompt, setEditedPrompt] = useState("");
 
   const segments = (project?.segments as Segment[]) || [];
   const generationMode = project?.generationMode || "text-to-image-to-video";
@@ -166,6 +171,139 @@ export default function MaterialsPage() {
     }
   };
 
+  // 单个提示词优化
+  const optimizeSinglePrompt = async (segmentId: string) => {
+    const segment = segments.find(s => s.id === segmentId);
+    if (!segment?.sceneDescription) {
+      toast({
+        title: "提示",
+        description: "请先生成场景描述",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setOptimizingPrompts(prev => new Set(prev).add(segmentId));
+
+    try {
+      const response = await apiRequest("POST", "/api/prompts/optimize", {
+        description: segment.sceneDescription,
+        generationMode: generationMode,
+        aspectRatio: project?.aspectRatio || "16:9",
+      });
+      const data = await response.json();
+      
+      const updatedSegments = segments.map(seg =>
+        seg.id === segmentId ? { ...seg, optimizedPrompt: data.optimizedPrompt } : seg
+      );
+      updateSegments(updatedSegments);
+      
+      if (project?.id) {
+        try {
+          await apiRequest("PATCH", `/api/projects/${project.id}`, {
+            ...project,
+            segments: updatedSegments,
+          });
+        } catch (error) {
+          console.error("Failed to save project:", error);
+        }
+      }
+      
+      toast({
+        title: "优化成功",
+        description: "提示词已优化",
+      });
+    } catch (error) {
+      console.error("Failed to optimize prompt:", error);
+      toast({
+        title: "优化失败",
+        description: "请稍后重试",
+        variant: "destructive",
+      });
+    } finally {
+      setOptimizingPrompts(prev => {
+        const next = new Set(prev);
+        next.delete(segmentId);
+        return next;
+      });
+    }
+  };
+
+  // 批量提示词优化
+  const handleBatchOptimizePrompts = async () => {
+    const segmentsToOptimize = segments.filter(s => s.sceneDescription && !s.optimizedPrompt);
+    
+    if (segmentsToOptimize.length === 0) {
+      toast({
+        title: "提示",
+        description: "所有提示词已优化",
+      });
+      return;
+    }
+
+    setBatchOptimizingPrompts(true);
+    setShouldStopOptimize(false);
+
+    try {
+      const response = await apiRequest("POST", "/api/prompts/batch-optimize", {
+        segments: segmentsToOptimize.map(s => ({
+          id: s.id,
+          sceneDescription: s.sceneDescription,
+        })),
+        generationMode: generationMode,
+        aspectRatio: project?.aspectRatio || "16:9",
+      });
+      const data = await response.json();
+      
+      const results = data.results || [];
+      let successCount = 0;
+      let currentSegments = [...segments];
+      
+      for (const result of results) {
+        if (shouldStopOptimize) {
+          break;
+        }
+        
+        if (result.optimizedPrompt) {
+          currentSegments = currentSegments.map(seg =>
+            seg.id === result.id ? { ...seg, optimizedPrompt: result.optimizedPrompt } : seg
+          );
+          successCount++;
+        }
+      }
+      
+      updateSegments(currentSegments);
+      
+      if (project?.id) {
+        try {
+          await apiRequest("PATCH", `/api/projects/${project.id}`, {
+            ...project,
+            segments: currentSegments,
+          });
+        } catch (error) {
+          console.error("Failed to save project:", error);
+        }
+      }
+      
+      toast({
+        title: shouldStopOptimize ? "已停止" : "批量优化完成",
+        description: shouldStopOptimize 
+          ? `已停止，成功优化 ${successCount} 个提示词`
+          : `成功优化 ${successCount} 个提示词`,
+      });
+    } catch (error) {
+      console.error("Failed to batch optimize prompts:", error);
+      toast({
+        title: "优化失败",
+        description: "请稍后重试",
+        variant: "destructive",
+      });
+    } finally {
+      setBatchOptimizingPrompts(false);
+      setShouldStopOptimize(false);
+    }
+  };
+
   // 生成单个图片
   const generateSingleImage = async (segmentId: string, segs: Segment[] = segments): Promise<Segment[] | null> => {
     const segment = segs.find(s => s.id === segmentId);
@@ -181,8 +319,8 @@ export default function MaterialsPage() {
     setGeneratingImages(prev => new Set(prev).add(segmentId));
 
     try {
-      // 使用优化后的描述词，如果没有则使用原始描述词
-      const promptToUse = segment.optimizedDescription || segment.sceneDescription;
+      // 使用优化后的提示词，如果没有则使用原始描述词
+      const promptToUse = segment.optimizedPrompt || segment.sceneDescription;
       
       const response = await apiRequest("POST", "/api/images/generate", {
         description: promptToUse,
@@ -437,7 +575,7 @@ export default function MaterialsPage() {
         <Card className="overflow-hidden">
           <div className="overflow-x-auto">
             {/* 表头 */}
-            <div className={`grid ${isTextToVideo ? 'grid-cols-8' : 'grid-cols-9'} gap-0 bg-muted/30 border-b border-border`}>
+            <div className={`grid ${isTextToVideo ? 'grid-cols-10' : 'grid-cols-11'} gap-0 bg-muted/30 border-b border-border`}>
               <div className="col-span-1 p-3 text-sm text-muted-foreground border-r border-border">编号</div>
               <div className="col-span-2 p-3 text-sm text-muted-foreground border-r border-border">描述词</div>
               <div className="col-span-2 p-3 border-r border-border">
@@ -457,6 +595,27 @@ export default function MaterialsPage() {
                     <>
                       <Sparkles className="h-3 w-3 mr-1" />
                       关键词提取
+                    </>
+                  )}
+                </Button>
+              </div>
+              <div className="col-span-2 p-3 border-r border-border">
+                <Button
+                  size="sm"
+                  onClick={batchOptimizingPrompts ? () => setShouldStopOptimize(true) : handleBatchOptimizePrompts}
+                  disabled={!batchOptimizingPrompts && segments.every(s => !s.sceneDescription || s.optimizedPrompt)}
+                  className="w-full"
+                  data-testid="button-batch-optimize-prompts"
+                >
+                  {batchOptimizingPrompts ? (
+                    <>
+                      <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+                      优化中...（停止）
+                    </>
+                  ) : (
+                    <>
+                      <Sparkles className="h-3 w-3 mr-1" />
+                      提示词优化
                     </>
                   )}
                 </Button>
@@ -509,7 +668,7 @@ export default function MaterialsPage() {
 
             {/* 片段列表 */}
             {segments.map((segment, index) => (
-              <div key={segment.id} className={`grid ${isTextToVideo ? 'grid-cols-8' : 'grid-cols-9'} gap-0 ${index !== segments.length - 1 ? 'border-b border-border' : ''}`} data-testid={`row-segment-${segment.number}`}>
+              <div key={segment.id} className={`grid ${isTextToVideo ? 'grid-cols-10' : 'grid-cols-11'} gap-0 ${index !== segments.length - 1 ? 'border-b border-border' : ''}`} data-testid={`row-segment-${segment.number}`}>
                 {/* 编号 */}
                 <div className="col-span-1 p-3 border-r border-border flex items-center">
                   <Badge variant="secondary" className="font-mono">
@@ -602,6 +761,88 @@ export default function MaterialsPage() {
                         <>
                           <Sparkles className="h-3 w-3 mr-1" />
                           提取
+                        </>
+                      )}
+                    </Button>
+                  )}
+                </div>
+
+                {/* 提示词优化 */}
+                <div className="col-span-2 p-3 border-r border-border">
+                  {segment.optimizedPrompt ? (
+                    <div className="space-y-2">
+                      {editingPromptId === segment.id ? (
+                        <div className="space-y-2">
+                          <Textarea
+                            value={editedPrompt}
+                            onChange={(e) => setEditedPrompt(e.target.value)}
+                            className="min-h-[80px] text-sm"
+                            data-testid={`textarea-prompt-${segment.number}`}
+                          />
+                          <div className="flex gap-2">
+                            <Button
+                              size="sm"
+                              onClick={() => {
+                                const updated = segments.map(s =>
+                                  s.id === segment.id ? { ...s, optimizedPrompt: editedPrompt } : s
+                                );
+                                updateSegments(updated);
+                                setEditingPromptId(null);
+                              }}
+                              data-testid={`button-save-prompt-${segment.number}`}
+                            >
+                              保存
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={() => {
+                                setEditingPromptId(null);
+                                setEditedPrompt("");
+                              }}
+                            >
+                              取消
+                            </Button>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="group relative">
+                          <div className="text-sm max-h-32 overflow-y-auto pr-8">
+                            {segment.optimizedPrompt}
+                          </div>
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            className="absolute top-0 right-0 h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
+                            onClick={() => {
+                              setEditingPromptId(segment.id);
+                              setEditedPrompt(segment.optimizedPrompt || "");
+                            }}
+                            data-testid={`button-edit-prompt-${segment.number}`}
+                          >
+                            <Sparkles className="h-3 w-3" />
+                          </Button>
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      disabled={!segment.sceneDescription || optimizingPrompts.has(segment.id) || batchOptimizingPrompts}
+                      onClick={() => optimizeSinglePrompt(segment.id)}
+                      className="w-full"
+                      data-testid={`button-optimize-prompt-${segment.number}`}
+                    >
+                      {optimizingPrompts.has(segment.id) ? (
+                        <>
+                          <Loader2 className="h-3 w-3 mr-1 animate-spin opacity-100" />
+                          优化中
+                        </>
+                      ) : (
+                        <>
+                          <Sparkles className="h-3 w-3 mr-1" />
+                          优化
                         </>
                       )}
                     </Button>
