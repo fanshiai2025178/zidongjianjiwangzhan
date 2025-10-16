@@ -310,11 +310,51 @@ Output the prompt directly without additional explanation.`;
       }
 
       const data = await response.json();
-      const description = data.choices?.[0]?.message?.content || "";
+      const descriptionEn = data.choices?.[0]?.message?.content || "";
 
-      console.log("[Description - Volcengine DeepSeek] Generated description successfully");
+      console.log("[Description - Volcengine DeepSeek] Generated English description successfully");
       
-      res.json({ description: description.trim() });
+      // 翻译英文描述词为中文
+      let descriptionCn = descriptionEn;
+      try {
+        const translateBody = JSON.stringify({
+          model: volcengineEndpointId,
+          messages: [
+            {
+              role: "system",
+              content: "You are a professional translator. Translate the following English AI video/image generation prompt to Chinese. Keep the technical terms and maintain the same structure and details. Output only the Chinese translation without any additional explanation."
+            },
+            {
+              role: "user",
+              content: `Translate this prompt to Chinese:\n\n${descriptionEn}`
+            }
+          ],
+          temperature: 0.3,
+        });
+
+        const translateResponse = await fetch("https://ark.cn-beijing.volces.com/api/v3/chat/completions", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${apiKey}`,
+          },
+          body: translateBody,
+        });
+
+        if (translateResponse.ok) {
+          const translateData = await translateResponse.json();
+          descriptionCn = translateData.choices?.[0]?.message?.content || descriptionEn;
+          console.log("[Description - Volcengine DeepSeek] Translated to Chinese successfully");
+        }
+      } catch (translateError) {
+        console.error("[Description - Volcengine DeepSeek] Translation error:", translateError);
+        // 如果翻译失败，使用英文原文
+      }
+      
+      res.json({ 
+        description: descriptionCn.trim(),
+        descriptionEn: descriptionEn.trim()
+      });
     } catch (error) {
       console.error("[Description - Volcengine DeepSeek] Error:", error);
       res.status(500).json({ error: "Failed to generate description", details: error instanceof Error ? error.message : String(error) });
@@ -478,11 +518,47 @@ Output the prompt directly without additional explanation.`;
           }
 
           const data = await response.json();
-          const description = data.choices?.[0]?.message?.content || "";
+          const descriptionEn = data.choices?.[0]?.message?.content || "";
+
+          // 翻译英文描述词为中文
+          let descriptionCn = descriptionEn;
+          try {
+            const translateBody = JSON.stringify({
+              model: volcengineEndpointId,
+              messages: [
+                {
+                  role: "system",
+                  content: "You are a professional translator. Translate the following English AI video/image generation prompt to Chinese. Keep the technical terms and maintain the same structure and details. Output only the Chinese translation without any additional explanation."
+                },
+                {
+                  role: "user",
+                  content: `Translate this prompt to Chinese:\n\n${descriptionEn}`
+                }
+              ],
+              temperature: 0.3,
+            });
+
+            const translateResponse = await fetch("https://ark.cn-beijing.volces.com/api/v3/chat/completions", {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                "Authorization": `Bearer ${apiKey}`,
+              },
+              body: translateBody,
+            });
+
+            if (translateResponse.ok) {
+              const translateData = await translateResponse.json();
+              descriptionCn = translateData.choices?.[0]?.message?.content || descriptionEn;
+            }
+          } catch (translateError) {
+            console.error(`[Batch Description] Translation error for segment ${segment.id}:`, translateError);
+          }
 
           results.push({
             id: segment.id,
-            description: description.trim(),
+            description: descriptionCn.trim(),
+            descriptionEn: descriptionEn.trim(),
           });
           console.log(`[Batch Description - Volcengine DeepSeek] Generated description for segment ${segment.id}`);
         } catch (error) {
