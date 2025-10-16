@@ -680,11 +680,17 @@ ${segment.sceneDescription}
         return res.status(400).json({ error: "Description is required" });
       }
 
-      const volcengineEndpointId = process.env.VOLCENGINE_OPTIMIZE_API_KEY;
+      let volcengineEndpointId = process.env.VOLCENGINE_OPTIMIZE_API_KEY;
       const apiKey = process.env.VOLCENGINE_ACCESS_KEY;
       
-      if (!volcengineEndpointId || !apiKey) {
-        return res.status(500).json({ error: "Volcengine Optimize API credentials are not configured" });
+      // 自动纠正：如果端点ID格式不正确，使用正确的值
+      if (!volcengineEndpointId || !volcengineEndpointId.startsWith('ep-')) {
+        volcengineEndpointId = 'ep-20251016064746-rb9dk';
+        console.log("[Prompt Optimize] Auto-corrected endpoint ID to:", volcengineEndpointId);
+      }
+      
+      if (!apiKey) {
+        return res.status(500).json({ error: "Volcengine API key is not configured" });
       }
 
       console.log("[Prompt Optimize] Optimizing prompt:", description.substring(0, 50) + "...");
@@ -805,11 +811,17 @@ Output the optimized prompt directly, without explanations.`;
         return res.status(400).json({ error: "Segments array is required" });
       }
 
-      const volcengineEndpointId = process.env.VOLCENGINE_OPTIMIZE_API_KEY;
+      let volcengineEndpointId = process.env.VOLCENGINE_OPTIMIZE_API_KEY;
       const apiKey = process.env.VOLCENGINE_ACCESS_KEY;
       
-      if (!volcengineEndpointId || !apiKey) {
-        return res.status(500).json({ error: "Volcengine Optimize API credentials are not configured" });
+      // 自动纠正：如果端点ID格式不正确，使用正确的值
+      if (!volcengineEndpointId || !volcengineEndpointId.startsWith('ep-')) {
+        volcengineEndpointId = 'ep-20251016064746-rb9dk';
+        console.log("[Batch Prompt Optimize] Auto-corrected endpoint ID to:", volcengineEndpointId);
+      }
+      
+      if (!apiKey) {
+        return res.status(500).json({ error: "Volcengine API key is not configured" });
       }
 
       console.log("[Batch Prompt Optimize] Optimizing", segments.length, "prompts");
