@@ -4,7 +4,22 @@
 
 This is an AI-powered video creation platform designed to streamline professional video production through various creation modes. It features a comprehensive 5-step workflow for AI-original video creation (Style → Script → Segments → Descriptions → Result), with future plans for commentary and reference video modes. The platform offers a dark-themed creative studio interface, built with a modern tech stack, focused on optimizing content creation workflows. Key capabilities include smart description generation with character and style consistency, intelligent aspect ratio handling, and advanced prompt optimization for video and image generation.
 
-## Recent Changes (October 15, 2025)
+## Recent Changes (October 16, 2025)
+
+**火山引擎API认证方法变更（重要）**
+- **认证方式升级**：所有火山引擎ARK API从AK/SK签名认证迁移至Bearer Token认证
+- **移除依赖**：完全移除`@volcengine/openapi` Signer依赖，简化代码结构
+- **统一认证**：所有API端点现使用统一的Bearer Token认证方式
+- **API密钥配置**：
+  - `VOLCENGINE_ACCESS_KEY`: 主API密钥（UUID格式，用作Bearer Token）
+  - `VOLCENGINE_DEEPSEEK_API_KEY`: 描述词生成端点ID（ep-20251016061331-8bgnk）
+  - `VOLCENGINE_KEYWORD_API_KEY`: 关键词提取端点ID（ep-20251016063909-7l6gr）
+- **认证格式**：`Authorization: Bearer <VOLCENGINE_ACCESS_KEY>`
+- **已验证端点**：
+  - `/api/descriptions/generate` - 单个描述词生成 ✅
+  - `/api/descriptions/batch-generate` - 批量描述词生成 ✅
+  - `/api/keywords/extract` - 单个关键词提取 ✅
+  - `/api/keywords/batch-extract` - 批量关键词提取 ✅
 
 **关键词提取功能（最新）**
 - **第6步功能替换**：将"提示词优化"完全替换为"关键词提取"功能
