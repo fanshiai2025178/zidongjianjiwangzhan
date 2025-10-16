@@ -6,6 +6,21 @@ This is an AI-powered video creation platform designed to streamline professiona
 
 ## Recent Changes (October 16, 2025)
 
+**提示词优化功能 + 自动端点ID纠正（最新）**
+- **功能恢复**：将第6步"关键词提取"替换为"提示词优化"功能
+- **专用API端点**：
+  - `/api/prompts/optimize` - 单个提示词优化
+  - `/api/prompts/batch-optimize` - 批量提示词优化
+- **专属火山引擎配置**：
+  - `VOLCENGINE_OPTIMIZE_API_KEY`: ep-20251016064746-rb9dk（提示词优化专用端点）
+  - `VOLCENGINE_ACCESS_KEY`: Bearer Token主密钥
+- **自动纠正机制**：如果端点ID格式不正确（不以ep-开头），自动使用正确的端点ID
+- **智能优化策略**：
+  - 文生视频：增强动态描述、镜头语言、时间结构
+  - 文生图：优化构图细节、光影氛围、视觉层次
+- **数据模型**：Segment接口新增`optimizedPrompt`字段存储优化结果
+- **表格布局更新**：提示词优化 | 批量生成图片 | 批量生成视频
+
 **火山引擎API认证方法变更（重要）**
 - **认证方式升级**：所有火山引擎ARK API从AK/SK签名认证迁移至Bearer Token认证
 - **移除依赖**：完全移除`@volcengine/openapi` Signer依赖，简化代码结构
