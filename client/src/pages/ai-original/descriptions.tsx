@@ -37,6 +37,7 @@ export default function DescriptionsPage() {
   const { toast } = useToast();
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editedDescription, setEditedDescription] = useState("");
+  const [isSaving, setIsSaving] = useState(false);
   const [generatingDescriptions, setGeneratingDescriptions] = useState<Set<string>>(new Set());
   const [generatingImages, setGeneratingImages] = useState<Set<string>>(new Set());
   const [generatingVideos, setGeneratingVideos] = useState<Set<string>>(new Set());
@@ -509,6 +510,9 @@ export default function DescriptionsPage() {
   };
 
   const handleSaveEdit = async (segmentId: string) => {
+    if (isSaving) return; // 防止重复点击
+    
+    setIsSaving(true);
     try {
       // 调用翻译API将中文描述词翻译成英文
       console.log("[Edit Save] Translating Chinese description to English");
@@ -574,6 +578,8 @@ export default function DescriptionsPage() {
       
       setEditingId(null);
       setEditedDescription("");
+    } finally {
+      setIsSaving(false);
     }
   };
 
@@ -708,9 +714,17 @@ export default function DescriptionsPage() {
                           <Button
                             size="sm"
                             onClick={() => handleSaveEdit(segment.id)}
+                            disabled={isSaving}
                             data-testid={`button-save-${segment.number}`}
                           >
-                            保存
+                            {isSaving ? (
+                              <>
+                                <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+                                保存中...
+                              </>
+                            ) : (
+                              "保存"
+                            )}
                           </Button>
                           <Button
                             size="sm"

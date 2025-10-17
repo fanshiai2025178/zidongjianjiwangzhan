@@ -106,10 +106,15 @@ export async function generateImageWithJuguang(prompt: string, retries: number =
       }
 
       const data: JuguangResponse = await response.json();
+      
+      // 详细日志：查看完整响应结构
+      console.log("[Juguang Image] Full response structure:", JSON.stringify(data, null, 2));
+      
       const imageBase64 = data.candidates[0]?.content?.parts[0]?.inlineData?.data;
       
       if (!imageBase64) {
         console.warn(`[Juguang Image] No image data in response (attempt ${attempt}/${retries})`);
+        console.warn(`[Juguang Image] Response parts:`, JSON.stringify(data.candidates[0]?.content?.parts));
         if (attempt === retries) {
           throw new Error("No image data in response after all retries");
         }
