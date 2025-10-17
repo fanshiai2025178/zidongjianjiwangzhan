@@ -51,12 +51,12 @@ The platform features a dark-themed creative studio interface, drawing inspirati
 ### API Integrations
 
 -   **DeepSeek API (deepseek-chat model)**: For intelligent text segmentation.
--   **火山引擎DeepSeek API**:
+-   **火山引擎 API 端点**:
     -   Endpoint `ep-20251016061331-8bgnk` (VOLCENGINE_DEEPSEEK_API_KEY): Dedicated for description generation (single and batch).
     -   Endpoint `ep-20251016063909-7l6gr` (VOLCENGINE_KEYWORD_API_KEY): Dedicated for keyword extraction (single and batch).
     -   Endpoint `ep-20251016064746-rb9dk` (VOLCENGINE_OPTIMIZE_API_KEY): Dedicated for prompt optimization.
     -   Endpoint `ep-20251017114027-mqcbk` (VOLCENGINE_TRANSLATE_API_KEY): Dedicated for Chinese-to-English translation (descriptions and keywords).
-    -   Endpoint `ep-20251018034730-mk9fr` (VOLCENGINE_STYLE_API_KEY): Dedicated for style recognition (character, style reference, preset analysis).
+    -   Endpoint `ep-20251018042302-z6gc6` (VOLCENGINE_DOUBAO_API_KEY): **Doubao 多模态 API**, dedicated for image-based style recognition (character images, style references, preset analysis).
     -   All endpoints use `VOLCENGINE_ACCESS_KEY` as Bearer Token for authentication.
 -   **聚光Chat API (gemini-2.5-flash-image-preview model)**: For image generation.
 -   **Neon Database**: Serverless PostgreSQL.

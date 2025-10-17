@@ -271,54 +271,91 @@ ${sourceText}`
 
 /**
  * 专门的风格识别API
- * 使用火山引擎DeepSeek风格识别端点（Bearer Token认证）
+ * 使用火山引擎 Doubao 多模态端点（Bearer Token认证）
  * 负责识别人物形象、风格参考图片或预设风格
  */
 export async function analyzeStyle(
   analysisType: "character" | "style" | "preset",
   imageBase64OrPresetInfo: string
 ): Promise<string> {
-  // 风格识别端点ID（与其他API配置模式一致，使用*_API_KEY存储端点ID）
-  // 如果未配置专用端点，则回退使用描述生成端点
-  const endpointId = process.env.VOLCENGINE_STYLE_API_KEY || process.env.VOLCENGINE_DEEPSEEK_API_KEY;
+  // 使用 Doubao 多模态端点进行图片识别
+  const endpointId = process.env.VOLCENGINE_DOUBAO_API_KEY;
   // 使用统一的火山引擎ACCESS_KEY作为Bearer Token
   const apiKey = process.env.VOLCENGINE_ACCESS_KEY;
   
   if (!endpointId || !apiKey) {
-    throw new Error("Volcengine Style API credentials are not configured");
+    throw new Error("Volcengine Doubao API credentials are not configured");
   }
 
-  // 记录使用的端点
-  if (process.env.VOLCENGINE_STYLE_API_KEY) {
-    console.log(`[Style Analysis] Using dedicated style endpoint: ${endpointId}`);
-  } else {
-    console.log(`[Style Analysis] Using fallback endpoint (DEEPSEEK): ${endpointId}`);
-  }
+  console.log(`[Style Analysis] Using Doubao multimodal endpoint: ${endpointId}`);
 
-  let systemPrompt = "";
   let userPrompt = "";
+  let messages: any[] = [];
 
   switch (analysisType) {
     case "character":
-      // 注意：当前API不支持图片输入，这里仅作为占位
-      // 实际应用中需要使用支持图片的多模态API
-      systemPrompt = "你是一位专业的人物形象分析专家。";
-      userPrompt = `由于当前API不支持图片识别，请根据用户上传的人物形象，生成一个通用的人物形象参考描述模板：
+      userPrompt = `请仔细分析这张人物形象图片，提供详细的描述，包括：
+1. 人物的外貌特征（性别、年龄段、发型、肤色等）
+2. 服装风格和配饰
+3. 整体气质和形象定位
 
-生成一个适用于AI视频的标准人物形象描述（100字以内），包含：外貌特征、服装风格、整体气质等要素。这将作为视频生成的人物一致性参考。`;
+请用简洁专业的语言描述，不超过150字。用于后续AI视频生成的人物一致性参考。`;
+      
+      // 多模态消息格式（图片 + 文本）
+      messages = [
+        {
+          role: "user",
+          content: [
+            {
+              type: "text",
+              text: userPrompt
+            },
+            {
+              type: "image_url",
+              image_url: {
+                url: imageBase64OrPresetInfo.startsWith('data:') 
+                  ? imageBase64OrPresetInfo 
+                  : `data:image/jpeg;base64,${imageBase64OrPresetInfo}`
+              }
+            }
+          ]
+        }
+      ];
       break;
 
     case "style":
-      // 注意：当前API不支持图片输入，这里仅作为占位
-      // 实际应用中需要使用支持图片的多模态API
-      systemPrompt = "你是一位专业的视觉风格分析专家。";
-      userPrompt = `由于当前API不支持图片识别，请根据用户上传的风格参考图片，生成一个通用的风格参考描述模板：
+      userPrompt = `请仔细分析这张风格参考图片，提供详细的描述，包括：
+1. 整体艺术风格（如写实、动漫、复古、未来科幻等）
+2. 色彩基调和氛围（如冷色调、暖色调、高饱和度等）
+3. 构图特点和视觉元素
+4. 光影处理方式
 
-生成一个适用于AI视频的标准视觉风格描述（100字以内），包含：艺术风格、色彩基调、构图特点、光影处理等要素。这将作为视频生成的风格一致性参考。`;
+请用简洁专业的语言描述，不超过150字。用于后续AI视频生成的风格一致性参考。`;
+      
+      // 多模态消息格式（图片 + 文本）
+      messages = [
+        {
+          role: "user",
+          content: [
+            {
+              type: "text",
+              text: userPrompt
+            },
+            {
+              type: "image_url",
+              image_url: {
+                url: imageBase64OrPresetInfo.startsWith('data:') 
+                  ? imageBase64OrPresetInfo 
+                  : `data:image/jpeg;base64,${imageBase64OrPresetInfo}`
+              }
+            }
+          ]
+        }
+      ];
       break;
 
     case "preset":
-      systemPrompt = "你是一位专业的视觉风格专家，能够详细阐释不同艺术风格的特征和应用要点。";
+      // 预设风格分析仅使用文本
       userPrompt = `请详细解析"${imageBase64OrPresetInfo}"这种视觉风格，提供专业的描述，包括：
 1. 该风格的核心视觉特征
 2. 典型的色彩运用和光影处理
@@ -326,21 +363,20 @@ export async function analyzeStyle(
 4. 适合表现的场景和情感
 
 请用简洁专业的语言描述，不超过150字。用于指导AI视频生成的风格表现。`;
+      
+      // 纯文本消息格式
+      messages = [
+        {
+          role: "user",
+          content: userPrompt
+        }
+      ];
       break;
   }
 
   const requestBody = JSON.stringify({
     model: endpointId,
-    messages: [
-      {
-        role: "system",
-        content: systemPrompt
-      },
-      {
-        role: "user",
-        content: userPrompt
-      }
-    ],
+    messages: messages,
     temperature: 0.5,
   });
 
@@ -355,7 +391,7 @@ export async function analyzeStyle(
 
   if (!response.ok) {
     const error = await response.text();
-    throw new Error(`Volcengine Style API error: ${error}`);
+    throw new Error(`Volcengine Doubao API error: ${error}`);
   }
 
   const data = await response.json();
