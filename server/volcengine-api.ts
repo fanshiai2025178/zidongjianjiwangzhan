@@ -187,3 +187,65 @@ export async function callVolcengineDeepSeek(
 
   return await volcengine.call(messages, 0.7);
 }
+
+/**
+ * 专门的翻译API
+ * 使用火山引擎DeepSeek翻译端点（Bearer Token认证）
+ * 负责所有中英文互译工作
+ */
+export async function translateText(
+  chineseText: string,
+  translationType: "description" | "keywords" = "description"
+): Promise<string> {
+  const endpointId = process.env.VOLCENGINE_TRANSLATE_ENDPOINT_ID;
+  const apiKey = process.env.VOLCENGINE_TRANSLATE_API_KEY;
+  
+  if (!endpointId || !apiKey) {
+    throw new Error("Volcengine Translate API credentials are not configured");
+  }
+
+  const systemPrompt = translationType === "keywords"
+    ? "你是一个专业的中英翻译专家。"
+    : "You are a professional translator. Translate the following Chinese AI video/image generation prompt to English. Keep the technical terms and maintain the same structure and details. Output only the English translation without any additional explanation.";
+
+  const userPrompt = translationType === "keywords"
+    ? `请将以下中文关键词翻译为英文，保持逗号分隔格式。只输出翻译后的英文关键词，不要任何解释。
+
+中文关键词：
+${chineseText}`
+    : `Translate this Chinese prompt to English:\n\n${chineseText}`;
+
+  const requestBody = JSON.stringify({
+    model: endpointId,
+    messages: [
+      {
+        role: "system",
+        content: systemPrompt
+      },
+      {
+        role: "user",
+        content: userPrompt
+      }
+    ],
+    temperature: 0.3,
+  });
+
+  const response = await fetch("https://ark.cn-beijing.volces.com/api/v3/chat/completions", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "Authorization": `Bearer ${apiKey}`,
+    },
+    body: requestBody,
+  });
+
+  if (!response.ok) {
+    const error = await response.text();
+    throw new Error(`Volcengine Translate API error: ${error}`);
+  }
+
+  const data = await response.json();
+  const translatedText = data.choices?.[0]?.message?.content || chineseText;
+  
+  return translatedText.trim();
+}
