@@ -62,15 +62,27 @@ export default function MaterialsPage() {
     setExtractingKeywords(prev => new Set(prev).add(segmentId));
 
     try {
+      // 准备风格描述
+      const styleSettings = project?.styleSettings as any;
+      let styleDescription = "";
+      
+      // 优先使用自定义风格引用，其次使用预设风格
+      if (styleSettings?.useStyleReference && styleSettings?.styleAnalysis) {
+        styleDescription = styleSettings.styleAnalysis;
+      } else if (styleSettings?.usePresetStyle && styleSettings?.presetStyleAnalysis) {
+        styleDescription = styleSettings.presetStyleAnalysis;
+      }
+
       const response = await apiRequest("POST", "/api/keywords/extract", {
         description: segment.sceneDescription,
+        visualBible: project?.visualBible,
+        styleDescription: styleDescription,
       });
       const data = await response.json();
       
       const updatedSegments = segments.map(seg =>
         seg.id === segmentId ? { 
           ...seg, 
-          keywords: data.keywords,
           keywordsEn: data.keywordsEn 
         } : seg
       );
@@ -109,7 +121,7 @@ export default function MaterialsPage() {
 
   // 批量关键词提取
   const handleBatchExtractKeywords = async () => {
-    const segmentsToExtract = segments.filter(s => s.sceneDescription && !s.keywords);
+    const segmentsToExtract = segments.filter(s => s.sceneDescription && !s.keywordsEn);
     
     if (segmentsToExtract.length === 0) {
       toast({
@@ -123,11 +135,24 @@ export default function MaterialsPage() {
     setShouldStopKeywords(false);
 
     try {
+      // 准备风格描述
+      const styleSettings = project?.styleSettings as any;
+      let styleDescription = "";
+      
+      // 优先使用自定义风格引用，其次使用预设风格
+      if (styleSettings?.useStyleReference && styleSettings?.styleAnalysis) {
+        styleDescription = styleSettings.styleAnalysis;
+      } else if (styleSettings?.usePresetStyle && styleSettings?.presetStyleAnalysis) {
+        styleDescription = styleSettings.presetStyleAnalysis;
+      }
+
       const response = await apiRequest("POST", "/api/keywords/batch-extract", {
         segments: segmentsToExtract.map(s => ({
           id: s.id,
           sceneDescription: s.sceneDescription,
         })),
+        visualBible: project?.visualBible,
+        styleDescription: styleDescription,
       });
       const data = await response.json();
       
@@ -136,12 +161,11 @@ export default function MaterialsPage() {
       let currentSegments = [...segments];
       
       for (const result of results) {
-        if (result.keywords) {
+        if (result.keywordsEn) {
           currentSegments = currentSegments.map(seg =>
             seg.id === result.id ? { 
               ...seg, 
-              keywords: result.keywords,
-              keywordsEn: result.keywordsEn || result.keywords
+              keywordsEn: result.keywordsEn
             } : seg
           );
           successCount++;
@@ -697,7 +721,7 @@ export default function MaterialsPage() {
 
                 {/* 关键词提取 */}
                 <div className="col-span-2 p-3 border-r border-border">
-                  {segment.keywords ? (
+                  {segment.keywordsEn ? (
                     <div className="space-y-2">
                       {editingKeywordsId === segment.id ? (
                         <div className="space-y-2">
@@ -711,49 +735,31 @@ export default function MaterialsPage() {
                             <Button
                               size="sm"
                               onClick={async () => {
-                                // 自动翻译为英文
-                                try {
-                                  const translateResponse = await apiRequest("POST", "/api/keywords/translate-to-english", {
-                                    chineseKeywords: editedKeywords,
-                                  });
-                                  const translateData = await translateResponse.json();
-                                  
-                                  const updated = segments.map(s =>
-                                    s.id === segment.id ? { 
-                                      ...s, 
-                                      keywords: editedKeywords,
-                                      keywordsEn: translateData.englishKeywords 
-                                    } : s
-                                  );
-                                  updateSegments(updated);
-                                  
-                                  // 保存到后端
-                                  if (project?.id) {
+                                const updated = segments.map(s =>
+                                  s.id === segment.id ? { 
+                                    ...s, 
+                                    keywordsEn: editedKeywords
+                                  } : s
+                                );
+                                updateSegments(updated);
+                                
+                                // 保存到后端
+                                if (project?.id) {
+                                  try {
                                     await apiRequest("PATCH", `/api/projects/${project.id}`, {
                                       ...project,
                                       segments: updated,
                                     });
+                                  } catch (error) {
+                                    console.error("Failed to save project:", error);
                                   }
-                                  
-                                  toast({
-                                    title: "保存成功",
-                                    description: "关键词已更新并翻译为英文",
-                                  });
-                                  setEditingKeywordsId(null);
-                                } catch (error) {
-                                  console.error("Failed to translate keywords:", error);
-                                  // 即使翻译失败，仍保存中文
-                                  const updated = segments.map(s =>
-                                    s.id === segment.id ? { ...s, keywords: editedKeywords } : s
-                                  );
-                                  updateSegments(updated);
-                                  setEditingKeywordsId(null);
-                                  toast({
-                                    title: "保存成功",
-                                    description: "关键词已保存，但英文翻译失败",
-                                    variant: "destructive",
-                                  });
                                 }
+                                
+                                toast({
+                                  title: "保存成功",
+                                  description: "关键词已更新",
+                                });
+                                setEditingKeywordsId(null);
                               }}
                               data-testid={`button-save-keywords-${segment.number}`}
                             >
@@ -774,7 +780,7 @@ export default function MaterialsPage() {
                       ) : (
                         <div className="group relative">
                           <div className="text-sm max-h-32 overflow-y-auto pr-8">
-                            {segment.keywords}
+                            {segment.keywordsEn}
                           </div>
                           <Button
                             size="icon"
@@ -782,7 +788,7 @@ export default function MaterialsPage() {
                             className="absolute top-0 right-0 h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
                             onClick={() => {
                               setEditingKeywordsId(segment.id);
-                              setEditedKeywords(segment.keywords || "");
+                              setEditedKeywords(segment.keywordsEn || "");
                             }}
                             data-testid={`button-edit-keywords-${segment.number}`}
                           >

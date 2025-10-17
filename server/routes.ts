@@ -592,7 +592,7 @@ Return a JSON object with this exact structure:
   // 关键词提取API（专用火山引擎DeepSeek - 使用Bearer Token认证）
   app.post("/api/keywords/extract", async (req, res) => {
     try {
-      const { description } = req.body;
+      const { description, visualBible, styleDescription } = req.body;
       if (!description) {
         return res.status(400).json({ error: "Description is required" });
       }
@@ -605,20 +605,63 @@ Return a JSON object with this exact structure:
       }
 
       console.log("[Keyword Extract] Extracting keywords from description:", description.substring(0, 50) + "...");
+      console.log("[Keyword Extract] Visual Bible:", visualBible ? "provided" : "not provided");
+      console.log("[Keyword Extract] Style Description:", styleDescription ? "provided" : "not provided");
 
-      const extractPrompt = `从以下AI视频/图片生成描述词中提取关键词。提取要点：
-1. 主体：主要人物或物体
-2. 场景：环境、地点
-3. 动作：关键动作或状态
-4. 风格：艺术风格、视觉特征
-5. 情绪：情感、氛围
+      // 准备角色风格指南（来自Visual Bible）
+      const characterGuide = visualBible?.core_elements_anchor || "No specific character guide provided.";
+      
+      // 准备场景风格指南（来自用户选择的风格）
+      const sceneStyleGuide = styleDescription || "No specific style guide provided.";
 
-描述词：
-${description}
+      const systemPrompt = "You are an advanced AI assistant specializing in synthesizing visual information from multiple sources to create comprehensive keyword lists for AI image/video generation.";
 
-请直接输出关键词，用逗号分隔，不要任何解释。例如：年轻女性，城市街道，行走，电影感，怀旧氛围`;
+      const extractPrompt = `# AI Persona: Master Visual Synthesizer & Indexer
 
-      const systemPrompt = "你是一个专业的关键词提取专家，擅长从AI生成提示词中提取核心关键词。";
+## 1. Core Mission
+You are an advanced AI assistant specializing in synthesizing information from multiple sources. Your mission is to read three distinct pieces of visual information (a scene description, a character guide, and a style guide) and merge their core elements into a single, comprehensive, comma-separated list of essential visual keywords in **ENGLISH**.
+
+## 2. Input Variables
+*   **[CHINESE_SCENE_DESCRIPTION]:** ${description}
+*   **[CHARACTER_STYLE_GUIDE]:** ${characterGuide}
+*   **[SCENE_STYLE_GUIDE]:** ${sceneStyleGuide}
+
+## 3. Step-by-Step Execution Logic (Chain of Thought)
+
+### Step 1: Analyze the Scene Description
+- Read the **[CHINESE_SCENE_DESCRIPTION]**.
+- Identify the core elements related to **Setting, Key Objects, and Composition**.
+- Translate these elements into concise **ENGLISH** keywords.
+- **Example**: From "一个傍晚的办公室...", extract \`office, dusk, desk, smartphone, diagonal composition\`.
+
+### Step 2: Analyze the Character Guide
+- Read the **[CHARACTER_STYLE_GUIDE]**.
+- Extract the non-negotiable keywords that define the character's appearance.
+- **Example**: From "A man in his late 20s, with short black hair, wearing a gray wool sweater...", extract \`1man, late 20s, short black hair, gray wool sweater\`.
+
+### Step 3: Analyze the Style Guide
+- Read the **[SCENE_STYLE_GUIDE]**.
+- Extract the most powerful keywords that define the artistic direction.
+- **Example**: From "Cinematic photography, dramatic low-key lighting, desaturated color palette...", extract \`cinematic photography, dramatic lighting, low-key lighting, desaturated colors, moody atmosphere\`.
+
+### Step 4: Synthesize & De-duplicate
+- **Combine all keywords** from the three steps above into a single list.
+- **Remove any redundant keywords**. For instance, if the scene description mentioned a "gray sweater" and the character guide also specified a "gray sweater," only keep one.
+- **Prioritize and Order**: Arrange the final keywords in a logical sequence, typically:
+    1.  **Core Subject**: (e.g., \`1man, gray sweater...\`)
+    2.  **Core Action/Pose**: (e.g., \`sitting, thinking\`)
+    3.  **Setting & Environment**: (e.g., \`modern office, at dusk, cluttered desk\`)
+    4.  **Art Style & Lighting**: (e.g., \`cinematic photography, dramatic lighting\`)
+    5.  **Composition**: (e.g., \`close-up shot, rule of thirds\`)
+    6.  **Atmosphere & Mood**: (e.g., \`moody, introspective\`)
+
+## 4. Output Format
+Return ONLY a JSON object with this exact structure:
+\`\`\`json
+{
+  "keywords_en": "your synthesized English keywords here"
+}
+\`\`\``;
 
       const requestBody = JSON.stringify({
         model: volcengineEndpointId,
@@ -651,22 +694,28 @@ ${description}
       }
 
       const data = await response.json();
-      const keywordsCn = data.choices?.[0]?.message?.content || "";
+      const rawContent = data.choices?.[0]?.message?.content || "";
 
-      console.log("[Keyword Extract] Successfully extracted Chinese keywords");
-      
-      // 翻译关键词为英文（给AI使用）- 使用专门的翻译API
-      let keywordsEn = keywordsCn;
+      // 提取JSON对象
+      let keywordsEn = "";
       try {
-        keywordsEn = await translateText(keywordsCn, "keywords");
-        console.log("[Keyword Extract] Successfully translated keywords to English");
-      } catch (translateError) {
-        console.error("[Keyword Extract] Translation error:", translateError);
+        const jsonMatch = rawContent.match(/\{[\s\S]*\}/);
+        if (jsonMatch) {
+          const parsed = JSON.parse(jsonMatch[0]);
+          keywordsEn = parsed.keywords_en || "";
+        } else {
+          // 如果没有找到JSON，直接使用返回的文本作为关键词
+          keywordsEn = rawContent.trim();
+        }
+      } catch (parseError) {
+        console.error("[Keyword Extract] JSON parse error, using raw content");
+        keywordsEn = rawContent.trim();
       }
+
+      console.log("[Keyword Extract] Successfully extracted keywords");
       
       res.json({ 
-        keywords: keywordsCn.trim(),
-        keywordsEn: keywordsEn.trim()
+        keywordsEn: keywordsEn
       });
     } catch (error) {
       console.error("[Keyword Extract] Error:", error);
@@ -677,7 +726,7 @@ ${description}
   // 批量关键词提取API（专用火山引擎DeepSeek - 使用Bearer Token认证）
   app.post("/api/keywords/batch-extract", async (req, res) => {
     try {
-      const { segments } = req.body;
+      const { segments, visualBible, styleDescription } = req.body;
       if (!segments || !Array.isArray(segments)) {
         return res.status(400).json({ error: "Segments array is required" });
       }
@@ -690,9 +739,17 @@ ${description}
       }
 
       console.log("[Batch Keyword Extract] Extracting keywords for", segments.length, "segments");
+      console.log("[Batch Keyword Extract] Visual Bible:", visualBible ? "provided" : "not provided");
+      console.log("[Batch Keyword Extract] Style Description:", styleDescription ? "provided" : "not provided");
 
       const results = [];
-      const systemPrompt = "你是一个专业的关键词提取专家，擅长从AI生成提示词中提取核心关键词。";
+      const systemPrompt = "You are an advanced AI assistant specializing in synthesizing visual information from multiple sources to create comprehensive keyword lists for AI image/video generation.";
+
+      // 准备角色风格指南（来自Visual Bible）
+      const characterGuide = visualBible?.core_elements_anchor || "No specific character guide provided.";
+      
+      // 准备场景风格指南（来自用户选择的风格）
+      const sceneStyleGuide = styleDescription || "No specific style guide provided.";
 
       for (const segment of segments) {
         if (!segment.sceneDescription) {
@@ -703,17 +760,53 @@ ${description}
           continue;
         }
 
-        const extractPrompt = `从以下AI视频/图片生成描述词中提取关键词。提取要点：
-1. 主体：主要人物或物体
-2. 场景：环境、地点
-3. 动作：关键动作或状态
-4. 风格：艺术风格、视觉特征
-5. 情绪：情感、氛围
+        // 使用新的Master Visual Synthesizer & Indexer prompt
+        const extractPrompt = `# AI Persona: Master Visual Synthesizer & Indexer
 
-描述词：
-${segment.sceneDescription}
+## 1. Core Mission
+You are an advanced AI assistant specializing in synthesizing information from multiple sources. Your mission is to read three distinct pieces of visual information (a scene description, a character guide, and a style guide) and merge their core elements into a single, comprehensive, comma-separated list of essential visual keywords in **ENGLISH**.
 
-请直接输出关键词，用逗号分隔，不要任何解释。例如：年轻女性，城市街道，行走，电影感，怀旧氛围`;
+## 2. Input Variables
+*   **[CHINESE_SCENE_DESCRIPTION]:** ${segment.sceneDescription}
+*   **[CHARACTER_STYLE_GUIDE]:** ${characterGuide}
+*   **[SCENE_STYLE_GUIDE]:** ${sceneStyleGuide}
+
+## 3. Step-by-Step Execution Logic (Chain of Thought)
+
+### Step 1: Analyze the Scene Description
+- Read the **[CHINESE_SCENE_DESCRIPTION]**.
+- Identify the core elements related to **Setting, Key Objects, and Composition**.
+- Translate these elements into concise **ENGLISH** keywords.
+- **Example**: From "一个傍晚的办公室...", extract \`office, dusk, desk, smartphone, diagonal composition\`.
+
+### Step 2: Analyze the Character Guide
+- Read the **[CHARACTER_STYLE_GUIDE]**.
+- Extract the non-negotiable keywords that define the character's appearance.
+- **Example**: From "A man in his late 20s, with short black hair, wearing a gray wool sweater...", extract \`1man, late 20s, short black hair, gray wool sweater\`.
+
+### Step 3: Analyze the Style Guide
+- Read the **[SCENE_STYLE_GUIDE]**.
+- Extract the most powerful keywords that define the artistic direction.
+- **Example**: From "Cinematic photography, dramatic low-key lighting, desaturated color palette...", extract \`cinematic photography, dramatic lighting, low-key lighting, desaturated colors, moody atmosphere\`.
+
+### Step 4: Synthesize & De-duplicate
+- **Combine all keywords** from the three steps above into a single list.
+- **Remove any redundant keywords**. For instance, if the scene description mentioned a "gray sweater" and the character guide also specified a "gray sweater," only keep one.
+- **Prioritize and Order**: Arrange the final keywords in a logical sequence, typically:
+    1.  **Core Subject**: (e.g., \`1man, gray sweater...\`)
+    2.  **Core Action/Pose**: (e.g., \`sitting, thinking\`)
+    3.  **Setting & Environment**: (e.g., \`modern office, at dusk, cluttered desk\`)
+    4.  **Art Style & Lighting**: (e.g., \`cinematic photography, dramatic lighting\`)
+    5.  **Composition**: (e.g., \`close-up shot, rule of thirds\`)
+    6.  **Atmosphere & Mood**: (e.g., \`moody, introspective\`)
+
+## 4. Output Format
+Return ONLY a JSON object with this exact structure:
+\`\`\`json
+{
+  "keywords_en": "your synthesized English keywords here"
+}
+\`\`\``;
 
         try {
           const requestBody = JSON.stringify({
@@ -747,20 +840,27 @@ ${segment.sceneDescription}
           }
 
           const data = await response.json();
-          const keywordsCn = data.choices?.[0]?.message?.content || "";
+          const rawContent = data.choices?.[0]?.message?.content || "";
 
-          // 翻译关键词为英文（给AI使用）- 使用专门的翻译API
-          let keywordsEn = keywordsCn;
+          // 提取JSON对象
+          let keywordsEn = "";
           try {
-            keywordsEn = await translateText(keywordsCn, "keywords");
-          } catch (translateError) {
-            console.error(`[Batch Keyword Extract] Translation error for segment ${segment.id}:`, translateError);
+            const jsonMatch = rawContent.match(/\{[\s\S]*\}/);
+            if (jsonMatch) {
+              const parsed = JSON.parse(jsonMatch[0]);
+              keywordsEn = parsed.keywords_en || "";
+            } else {
+              // 如果没有找到JSON，直接使用返回的文本作为关键词
+              keywordsEn = rawContent.trim();
+            }
+          } catch (parseError) {
+            console.error(`[Batch Keyword Extract] JSON parse error for segment ${segment.id}, using raw content`);
+            keywordsEn = rawContent.trim();
           }
 
           results.push({
             id: segment.id,
-            keywords: keywordsCn.trim(),
-            keywordsEn: keywordsEn.trim(),
+            keywordsEn: keywordsEn,
           });
           console.log(`[Batch Keyword Extract] Extracted keywords for segment ${segment.id}`);
         } catch (error) {
