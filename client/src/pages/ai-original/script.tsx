@@ -82,13 +82,6 @@ export default function ScriptPage() {
             </Button>
           </div>
         </Card>
-
-        <Card className="mt-6 p-6 bg-muted/50 border border-muted-foreground/20">
-          <h3 className="font-medium text-foreground mb-2">已测试风格建议</h3>
-          <p className="text-sm text-muted-foreground">
-            将使用前面设置，请输入您的文案
-          </p>
-        </Card>
       </main>
     </div>
   );
