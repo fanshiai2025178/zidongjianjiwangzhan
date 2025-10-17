@@ -14,6 +14,7 @@ export const projects = pgTable("projects", {
   segments: jsonb("segments"),
   generationMode: text("generation_mode"),
   aspectRatio: text("aspect_ratio").default("16:9"), // '9:16' | '3:4' | '1:1' | '16:9' | '4:3'
+  visualBible: jsonb("visual_bible"), // Visual Bible（导演生成的视觉圣经）
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
@@ -60,4 +61,13 @@ export interface PresetStyle {
   nameEn: string;
   description: string;
   imageUrl: string;
+}
+
+// Visual Bible（视觉圣经）类型
+export interface VisualBible {
+  overall_theme: string; // 整体主题
+  emotional_arc: string; // 情感弧线
+  visual_metaphor: string; // 视觉隐喻
+  lighting_and_color_plan: string; // 光影与色彩规划
+  core_elements_anchor: string; // 核心元素锚点（角色、物体等的具体描述）
 }
