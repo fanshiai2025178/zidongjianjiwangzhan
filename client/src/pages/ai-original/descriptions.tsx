@@ -509,29 +509,72 @@ export default function DescriptionsPage() {
   };
 
   const handleSaveEdit = async (segmentId: string) => {
-    const updatedSegments = segments.map(seg =>
-      seg.id === segmentId ? { ...seg, sceneDescription: editedDescription } : seg
-    );
-    updateSegments(updatedSegments);
-    
-    // 自动保存项目
-    if (project?.id) {
-      try {
-        await apiRequest("PATCH", `/api/projects/${project.id}`, {
-          ...project,
-          segments: updatedSegments,
-        });
-      } catch (error) {
-        console.error("Failed to save project:", error);
+    try {
+      // 调用翻译API将中文描述词翻译成英文
+      console.log("[Edit Save] Translating Chinese description to English");
+      const translateResponse = await apiRequest("POST", "/api/descriptions/translate-to-english", {
+        chineseText: editedDescription,
+      });
+      const translateData = await translateResponse.json();
+      const englishText = translateData.englishText;
+      console.log("[Edit Save] Translation successful");
+
+      // 同时更新中文和英文描述词
+      const updatedSegments = segments.map(seg =>
+        seg.id === segmentId ? { 
+          ...seg, 
+          sceneDescription: editedDescription,
+          sceneDescriptionEn: englishText
+        } : seg
+      );
+      updateSegments(updatedSegments);
+      
+      // 自动保存项目
+      if (project?.id) {
+        try {
+          await apiRequest("PATCH", `/api/projects/${project.id}`, {
+            ...project,
+            segments: updatedSegments,
+          });
+        } catch (error) {
+          console.error("Failed to save project:", error);
+        }
       }
+      
+      setEditingId(null);
+      setEditedDescription("");
+      toast({
+        title: "保存成功",
+        description: "描述词已更新并翻译为英文",
+      });
+    } catch (error) {
+      console.error("Failed to translate description:", error);
+      toast({
+        title: "翻译失败",
+        description: "描述词已保存，但英文翻译失败",
+        variant: "destructive",
+      });
+      
+      // 即使翻译失败，也保存中文描述词
+      const updatedSegments = segments.map(seg =>
+        seg.id === segmentId ? { ...seg, sceneDescription: editedDescription } : seg
+      );
+      updateSegments(updatedSegments);
+      
+      if (project?.id) {
+        try {
+          await apiRequest("PATCH", `/api/projects/${project.id}`, {
+            ...project,
+            segments: updatedSegments,
+          });
+        } catch (error) {
+          console.error("Failed to save project:", error);
+        }
+      }
+      
+      setEditingId(null);
+      setEditedDescription("");
     }
-    
-    setEditingId(null);
-    setEditedDescription("");
-    toast({
-      title: "保存成功",
-      description: "描述已更新",
-    });
   };
 
   const handleCancelEdit = () => {

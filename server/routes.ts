@@ -361,6 +361,65 @@ Output the prompt directly without additional explanation.`;
     }
   });
 
+  // 翻译中文描述词为英文API
+  app.post("/api/descriptions/translate-to-english", async (req, res) => {
+    try {
+      const { chineseText } = req.body;
+      if (!chineseText) {
+        return res.status(400).json({ error: "Chinese text is required" });
+      }
+
+      const volcengineEndpointId = process.env.VOLCENGINE_DEEPSEEK_API_KEY;
+      const apiKey = process.env.VOLCENGINE_ACCESS_KEY;
+      
+      if (!volcengineEndpointId || !apiKey) {
+        return res.status(500).json({ error: "Volcengine DeepSeek credentials are not configured" });
+      }
+
+      console.log("[Translate to English] Translating Chinese description to English");
+
+      const translateBody = JSON.stringify({
+        model: volcengineEndpointId,
+        messages: [
+          {
+            role: "system",
+            content: "You are a professional translator. Translate the following Chinese AI video/image generation prompt to English. Keep the technical terms and maintain the same structure and details. Output only the English translation without any additional explanation."
+          },
+          {
+            role: "user",
+            content: `Translate this Chinese prompt to English:\n\n${chineseText}`
+          }
+        ],
+        temperature: 0.3,
+      });
+
+      const translateResponse = await fetch("https://ark.cn-beijing.volces.com/api/v3/chat/completions", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${apiKey}`,
+        },
+        body: translateBody,
+      });
+
+      if (!translateResponse.ok) {
+        throw new Error(`Translation API failed: ${translateResponse.statusText}`);
+      }
+
+      const translateData = await translateResponse.json();
+      const englishText = translateData.choices?.[0]?.message?.content || chineseText;
+      
+      console.log("[Translate to English] Translation successful");
+      
+      res.json({ 
+        englishText: englishText.trim()
+      });
+    } catch (error) {
+      console.error("[Translate to English] Error:", error);
+      res.status(500).json({ error: "Failed to translate to English", details: error instanceof Error ? error.message : String(error) });
+    }
+  });
+
   // 批量生成描述词API（专用火山引擎DeepSeek）
   app.post("/api/descriptions/batch-generate", async (req, res) => {
     try {

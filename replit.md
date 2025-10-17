@@ -4,9 +4,24 @@
 
 This is an AI-powered video creation platform designed to streamline professional video production through various creation modes. It features a comprehensive 5-step workflow for AI-original video creation (Style → Script → Segments → Descriptions → Result), with future plans for commentary and reference video modes. The platform offers a dark-themed creative studio interface, built with a modern tech stack, focused on optimizing content creation workflows. Key capabilities include smart description generation with character and style consistency, intelligent aspect ratio handling, and advanced prompt optimization for video and image generation.
 
-## Recent Changes (October 16, 2025)
+## Recent Changes (October 17, 2025)
 
-**描述词中英文分离显示（最新）**
+**描述词编辑自动翻译功能（最新）**
+- **智能翻译同步**：用户编辑第4步的中文描述词时，系统自动调用翻译API生成对应的英文版本
+- **专用翻译端点**：新增 `/api/descriptions/translate-to-english` API，使用火山引擎DeepSeek进行中文→英文翻译
+- **数据一致性保障**：编辑保存时同时更新 `sceneDescription`（中文）和 `sceneDescriptionEn`（英文）字段
+- **第6步正确显示**：生成素材页面的"描述词（英文）"列始终显示最新编辑后的英文翻译，而非初始生成的英文
+- **用户反馈优化**：保存成功提示"描述词已更新并翻译为英文"，翻译失败时仍保存中文并提示错误
+- **完整工作流**：编辑 → 自动翻译 → 同步更新 → 第6步使用最新英文
+
+**重新生成按钮独立状态管理**
+- **问题修复**：解决了点击单个"重新生成"按钮导致所有其他片段按钮被禁用的问题
+- **独立状态追踪**：使用 `generatingDescriptions` Set 集合单独追踪每个片段的生成状态
+- **按钮禁用逻辑**：改为 `disabled={generatingDescriptions.has(segment.id)}`，只禁用正在生成的按钮
+- **支持并发操作**：多个片段可以同时重新生成描述词，互不干扰
+- **加载状态显示**：正在生成的按钮显示"生成中"和旋转图标，其他按钮保持可用
+
+**描述词中英文分离显示**
 - **第4步（生成描述）**：显示中文描述词，批量生成按钮标注"批量生成描述词（中文）"
 - **第6步（生成素材）**：描述词（英文）列显示英文描述，无标签
 - **API自动翻译**：描述词生成API先生成英文描述，然后自动翻译为中文
