@@ -107,38 +107,52 @@ export async function generateImageWithJuguang(prompt: string, retries: number =
 
       const data: JuguangResponse = await response.json();
       
-      // 查找包含图片数据的part（可能不在第一个位置）
+      // 查找包含图片数据的part
       const parts = data.candidates[0]?.content?.parts || [];
+      
+      // 方法1：查找inlineData格式的图片
       const imagePart = parts.find(part => part.inlineData?.data);
-      const imageBase64 = imagePart?.inlineData?.data;
-      
-      if (!imageBase64) {
-        console.warn(`[Juguang Image] No image data in response (attempt ${attempt}/${retries})`);
-        console.warn(`[Juguang Image] Response has ${parts.length} parts`);
-        console.warn(`[Juguang Image] Parts structure:`, parts.map(p => Object.keys(p)));
-        
-        // 打印text内容，看看API返回了什么信息
-        const textContent = parts.find(p => p.text)?.text;
-        if (textContent) {
-          console.warn(`[Juguang Image] API returned text instead of image:`, textContent);
-        }
-        
-        if (attempt === retries) {
-          const errorMsg = textContent 
-            ? `API returned text instead of image: ${textContent}`
-            : "No image data in response after all retries";
-          throw new Error(errorMsg);
-        }
-        continue; // 重试
+      if (imagePart) {
+        const imageBase64 = imagePart.inlineData.data;
+        const mimeType = imagePart.inlineData.mimeType || "image/png";
+        const dataUrl = `data:${mimeType};base64,${imageBase64}`;
+        console.log(`[Juguang Image] Image generated successfully (inlineData format, attempt ${attempt}/${retries})`);
+        return dataUrl;
       }
-
-      // 将base64转换为data URL
-      const mimeType = imagePart?.inlineData?.mimeType || "image/png";
-      const dataUrl = `data:${mimeType};base64,${imageBase64}`;
-
-      console.log(`[Juguang Image] Image generated successfully (attempt ${attempt}/${retries})`);
       
-      return dataUrl;
+      // 方法2：从Markdown文本中提取data URL
+      const textPart = parts.find(p => p.text);
+      if (textPart?.text) {
+        // 匹配Markdown格式: ![image](data:image/png;base64,...)
+        const markdownMatch = textPart.text.match(/!\[.*?\]\((data:image\/[^;]+;base64,[^)]+)\)/);
+        if (markdownMatch && markdownMatch[1]) {
+          const dataUrl = markdownMatch[1];
+          console.log(`[Juguang Image] Image generated successfully (Markdown format, attempt ${attempt}/${retries})`);
+          return dataUrl;
+        }
+        
+        // 如果没找到Markdown格式，直接查找data URL
+        const dataUrlMatch = textPart.text.match(/(data:image\/[^;]+;base64,[^\s)]+)/);
+        if (dataUrlMatch && dataUrlMatch[1]) {
+          const dataUrl = dataUrlMatch[1];
+          console.log(`[Juguang Image] Image generated successfully (plain data URL, attempt ${attempt}/${retries})`);
+          return dataUrl;
+        }
+      }
+      
+      // 如果所有方法都失败
+      console.warn(`[Juguang Image] No image data found (attempt ${attempt}/${retries})`);
+      console.warn(`[Juguang Image] Response has ${parts.length} parts`);
+      console.warn(`[Juguang Image] Parts structure:`, parts.map(p => Object.keys(p)));
+      
+      if (textPart?.text) {
+        console.warn(`[Juguang Image] Text content (first 200 chars):`, textPart.text.substring(0, 200));
+      }
+      
+      if (attempt === retries) {
+        throw new Error("No image data found in response after all retries");
+      }
+      continue; // 重试
     } catch (error) {
       console.error(`[Juguang Image] Error on attempt ${attempt}:`, error);
       
