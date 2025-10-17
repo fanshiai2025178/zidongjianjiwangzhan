@@ -194,8 +194,9 @@ export async function callVolcengineDeepSeek(
  * 负责所有中英文互译工作
  */
 export async function translateText(
-  chineseText: string,
-  translationType: "description" | "keywords" = "description"
+  sourceText: string,
+  translationType: "description" | "keywords" | "segments" = "description",
+  direction: "zh-to-en" | "en-to-zh" = "zh-to-en"
 ): Promise<string> {
   // 翻译端点ID（与其他API配置模式一致，使用*_API_KEY存储端点ID）
   const endpointId = process.env.VOLCENGINE_TRANSLATE_API_KEY;
@@ -206,16 +207,32 @@ export async function translateText(
     throw new Error("Volcengine Translate API credentials are not configured");
   }
 
-  const systemPrompt = translationType === "keywords"
-    ? "你是一个专业的中英翻译专家。"
-    : "You are a professional translator. Translate the following Chinese AI video/image generation prompt to English. Keep the technical terms and maintain the same structure and details. Output only the English translation without any additional explanation.";
+  let systemPrompt = "";
+  let userPrompt = "";
 
-  const userPrompt = translationType === "keywords"
-    ? `请将以下中文关键词翻译为英文，保持逗号分隔格式。只输出翻译后的英文关键词，不要任何解释。
+  if (direction === "zh-to-en") {
+    // 中文翻译为英文
+    systemPrompt = translationType === "keywords"
+      ? "你是一个专业的中英翻译专家。"
+      : "You are a professional translator. Translate the following Chinese AI video/image generation prompt to English. Keep the technical terms and maintain the same structure and details. Output only the English translation without any additional explanation.";
+
+    userPrompt = translationType === "keywords"
+      ? `请将以下中文关键词翻译为英文，保持逗号分隔格式。只输出翻译后的英文关键词，不要任何解释。
 
 中文关键词：
-${chineseText}`
-    : `Translate this Chinese prompt to English:\n\n${chineseText}`;
+${sourceText}`
+      : `Translate this Chinese prompt to English:\n\n${sourceText}`;
+  } else {
+    // 英文翻译为中文
+    systemPrompt = "你是一个专业的英中翻译助手。";
+    
+    if (translationType === "segments") {
+      // 智能分段的批量翻译
+      userPrompt = `请将以下英文文本片段翻译成中文，保持原意和专业性。直接返回JSON数组格式，每个元素包含id和translation字段：\n\n${sourceText}`;
+    } else {
+      userPrompt = `请将以下英文翻译为中文，保持原意：\n\n${sourceText}`;
+    }
+  }
 
   const requestBody = JSON.stringify({
     model: endpointId,
@@ -247,7 +264,7 @@ ${chineseText}`
   }
 
   const data = await response.json();
-  const translatedText = data.choices?.[0]?.message?.content || chineseText;
+  const translatedText = data.choices?.[0]?.message?.content || sourceText;
   
   return translatedText.trim();
 }

@@ -21,10 +21,12 @@ The platform features a dark-themed creative studio interface, drawing inspirati
 -   **Data Storage**: PostgreSQL, leveraged via Neon Database for serverless deployment, with Drizzle ORM for type-safe interactions and schema management.
 -   **AI Workflow**: Implements a "Director + Storyboard Artist" two-step architecture. The "Director" (API 0) generates a Visual Bible for global consistency across the entire script. The "Storyboard Artist" (API 1) then generates objective Chinese scene descriptions for individual segments based on the Visual Bible.
 -   **Prompt Optimization**: Features dedicated API endpoints for single and batch prompt optimization, specifically tailored for video (dynamic descriptions, camera language) and image generation (composition, lighting).
--   **Multi-language Support**: Both descriptions and keywords are managed in dual-language (Chinese and English) with automatic translation:
-    -   **Descriptions**: Chinese version for user viewing/editing, English version auto-translated for AI material generation.
-    -   **Keywords**: Chinese version (`keywords`) for user viewing/editing, English version (`keywordsEn`) auto-generated/translated for future AI consumption.
+-   **Multi-language Support**: All translation needs use dedicated Volcengine DeepSeek translation API endpoint:
+    -   **Segment Translation** (English→Chinese): English script segments auto-translated to Chinese for user viewing.
+    -   **Descriptions** (Chinese→English): Chinese version for user viewing/editing, English version auto-translated for AI material generation.
+    -   **Keywords** (Chinese→English): Chinese version (`keywords`) for user viewing/editing, English version (`keywordsEn`) auto-generated/translated for AI consumption.
     -   User edits to Chinese content automatically trigger translation API to update English versions.
+    -   All translation operations use `VOLCENGINE_TRANSLATE_API_KEY` endpoint to avoid resource conflicts.
 -   **Consistency Management**: Ensures character and style consistency across segments by using a Visual Bible, detailed preset style mappings, and explicit reference image guidance.
 -   **Aspect Ratio Handling**: Automatically tracks and alerts users about aspect ratio changes, suggesting regeneration for consistency.
 

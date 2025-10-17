@@ -104,7 +104,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // 翻译片段API
+  // 翻译片段API（使用专门的翻译API）
   app.post("/api/segments/translate", async (req, res) => {
     try {
       const { segments } = req.body;
@@ -112,18 +112,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: "Segments array is required" });
       }
 
-      console.log("[Translation] Translating", segments.length, "segments");
+      console.log("[Segments Translation] Translating", segments.length, "segments using dedicated translate API");
 
-      const translationPrompt = `请将以下英文文本片段翻译成中文，保持原意和专业性。直接返回JSON数组格式，每个元素包含id和translation字段：\n\n${JSON.stringify(segments)}`;
-      
-      const translationResult = await callDeepSeekAPI(translationPrompt, "你是一个专业的英中翻译助手。");
+      const translationResult = await translateText(JSON.stringify(segments), "segments", "en-to-zh");
       const cleanTranslation = translationResult.replace(/```json\n?|\n?```/g, '').trim();
       const translations = JSON.parse(cleanTranslation);
       
-      console.log("[Translation] Successfully translated segments");
+      console.log("[Segments Translation] Successfully translated segments");
       res.json({ translations });
     } catch (error) {
-      console.error("[Translation] Error:", error);
+      console.error("[Segments Translation] Error:", error);
       res.status(500).json({ error: "Failed to translate segments", details: error instanceof Error ? error.message : String(error) });
     }
   });
