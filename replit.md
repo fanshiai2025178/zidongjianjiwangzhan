@@ -48,11 +48,12 @@ The platform features a dark-themed creative studio interface, drawing inspirati
 
 ### API Integrations
 
--   **DeepSeek API (deepseek-chat model)**: For intelligent text segmentation and Chinese-to-English translation (descriptions and keywords).
+-   **DeepSeek API (deepseek-chat model)**: For intelligent text segmentation.
 -   **火山引擎DeepSeek API**:
     -   Endpoint `ep-20251016061331-8bgnk`: Dedicated for description generation (single and batch).
     -   Endpoint `ep-20251016063909-7l6gr`: Dedicated for keyword extraction (single and batch, returns both Chinese and English versions).
     -   Endpoint `ep-20251016064746-rb9dk`: Dedicated for prompt optimization.
+    -   Endpoint (待配置): Dedicated for Chinese-to-English translation (descriptions and keywords).
 -   **聚光Chat API (gemini-2.5-flash-image-preview model)**: For image generation.
 -   **Neon Database**: Serverless PostgreSQL.
 

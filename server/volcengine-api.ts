@@ -197,8 +197,10 @@ export async function translateText(
   chineseText: string,
   translationType: "description" | "keywords" = "description"
 ): Promise<string> {
+  // 翻译端点ID作为model参数
   const endpointId = process.env.VOLCENGINE_TRANSLATE_ENDPOINT_ID;
-  const apiKey = process.env.VOLCENGINE_TRANSLATE_API_KEY;
+  // 使用统一的火山引擎ACCESS_KEY作为Bearer Token
+  const apiKey = process.env.VOLCENGINE_ACCESS_KEY;
   
   if (!endpointId || !apiKey) {
     throw new Error("Volcengine Translate API credentials are not configured");
