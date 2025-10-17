@@ -37,6 +37,7 @@ export default function DescriptionsPage() {
   const { toast } = useToast();
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editedDescription, setEditedDescription] = useState("");
+  const [generatingDescriptions, setGeneratingDescriptions] = useState<Set<string>>(new Set());
   const [generatingImages, setGeneratingImages] = useState<Set<string>>(new Set());
   const [generatingVideos, setGeneratingVideos] = useState<Set<string>>(new Set());
   const [batchGeneratingDescriptions, setBatchGeneratingDescriptions] = useState(false);
@@ -121,6 +122,10 @@ export default function DescriptionsPage() {
       const data = await response.json();
       return { segmentId, description: data.description, descriptionEn: data.descriptionEn };
     },
+    onMutate: (segmentId: string) => {
+      // 添加到正在生成的集合
+      setGeneratingDescriptions(prev => new Set(prev).add(segmentId));
+    },
     onSuccess: async (data: { segmentId: string, description: string, descriptionEn?: string }) => {
       console.log("[Description Success] Updating segment:", data.segmentId);
       console.log("[Description Success] Total segments:", segments.length);
@@ -164,6 +169,16 @@ export default function DescriptionsPage() {
         description: "请稍后重试",
         variant: "destructive",
       });
+    },
+    onSettled: (data) => {
+      // 无论成功或失败，都从正在生成的集合中移除
+      if (data?.segmentId) {
+        setGeneratingDescriptions(prev => {
+          const next = new Set(prev);
+          next.delete(data.segmentId);
+          return next;
+        });
+      }
     },
   });
 
@@ -692,12 +707,21 @@ export default function DescriptionsPage() {
                                 size="sm"
                                 variant="outline"
                                 onClick={() => generateDescriptionMutation.mutate(segment.id)}
-                                disabled={generateDescriptionMutation.isPending || batchGeneratingDescriptions}
+                                disabled={generatingDescriptions.has(segment.id) || batchGeneratingDescriptions}
                                 className="flex-1"
                                 data-testid={`button-regenerate-description-${segment.number}`}
                               >
-                                <RefreshCw className="h-3 w-3 mr-1" />
-                                重新生成
+                                {generatingDescriptions.has(segment.id) ? (
+                                  <>
+                                    <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+                                    生成中
+                                  </>
+                                ) : (
+                                  <>
+                                    <RefreshCw className="h-3 w-3 mr-1" />
+                                    重新生成
+                                  </>
+                                )}
                               </Button>
                             </div>
                           </>
@@ -706,11 +730,11 @@ export default function DescriptionsPage() {
                             size="sm"
                             variant="outline"
                             onClick={() => generateDescriptionMutation.mutate(segment.id)}
-                            disabled={generateDescriptionMutation.isPending || batchGeneratingDescriptions}
+                            disabled={generatingDescriptions.has(segment.id) || batchGeneratingDescriptions}
                             className="w-full"
                             data-testid={`button-generate-description-${segment.number}`}
                           >
-                            {(generateDescriptionMutation.isPending && generateDescriptionMutation.variables === segment.id) || currentGeneratingDescId === segment.id ? (
+                            {generatingDescriptions.has(segment.id) || currentGeneratingDescId === segment.id ? (
                               <>
                                 <Loader2 className="h-3 w-3 mr-1 animate-spin" />
                                 生成中
