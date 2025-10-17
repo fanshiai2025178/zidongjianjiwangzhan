@@ -279,12 +279,20 @@ export async function analyzeStyle(
   imageBase64OrPresetInfo: string
 ): Promise<string> {
   // 风格识别端点ID（与其他API配置模式一致，使用*_API_KEY存储端点ID）
-  const endpointId = process.env.VOLCENGINE_STYLE_API_KEY;
+  // 如果未配置专用端点，则回退使用描述生成端点
+  const endpointId = process.env.VOLCENGINE_STYLE_API_KEY || process.env.VOLCENGINE_DEEPSEEK_API_KEY;
   // 使用统一的火山引擎ACCESS_KEY作为Bearer Token
   const apiKey = process.env.VOLCENGINE_ACCESS_KEY;
   
   if (!endpointId || !apiKey) {
     throw new Error("Volcengine Style API credentials are not configured");
+  }
+
+  // 记录使用的端点
+  if (process.env.VOLCENGINE_STYLE_API_KEY) {
+    console.log(`[Style Analysis] Using dedicated style endpoint: ${endpointId}`);
+  } else {
+    console.log(`[Style Analysis] Using fallback endpoint (DEEPSEEK): ${endpointId}`);
   }
 
   let systemPrompt = "";
