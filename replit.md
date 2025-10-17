@@ -56,6 +56,7 @@ The platform features a dark-themed creative studio interface, drawing inspirati
     -   Endpoint `ep-20251016063909-7l6gr` (VOLCENGINE_KEYWORD_API_KEY): Dedicated for keyword extraction (single and batch).
     -   Endpoint `ep-20251016064746-rb9dk` (VOLCENGINE_OPTIMIZE_API_KEY): Dedicated for prompt optimization.
     -   Endpoint `ep-20251017114027-mqcbk` (VOLCENGINE_TRANSLATE_API_KEY): Dedicated for Chinese-to-English translation (descriptions and keywords).
+    -   Endpoint `ep-20251018034730-mk9fr` (VOLCENGINE_STYLE_API_KEY): Dedicated for style recognition (character, style reference, preset analysis).
     -   All endpoints use `VOLCENGINE_ACCESS_KEY` as Bearer Token for authentication.
 -   **聚光Chat API (gemini-2.5-flash-image-preview model)**: For image generation.
 -   **Neon Database**: Serverless PostgreSQL.
