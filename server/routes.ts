@@ -3,7 +3,7 @@ import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { insertProjectSchema } from "@shared/schema";
 import { callJuguangAPI, generateImageWithJuguang } from "./juguang-api";
-import { callVolcengineDeepSeek } from "./volcengine-api";
+import { callVolcengineDeepSeek, translateText } from "./volcengine-api";
 
 // DeepSeek API调用（已废弃，改用 Gemini）
 async function callDeepSeekAPI(prompt: string, systemPrompt?: string): Promise<string> {
@@ -373,38 +373,11 @@ Return a JSON object with this exact structure:
 
       console.log("[Storyboard Artist] Generated Chinese storyboard description successfully");
       
-      // 翻译中文描述词为英文（用于后续提示词优化）
+      // 翻译中文描述词为英文（用于后续提示词优化）- 使用专门的翻译API
       let descriptionEn = descriptionCn;
       try {
-        const translateBody = JSON.stringify({
-          model: volcengineEndpointId,
-          messages: [
-            {
-              role: "system",
-              content: "You are a professional translator. Translate the following Chinese storyboard description to English. Keep the visual details and maintain the same structure. Output only the English translation without any additional explanation."
-            },
-            {
-              role: "user",
-              content: `Translate this Chinese description to English:\n\n${descriptionCn}`
-            }
-          ],
-          temperature: 0.3,
-        });
-
-        const translateResponse = await fetch("https://ark.cn-beijing.volces.com/api/v3/chat/completions", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "Authorization": `Bearer ${apiKey}`,
-          },
-          body: translateBody,
-        });
-
-        if (translateResponse.ok) {
-          const translateData = await translateResponse.json();
-          descriptionEn = translateData.choices?.[0]?.message?.content || descriptionCn;
-          console.log("[Storyboard Artist] Translated to English successfully");
-        }
+        descriptionEn = await translateText(descriptionCn, "description");
+        console.log("[Storyboard Artist] Translated to English successfully");
       } catch (translateError) {
         console.error("[Storyboard Artist] Translation error:", translateError);
         // 如果翻译失败，使用中文原文
@@ -420,7 +393,7 @@ Return a JSON object with this exact structure:
     }
   });
 
-  // 翻译中文描述词为英文API
+  // 翻译中文描述词为英文API（使用专门的翻译API）
   app.post("/api/descriptions/translate-to-english", async (req, res) => {
     try {
       const { chineseText } = req.body;
@@ -428,58 +401,22 @@ Return a JSON object with this exact structure:
         return res.status(400).json({ error: "Chinese text is required" });
       }
 
-      const volcengineEndpointId = process.env.VOLCENGINE_DEEPSEEK_API_KEY;
-      const apiKey = process.env.VOLCENGINE_ACCESS_KEY;
+      console.log("[Translate Description] Translating Chinese description to English");
+
+      const englishText = await translateText(chineseText, "description");
       
-      if (!volcengineEndpointId || !apiKey) {
-        return res.status(500).json({ error: "Volcengine DeepSeek credentials are not configured" });
-      }
-
-      console.log("[Translate to English] Translating Chinese description to English");
-
-      const translateBody = JSON.stringify({
-        model: volcengineEndpointId,
-        messages: [
-          {
-            role: "system",
-            content: "You are a professional translator. Translate the following Chinese AI video/image generation prompt to English. Keep the technical terms and maintain the same structure and details. Output only the English translation without any additional explanation."
-          },
-          {
-            role: "user",
-            content: `Translate this Chinese prompt to English:\n\n${chineseText}`
-          }
-        ],
-        temperature: 0.3,
-      });
-
-      const translateResponse = await fetch("https://ark.cn-beijing.volces.com/api/v3/chat/completions", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${apiKey}`,
-        },
-        body: translateBody,
-      });
-
-      if (!translateResponse.ok) {
-        throw new Error(`Translation API failed: ${translateResponse.statusText}`);
-      }
-
-      const translateData = await translateResponse.json();
-      const englishText = translateData.choices?.[0]?.message?.content || chineseText;
-      
-      console.log("[Translate to English] Translation successful");
+      console.log("[Translate Description] Translation successful");
       
       res.json({ 
-        englishText: englishText.trim()
+        englishText: englishText
       });
     } catch (error) {
-      console.error("[Translate to English] Error:", error);
+      console.error("[Translate Description] Error:", error);
       res.status(500).json({ error: "Failed to translate to English", details: error instanceof Error ? error.message : String(error) });
     }
   });
 
-  // 翻译中文关键词为英文API
+  // 翻译中文关键词为英文API（使用专门的翻译API）
   app.post("/api/keywords/translate-to-english", async (req, res) => {
     try {
       const { chineseKeywords } = req.body;
@@ -487,57 +424,17 @@ Return a JSON object with this exact structure:
         return res.status(400).json({ error: "Chinese keywords are required" });
       }
 
-      const volcengineEndpointId = process.env.VOLCENGINE_KEYWORD_API_KEY;
-      const apiKey = process.env.VOLCENGINE_ACCESS_KEY;
+      console.log("[Translate Keywords] Translating Chinese keywords to English");
+
+      const englishKeywords = await translateText(chineseKeywords, "keywords");
       
-      if (!volcengineEndpointId || !apiKey) {
-        return res.status(500).json({ error: "Volcengine Keyword API credentials are not configured" });
-      }
-
-      console.log("[Translate Keywords to English] Translating Chinese keywords to English");
-
-      const translateBody = JSON.stringify({
-        model: volcengineEndpointId,
-        messages: [
-          {
-            role: "system",
-            content: "你是一个专业的中英翻译专家。"
-          },
-          {
-            role: "user",
-            content: `请将以下中文关键词翻译为英文，保持逗号分隔格式。只输出翻译后的英文关键词，不要任何解释。
-
-中文关键词：
-${chineseKeywords}`
-          }
-        ],
-        temperature: 0.3,
-        max_tokens: 500,
-      });
-
-      const translateResponse = await fetch("https://ark.cn-beijing.volces.com/api/v3/chat/completions", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${apiKey}`,
-        },
-        body: translateBody,
-      });
-
-      if (!translateResponse.ok) {
-        throw new Error(`Translation API failed: ${translateResponse.statusText}`);
-      }
-
-      const translateData = await translateResponse.json();
-      const englishKeywords = translateData.choices?.[0]?.message?.content || chineseKeywords;
-      
-      console.log("[Translate Keywords to English] Translation successful");
+      console.log("[Translate Keywords] Translation successful");
       
       res.json({ 
-        englishKeywords: englishKeywords.trim()
+        englishKeywords: englishKeywords
       });
     } catch (error) {
-      console.error("[Translate Keywords to English] Error:", error);
+      console.error("[Translate Keywords] Error:", error);
       res.status(500).json({ error: "Failed to translate keywords to English", details: error instanceof Error ? error.message : String(error) });
     }
   });
@@ -663,37 +560,10 @@ Return a JSON object with this exact structure:
             console.log(`[Batch Storyboard Artist] No JSON found for segment ${segment.id}, using raw text`);
           }
 
-          // 翻译中文描述词为英文（用于后续提示词优化）
+          // 翻译中文描述词为英文（用于后续提示词优化）- 使用专门的翻译API
           let descriptionEn = descriptionCn;
           try {
-            const translateBody = JSON.stringify({
-              model: volcengineEndpointId,
-              messages: [
-                {
-                  role: "system",
-                  content: "You are a professional translator. Translate the following Chinese storyboard description to English. Keep the visual details and maintain the same structure. Output only the English translation without any additional explanation."
-                },
-                {
-                  role: "user",
-                  content: `Translate this Chinese description to English:\n\n${descriptionCn}`
-                }
-              ],
-              temperature: 0.3,
-            });
-
-            const translateResponse = await fetch("https://ark.cn-beijing.volces.com/api/v3/chat/completions", {
-              method: "POST",
-              headers: {
-                "Content-Type": "application/json",
-                "Authorization": `Bearer ${apiKey}`,
-              },
-              body: translateBody,
-            });
-
-            if (translateResponse.ok) {
-              const translateData = await translateResponse.json();
-              descriptionEn = translateData.choices?.[0]?.message?.content || descriptionCn;
-            }
+            descriptionEn = await translateText(descriptionCn, "description");
           } catch (translateError) {
             console.error(`[Batch Storyboard Artist] Translation error for segment ${segment.id}:`, translateError);
           }
@@ -787,38 +657,11 @@ ${description}
 
       console.log("[Keyword Extract] Successfully extracted Chinese keywords");
       
-      // 翻译关键词为英文（给AI使用）
+      // 翻译关键词为英文（给AI使用）- 使用专门的翻译API
       let keywordsEn = keywordsCn;
       try {
-        const translatePrompt = `请将以下中文关键词翻译为英文，保持逗号分隔格式。只输出翻译后的英文关键词，不要任何解释。
-
-中文关键词：
-${keywordsCn}`;
-
-        const translateRequestBody = JSON.stringify({
-          model: volcengineEndpointId,
-          messages: [
-            { role: "system", content: "你是一个专业的中英翻译专家。" },
-            { role: "user", content: translatePrompt }
-          ],
-          temperature: 0.3,
-          max_tokens: 500,
-        });
-
-        const translateResponse = await fetch("https://ark.cn-beijing.volces.com/api/v3/chat/completions", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "Authorization": `Bearer ${apiKey}`,
-          },
-          body: translateRequestBody,
-        });
-
-        if (translateResponse.ok) {
-          const translateData = await translateResponse.json();
-          keywordsEn = translateData.choices?.[0]?.message?.content || keywordsCn;
-          console.log("[Keyword Extract] Successfully translated keywords to English");
-        }
+        keywordsEn = await translateText(keywordsCn, "keywords");
+        console.log("[Keyword Extract] Successfully translated keywords to English");
       } catch (translateError) {
         console.error("[Keyword Extract] Translation error:", translateError);
       }
@@ -908,37 +751,10 @@ ${segment.sceneDescription}
           const data = await response.json();
           const keywordsCn = data.choices?.[0]?.message?.content || "";
 
-          // 翻译关键词为英文（给AI使用）
+          // 翻译关键词为英文（给AI使用）- 使用专门的翻译API
           let keywordsEn = keywordsCn;
           try {
-            const translatePrompt = `请将以下中文关键词翻译为英文，保持逗号分隔格式。只输出翻译后的英文关键词，不要任何解释。
-
-中文关键词：
-${keywordsCn}`;
-
-            const translateRequestBody = JSON.stringify({
-              model: volcengineEndpointId,
-              messages: [
-                { role: "system", content: "你是一个专业的中英翻译专家。" },
-                { role: "user", content: translatePrompt }
-              ],
-              temperature: 0.3,
-              max_tokens: 500,
-            });
-
-            const translateResponse = await fetch("https://ark.cn-beijing.volces.com/api/v3/chat/completions", {
-              method: "POST",
-              headers: {
-                "Content-Type": "application/json",
-                "Authorization": `Bearer ${apiKey}`,
-              },
-              body: translateRequestBody,
-            });
-
-            if (translateResponse.ok) {
-              const translateData = await translateResponse.json();
-              keywordsEn = translateData.choices?.[0]?.message?.content || keywordsCn;
-            }
+            keywordsEn = await translateText(keywordsCn, "keywords");
           } catch (translateError) {
             console.error(`[Batch Keyword Extract] Translation error for segment ${segment.id}:`, translateError);
           }
