@@ -68,7 +68,11 @@ export default function MaterialsPage() {
       const data = await response.json();
       
       const updatedSegments = segments.map(seg =>
-        seg.id === segmentId ? { ...seg, keywords: data.keywords } : seg
+        seg.id === segmentId ? { 
+          ...seg, 
+          keywords: data.keywords,
+          keywordsEn: data.keywordsEn 
+        } : seg
       );
       updateSegments(updatedSegments);
       
@@ -134,7 +138,11 @@ export default function MaterialsPage() {
       for (const result of results) {
         if (result.keywords) {
           currentSegments = currentSegments.map(seg =>
-            seg.id === result.id ? { ...seg, keywords: result.keywords } : seg
+            seg.id === result.id ? { 
+              ...seg, 
+              keywords: result.keywords,
+              keywordsEn: result.keywordsEn || result.keywords
+            } : seg
           );
           successCount++;
         }
@@ -702,12 +710,50 @@ export default function MaterialsPage() {
                           <div className="flex gap-2">
                             <Button
                               size="sm"
-                              onClick={() => {
-                                const updated = segments.map(s =>
-                                  s.id === segment.id ? { ...s, keywords: editedKeywords } : s
-                                );
-                                updateSegments(updated);
-                                setEditingKeywordsId(null);
+                              onClick={async () => {
+                                // 自动翻译为英文
+                                try {
+                                  const translateResponse = await apiRequest("POST", "/api/keywords/translate-to-english", {
+                                    chineseKeywords: editedKeywords,
+                                  });
+                                  const translateData = await translateResponse.json();
+                                  
+                                  const updated = segments.map(s =>
+                                    s.id === segment.id ? { 
+                                      ...s, 
+                                      keywords: editedKeywords,
+                                      keywordsEn: translateData.englishKeywords 
+                                    } : s
+                                  );
+                                  updateSegments(updated);
+                                  
+                                  // 保存到后端
+                                  if (project?.id) {
+                                    await apiRequest("PATCH", `/api/projects/${project.id}`, {
+                                      ...project,
+                                      segments: updated,
+                                    });
+                                  }
+                                  
+                                  toast({
+                                    title: "保存成功",
+                                    description: "关键词已更新并翻译为英文",
+                                  });
+                                  setEditingKeywordsId(null);
+                                } catch (error) {
+                                  console.error("Failed to translate keywords:", error);
+                                  // 即使翻译失败，仍保存中文
+                                  const updated = segments.map(s =>
+                                    s.id === segment.id ? { ...s, keywords: editedKeywords } : s
+                                  );
+                                  updateSegments(updated);
+                                  setEditingKeywordsId(null);
+                                  toast({
+                                    title: "保存成功",
+                                    description: "关键词已保存，但英文翻译失败",
+                                    variant: "destructive",
+                                  });
+                                }
                               }}
                               data-testid={`button-save-keywords-${segment.number}`}
                             >
