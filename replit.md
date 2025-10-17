@@ -2,136 +2,7 @@
 
 ## Overview
 
-This is an AI-powered video creation platform designed to streamline professional video production through various creation modes. It features a comprehensive 5-step workflow for AI-original video creation (Style → Script → Segments → Descriptions → Result), with future plans for commentary and reference video modes. The platform offers a dark-themed creative studio interface, built with a modern tech stack, focused on optimizing content creation workflows. Key capabilities include smart description generation with character and style consistency, intelligent aspect ratio handling, and advanced prompt optimization for video and image generation.
-
-## Recent Changes (October 17, 2025)
-
-**描述词编辑自动翻译功能（最新）**
-- **智能翻译同步**：用户编辑第4步的中文描述词时，系统自动调用翻译API生成对应的英文版本
-- **专用翻译端点**：新增 `/api/descriptions/translate-to-english` API，使用火山引擎DeepSeek进行中文→英文翻译
-- **数据一致性保障**：编辑保存时同时更新 `sceneDescription`（中文）和 `sceneDescriptionEn`（英文）字段
-- **第6步正确显示**：生成素材页面的"描述词（英文）"列始终显示最新编辑后的英文翻译，而非初始生成的英文
-- **用户反馈优化**：保存成功提示"描述词已更新并翻译为英文"，翻译失败时仍保存中文并提示错误
-- **完整工作流**：编辑 → 自动翻译 → 同步更新 → 第6步使用最新英文
-
-**重新生成按钮独立状态管理**
-- **问题修复**：解决了点击单个"重新生成"按钮导致所有其他片段按钮被禁用的问题
-- **独立状态追踪**：使用 `generatingDescriptions` Set 集合单独追踪每个片段的生成状态
-- **按钮禁用逻辑**：改为 `disabled={generatingDescriptions.has(segment.id)}`，只禁用正在生成的按钮
-- **支持并发操作**：多个片段可以同时重新生成描述词，互不干扰
-- **加载状态显示**：正在生成的按钮显示"生成中"和旋转图标，其他按钮保持可用
-
-**描述词中英文分离显示**
-- **第4步（生成描述）**：显示中文描述词，批量生成按钮标注"批量生成描述词（中文）"
-- **第6步（生成素材）**：描述词（英文）列显示英文描述，无标签
-- **API自动翻译**：描述词生成API先生成英文描述，然后自动翻译为中文
-- **数据模型更新**：Segment接口新增sceneDescriptionEn字段存储英文描述词
-- **独立API处理**：使用专用火山引擎DeepSeek API同时生成中英文描述
-- **完整支持**：单个生成、批量生成均支持中英文描述词
-
-**步骤流程重新排序**
-- **流程调整**：将"风格定制"从第1步移至第5步（生成描述和生成素材之间）
-- **新的7步工作流**：
-  1. 输入文案 - 用户输入创作文案
-  2. 智能分段 - AI自动分段为多个镜头
-  3. 选择流程 - 选择文生视频或文生图+图生视频
-  4. 生成描述 - AI生成每个镜头的英文描述词
-  5. 风格定制 - 设置角色参考图、风格参考图或预设风格
-  6. 生成素材 - 提示词优化、批量生成图片和视频
-  7. 导出成片 - 最终成片预览和导出
-- **导航逻辑更新**：首页直接进入"输入文案"，描述生成后进入"风格定制"
-- **设计理念**：先完成内容创作，再进行风格定制，使流程更符合创作逻辑
-
-**提示词优化功能 + 自动端点ID纠正**
-- **功能恢复**：将第6步"关键词提取"替换为"提示词优化"功能
-- **专用API端点**：
-  - `/api/prompts/optimize` - 单个提示词优化
-  - `/api/prompts/batch-optimize` - 批量提示词优化
-- **专属火山引擎配置**：
-  - `VOLCENGINE_OPTIMIZE_API_KEY`: ep-20251016064746-rb9dk（提示词优化专用端点）
-  - `VOLCENGINE_ACCESS_KEY`: Bearer Token主密钥
-- **自动纠正机制**：如果端点ID格式不正确（不以ep-开头），自动使用正确的端点ID
-- **智能优化策略**：
-  - 文生视频：增强动态描述、镜头语言、时间结构
-  - 文生图：优化构图细节、光影氛围、视觉层次
-- **数据模型**：Segment接口新增`optimizedPrompt`字段存储优化结果
-- **图片生成依赖**：图片生成必须使用提示词优化结果，不使用描述词或关键词
-- **表格布局更新**：提示词优化 | 批量生成图片 | 批量生成视频
-
-**火山引擎API认证方法变更（重要）**
-- **认证方式升级**：所有火山引擎ARK API从AK/SK签名认证迁移至Bearer Token认证
-- **移除依赖**：完全移除`@volcengine/openapi` Signer依赖，简化代码结构
-- **统一认证**：所有API端点现使用统一的Bearer Token认证方式
-- **API密钥配置**：
-  - `VOLCENGINE_ACCESS_KEY`: 主API密钥（UUID格式，用作Bearer Token）
-  - `VOLCENGINE_DEEPSEEK_API_KEY`: 描述词生成端点ID（ep-20251016061331-8bgnk）
-  - `VOLCENGINE_KEYWORD_API_KEY`: 关键词提取端点ID（ep-20251016063909-7l6gr）
-- **认证格式**：`Authorization: Bearer <VOLCENGINE_ACCESS_KEY>`
-- **已验证端点**：
-  - `/api/descriptions/generate` - 单个描述词生成 ✅
-  - `/api/descriptions/batch-generate` - 批量描述词生成 ✅
-  - `/api/keywords/extract` - 单个关键词提取 ✅
-  - `/api/keywords/batch-extract` - 批量关键词提取 ✅
-
-**关键词提取功能（最新）**
-- **第6步功能替换**：将"提示词优化"完全替换为"关键词提取"功能
-- **专用API端点**：
-  - `/api/keywords/extract` - 单个关键词提取
-  - `/api/keywords/batch-extract` - 批量关键词提取
-- **专属火山引擎DeepSeek配置**：
-  - `VOLCENGINE_KEYWORD_ENDPOINT_ID`: ep-20251016063909-7l6gr（关键词提取专用）
-  - `VOLCENGINE_KEYWORD_API_KEY`: 关键词提取专用密钥
-- **API严格分离**：关键词提取API仅用于第6步，不影响其他任何功能
-- **提取策略**：从描述词中提取5类关键词（主体、场景、动作、风格、情绪）
-- **数据模型更新**：Segment接口新增`keywords`字段存储提取结果
-- **UI更新**：表格表头"提示词优化"改为"关键词提取"，按钮文字同步更新
-- **完整功能**：单个提取、批量提取、编辑保存全部可用
-
-**火山引擎DeepSeek批量生成接入**
-- **专属批量API**：创建 `/api/descriptions/batch-generate` 专门用于批量生成描述词
-- **火山引擎DeepSeek集成**：使用火山引擎DeepSeek API专用端点提供批量描述词生成服务
-- **独立密钥配置**：
-  - `VOLCENGINE_DEEPSEEK_ENDPOINT_ID`: 火山引擎DeepSeek端点ID（如：ep-20251016061331-8bgnk）
-  - `VOLCENGINE_DEEPSEEK_API_KEY`: 火山引擎DeepSeek API密钥
-- **API分离策略**：
-  - 单个生成：使用火山引擎DeepSeek API（`/api/descriptions/generate`）
-  - 批量生成：使用火山引擎DeepSeek API（`/api/descriptions/batch-generate`）
-  - 关键词提取：使用专用火山引擎DeepSeek API（`/api/keywords/extract`）
-- **批量处理优势**：一次性提交多个片段，服务端批量处理，提升效率
-- **专用API保障**：每个功能使用专属火山引擎端点，互不影响
-
-**新增第6步：生成素材页面**
-- **流程重组**：将"5生成描述"后的素材生成功能独立为"6生成素材"步骤
-- **功能迁移**：批量生成图片和批量生成视频从描述页面迁移至素材页面
-- **关键词提取**：使用专用火山引擎DeepSeek API提取描述词关键词
-- **表格布局**：关键词提取 | 批量生成图片 | 批量生成视频
-- **7步工作流**：风格定制 → 输入文案 → 智能分段 → 选择流程 → 生成描述 → 生成素材 → 导出成片
-
-**描述词英文输出 + 批量生成停止功能**
-- **描述词英文化**：所有AI生成的描述词现在以英文输出，更适合主流AI图片/视频生成模型
-- **批量生成停止**：所有批量生成操作（描述词/图片/视频）在进行中时显示"生成中...（停止）"
-- **即时停止控制**：点击停止按钮可立即中断批量生成，已生成内容保留
-- **智能反馈**：停止后显示实际生成数量，如"已停止，成功生成 3 个描述"
-
-**智能描述词生成系统 - 角色/风格一致性**
-- **角色一致性保障**：强制要求AI在所有镜头中保持相同角色特征（外貌、服装、姿态）
-- **风格融合深化**：详细的预设风格描述映射（8种风格：Cinema、Anime、Realistic、Fantasy、Retro、Minimalist、Noir、Cyberpunk）
-- **参考图指导增强**：角色参考图和风格参考图的具体要求明确化（英文指令）
-- **文生视频vs文生图差异化**：
-  - 文生视频：强调动态动作、镜头运动、时间演进（push/pull/pan/tilt等镜头语言）
-  - 文生图：强调静态定格、空间构图、瞬间捕捉（层次、质感、氛围）
-- **故事连贯性**：确保多个片段保持视觉风格和角色形象的完全统一
-
-**比例变更智能提示系统**
-- **自动追踪比例**：每个描述词记录生成时的比例（descriptionAspectRatio字段）
-- **比例不匹配警告**：显示"⚠️ 比例已变更（16:9 → 9:16），建议重新生成"
-- **智能批量生成**：自动识别需要重新生成的片段（无描述词或比例不匹配）
-- **单个重新生成**：点击重新生成按钮只影响当前片段，不会全部重新生成
-
-**UI交互优化**
-- **图片预览改进**：悬浮显示居中放大图标，不遮挡画面内容
-- **错误提示优化**：识别内容过滤错误，提示"内容被过滤，请重新生成或编辑描述词"
-- **翻译状态简化**：未翻译片段显示红色斜体"请稍等"
+This AI-powered video creation platform streamlines professional video production through various creation modes, including a 5-step workflow for AI-original video (Style → Script → Segments → Descriptions → Result). The platform aims to expand with commentary and reference video modes. It features a dark-themed creative studio, optimizing content creation workflows with smart description generation, consistent character/style, intelligent aspect ratio handling, and advanced prompt optimization for video and image generation. The project's ambition is to revolutionize video production by offering an efficient, high-quality, and scalable AI-driven solution.
 
 ## User Preferences
 
@@ -139,64 +10,69 @@ Preferred communication style: Simple, everyday language.
 
 ## System Architecture
 
-### Frontend Architecture
+### UI/UX Decisions
 
-The frontend is built with **React 18** and **TypeScript**, utilizing **Vite** for fast development and optimized builds. **Wouter** handles lightweight routing, and **TanStack Query** manages server state, caching, and API requests. The UI uses **shadcn/ui** components built on Radix UI, styled with **Tailwind CSS**, adopting a dark-first design system inspired by Linear/Notion workflows and Adobe Creative Cloud visuals. State management primarily uses React Context API for global project state and local component state for UI interactions.
+The platform features a dark-themed creative studio interface, drawing inspiration from professional tools like Linear/Notion and Adobe Creative Cloud. It utilizes `shadcn/ui` components built on Radix UI and styled with Tailwind CSS, ensuring a customizable, accessible, and consistent design system. The user workflow is structured as a clear, multi-step process managed by a centralized `ProjectProvider`.
 
-### Backend Architecture
+### Technical Implementations
 
-The backend is developed with **Express.js** and **TypeScript**, providing a RESTful API for managing video creation projects. It includes middleware for JSON parsing and error handling. API design follows resource-based conventions, with validation using **Zod** schemas. The development environment supports hot module replacement and uses `esbuild` for production server bundling.
+-   **Frontend**: Built with React 18 and TypeScript, using Vite for development, Wouter for routing, and TanStack Query for server state management. React Context API manages global state.
+-   **Backend**: Developed with Express.js and TypeScript, offering a RESTful API with Zod for validation.
+-   **Data Storage**: PostgreSQL, leveraged via Neon Database for serverless deployment, with Drizzle ORM for type-safe interactions and schema management.
+-   **AI Workflow**: Implements a "Director + Storyboard Artist" two-step architecture. The "Director" (API 0) generates a Visual Bible for global consistency across the entire script. The "Storyboard Artist" (API 1) then generates objective Chinese scene descriptions for individual segments based on the Visual Bible.
+-   **Prompt Optimization**: Features dedicated API endpoints for single and batch prompt optimization, specifically tailored for video (dynamic descriptions, camera language) and image generation (composition, lighting).
+-   **Multi-language Support**: Descriptions are managed in both Chinese and English, with automatic translation between the two using dedicated APIs. English descriptions are prioritized for AI material generation.
+-   **Consistency Management**: Ensures character and style consistency across segments by using a Visual Bible, detailed preset style mappings, and explicit reference image guidance.
+-   **Aspect Ratio Handling**: Automatically tracks and alerts users about aspect ratio changes, suggesting regeneration for consistency.
 
-### Data Storage Solutions
+### Feature Specifications
 
-**PostgreSQL** serves as the primary database, integrated with **Neon Database** for serverless operations. **Drizzle ORM** is used for type-safe database interactions and schema management, with `drizzle-kit` for migrations and `drizzle-zod` for automatic validation schema generation. An `MemStorage` class provides an in-memory option for development. Core data models include `Projects`, `Style Settings`, and `Segments`, tracking the video creation process.
+-   **5-Step AI-Original Video Creation Workflow**: Script → Segments → Descriptions → Style → Result (with planned expansion).
+-   **AI Description Generation**: Generates objective scene descriptions, ensuring character and style consistency. Includes automatic English translation for generated descriptions.
+-   **Prompt Optimization**: Advanced optimization for both text-to-video and text-to-image prompts.
+-   **Material Generation**: Supports batch generation of images and videos based on optimized prompts.
+-   **Real-time Feedback**: Provides intelligent feedback during generation processes, including progress and the ability to stop batch operations.
+-   **Independent Regeneration**: Allows regeneration of individual segments without affecting others.
 
-### Authentication & Authorization
+### System Design Choices
 
-Currently, the platform lacks an authentication system. It is designed for future integration of session-based authentication using PostgreSQL for session storage and Express session middleware.
-
-### Key Architectural Decisions
-
--   **Multi-Step Workflow Architecture**: A centralized `ProjectProvider` manages global project state and step progression, enabling a clear, modular workflow and persistent state across user sessions.
--   **Storage Abstraction Layer**: An `IStorage` interface allows flexible switching between in-memory (`MemStorage`) and database (PostgreSQL) storage, facilitating rapid development and easy production deployment.
--   **Type-Safe Schema Management**: Utilizing Drizzle ORM ensures a single source of truth for database schemas, TypeScript types, and Zod validation schemas, enhancing consistency and reliability.
--   **Component-First Design System**: Leveraging `shadcn/ui` with local component ownership and Tailwind CSS allows for a highly customizable, accessible, and consistent UI design system without external library dependencies.
+-   **Multi-Step Workflow Architecture**: A `ProjectProvider` centralizes project state and step progression, enabling a modular workflow and persistent state.
+-   **Storage Abstraction Layer**: An `IStorage` interface allows flexible switching between in-memory and database storage.
+-   **Type-Safe Schema Management**: Drizzle ORM ensures consistency across database schemas, TypeScript types, and Zod validation schemas.
+-   **API Authentication**: All Volcengine ARK APIs use Bearer Token authentication.
 
 ## External Dependencies
-
-### UI & Component Libraries
-
--   **Radix UI**: Headless accessible components.
--   **Lucide React**: Icon library.
--   **class-variance-authority**: Type-safe CSS variant management.
--   **tailwind-merge & clsx**: Utility class composition.
-
-### Form & Validation
-
--   **React Hook Form**: Form state management.
--   **@hookform/resolvers**: Schema validation resolvers.
--   **Zod**: Runtime type validation.
-
-### Date & Time
-
--   **date-fns**: Date manipulation and formatting.
-
-### Development Tools
-
--   **@replit/vite-plugin-runtime-error-modal**: Error overlay.
--   **@replit/vite-plugin-cartographer**: Code mapping.
--   **@replit/vite-plugin-dev-banner**: Development indicator.
-
-### Build & Development
-
--   **esbuild**: Fast server bundling.
--   **tsx**: TypeScript execution for development server.
--   **PostCSS with Autoprefixer**: CSS processing.
 
 ### API Integrations
 
 -   **DeepSeek API (deepseek-chat model)**: For intelligent text segmentation and English-to-Chinese translation.
 -   **火山引擎DeepSeek API**:
-    -   端点 ep-20251016061331-8bgnk：专用于描述词生成（单个和批量）
-    -   端点 ep-20251016063909-7l6gr：专用于关键词提取（单个和批量）
+    -   Endpoint `ep-20251016061331-8bgnk`: Dedicated for description generation (single and batch).
+    -   Endpoint `ep-20251016063909-7l6gr`: Dedicated for keyword extraction (single and batch).
+    -   Endpoint `ep-20251016064746-rb9dk`: Dedicated for prompt optimization.
 -   **聚光Chat API (gemini-2.5-flash-image-preview model)**: For image generation.
+-   **Neon Database**: Serverless PostgreSQL.
+
+### UI & Component Libraries
+
+-   **Radix UI**: Headless accessible components.
+-   **Lucide React**: Icon library.
+-   **shadcn/ui**: Component library.
+
+### Form & Validation
+
+-   **React Hook Form**: Form state management.
+-   **Zod**: Runtime type validation.
+
+### Data & State Management
+
+-   **TanStack Query**: Server state management.
+-   **Drizzle ORM**: Type-safe database interactions.
+
+### Development & Build Tools
+
+-   **Vite**: Frontend build tool.
+-   **esbuild**: Backend bundling.
+-   **TypeScript**: Language.
+-   **Tailwind CSS**: Styling framework.
+-   **PostCSS with Autoprefixer**: CSS processing.
