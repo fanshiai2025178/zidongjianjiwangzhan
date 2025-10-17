@@ -116,8 +116,18 @@ export async function generateImageWithJuguang(prompt: string, retries: number =
         console.warn(`[Juguang Image] No image data in response (attempt ${attempt}/${retries})`);
         console.warn(`[Juguang Image] Response has ${parts.length} parts`);
         console.warn(`[Juguang Image] Parts structure:`, parts.map(p => Object.keys(p)));
+        
+        // 打印text内容，看看API返回了什么信息
+        const textContent = parts.find(p => p.text)?.text;
+        if (textContent) {
+          console.warn(`[Juguang Image] API returned text instead of image:`, textContent);
+        }
+        
         if (attempt === retries) {
-          throw new Error("No image data in response after all retries");
+          const errorMsg = textContent 
+            ? `API returned text instead of image: ${textContent}`
+            : "No image data in response after all retries";
+          throw new Error(errorMsg);
         }
         continue; // 重试
       }
