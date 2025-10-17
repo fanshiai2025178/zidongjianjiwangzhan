@@ -479,6 +479,69 @@ Return a JSON object with this exact structure:
     }
   });
 
+  // 翻译中文关键词为英文API
+  app.post("/api/keywords/translate-to-english", async (req, res) => {
+    try {
+      const { chineseKeywords } = req.body;
+      if (!chineseKeywords) {
+        return res.status(400).json({ error: "Chinese keywords are required" });
+      }
+
+      const volcengineEndpointId = process.env.VOLCENGINE_KEYWORD_API_KEY;
+      const apiKey = process.env.VOLCENGINE_ACCESS_KEY;
+      
+      if (!volcengineEndpointId || !apiKey) {
+        return res.status(500).json({ error: "Volcengine Keyword API credentials are not configured" });
+      }
+
+      console.log("[Translate Keywords to English] Translating Chinese keywords to English");
+
+      const translateBody = JSON.stringify({
+        model: volcengineEndpointId,
+        messages: [
+          {
+            role: "system",
+            content: "你是一个专业的中英翻译专家。"
+          },
+          {
+            role: "user",
+            content: `请将以下中文关键词翻译为英文，保持逗号分隔格式。只输出翻译后的英文关键词，不要任何解释。
+
+中文关键词：
+${chineseKeywords}`
+          }
+        ],
+        temperature: 0.3,
+        max_tokens: 500,
+      });
+
+      const translateResponse = await fetch("https://ark.cn-beijing.volces.com/api/v3/chat/completions", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${apiKey}`,
+        },
+        body: translateBody,
+      });
+
+      if (!translateResponse.ok) {
+        throw new Error(`Translation API failed: ${translateResponse.statusText}`);
+      }
+
+      const translateData = await translateResponse.json();
+      const englishKeywords = translateData.choices?.[0]?.message?.content || chineseKeywords;
+      
+      console.log("[Translate Keywords to English] Translation successful");
+      
+      res.json({ 
+        englishKeywords: englishKeywords.trim()
+      });
+    } catch (error) {
+      console.error("[Translate Keywords to English] Error:", error);
+      res.status(500).json({ error: "Failed to translate keywords to English", details: error instanceof Error ? error.message : String(error) });
+    }
+  });
+
   // 批量生成描述词API（使用 Visual Bible + Storyboard Artist）
   app.post("/api/descriptions/batch-generate", async (req, res) => {
     try {
@@ -720,11 +783,50 @@ ${description}
       }
 
       const data = await response.json();
-      const keywords = data.choices?.[0]?.message?.content || "";
+      const keywordsCn = data.choices?.[0]?.message?.content || "";
 
-      console.log("[Keyword Extract] Successfully extracted keywords");
+      console.log("[Keyword Extract] Successfully extracted Chinese keywords");
       
-      res.json({ keywords: keywords.trim() });
+      // 翻译关键词为英文（给AI使用）
+      let keywordsEn = keywordsCn;
+      try {
+        const translatePrompt = `请将以下中文关键词翻译为英文，保持逗号分隔格式。只输出翻译后的英文关键词，不要任何解释。
+
+中文关键词：
+${keywordsCn}`;
+
+        const translateRequestBody = JSON.stringify({
+          model: volcengineEndpointId,
+          messages: [
+            { role: "system", content: "你是一个专业的中英翻译专家。" },
+            { role: "user", content: translatePrompt }
+          ],
+          temperature: 0.3,
+          max_tokens: 500,
+        });
+
+        const translateResponse = await fetch("https://ark.cn-beijing.volces.com/api/v3/chat/completions", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${apiKey}`,
+          },
+          body: translateRequestBody,
+        });
+
+        if (translateResponse.ok) {
+          const translateData = await translateResponse.json();
+          keywordsEn = translateData.choices?.[0]?.message?.content || keywordsCn;
+          console.log("[Keyword Extract] Successfully translated keywords to English");
+        }
+      } catch (translateError) {
+        console.error("[Keyword Extract] Translation error:", translateError);
+      }
+      
+      res.json({ 
+        keywords: keywordsCn.trim(),
+        keywordsEn: keywordsEn.trim()
+      });
     } catch (error) {
       console.error("[Keyword Extract] Error:", error);
       res.status(500).json({ error: "Failed to extract keywords", details: error instanceof Error ? error.message : String(error) });
@@ -804,11 +906,47 @@ ${segment.sceneDescription}
           }
 
           const data = await response.json();
-          const keywords = data.choices?.[0]?.message?.content || "";
+          const keywordsCn = data.choices?.[0]?.message?.content || "";
+
+          // 翻译关键词为英文（给AI使用）
+          let keywordsEn = keywordsCn;
+          try {
+            const translatePrompt = `请将以下中文关键词翻译为英文，保持逗号分隔格式。只输出翻译后的英文关键词，不要任何解释。
+
+中文关键词：
+${keywordsCn}`;
+
+            const translateRequestBody = JSON.stringify({
+              model: volcengineEndpointId,
+              messages: [
+                { role: "system", content: "你是一个专业的中英翻译专家。" },
+                { role: "user", content: translatePrompt }
+              ],
+              temperature: 0.3,
+              max_tokens: 500,
+            });
+
+            const translateResponse = await fetch("https://ark.cn-beijing.volces.com/api/v3/chat/completions", {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                "Authorization": `Bearer ${apiKey}`,
+              },
+              body: translateRequestBody,
+            });
+
+            if (translateResponse.ok) {
+              const translateData = await translateResponse.json();
+              keywordsEn = translateData.choices?.[0]?.message?.content || keywordsCn;
+            }
+          } catch (translateError) {
+            console.error(`[Batch Keyword Extract] Translation error for segment ${segment.id}:`, translateError);
+          }
 
           results.push({
             id: segment.id,
-            keywords: keywords.trim(),
+            keywords: keywordsCn.trim(),
+            keywordsEn: keywordsEn.trim(),
           });
           console.log(`[Batch Keyword Extract] Extracted keywords for segment ${segment.id}`);
         } catch (error) {
