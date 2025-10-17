@@ -112,7 +112,7 @@ export async function generateImageWithJuguang(prompt: string, retries: number =
       
       // 方法1：查找inlineData格式的图片
       const imagePart = parts.find(part => part.inlineData?.data);
-      if (imagePart) {
+      if (imagePart?.inlineData) {
         const imageBase64 = imagePart.inlineData.data;
         const mimeType = imagePart.inlineData.mimeType || "image/png";
         const dataUrl = `data:${mimeType};base64,${imageBase64}`;
