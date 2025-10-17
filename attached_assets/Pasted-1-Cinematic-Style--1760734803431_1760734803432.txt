@@ -1,0 +1,64 @@
+1. 电影风格 (Cinematic Style)
+核心理念： 模拟专业电影摄影机的镜头语言、光影布局和色彩分级，创造出具有叙事感、情感深度和视觉冲击力的单帧画面。
+风格精髓： 此风格旨在超越普通照片，赋予画面以故事性。它强调通过构图引导视线，利用光影塑造人物和氛围，并通过后期调色传达特定的情绪基调。最终成品应如同从一部制作精良的电影中截取的决定性瞬间。
+核心技术指令：
+构图与镜头 (Composition & Lens): 宽银幕高宽比 (16:9, 2.35:1), 电影镜头 (Anamorphic Lens), 浅景深 (Shallow Depth of Field), 背景散景 (Bokeh), 黄金分割, 引导线构图, 荷兰角 (Dutch Angle), 过肩镜头。
+光影与氛围 (Lighting & Atmosphere): 戏剧性布光 (Dramatic Lighting), 伦勃朗光 (Rembrandt Lighting), 边缘光 (Rim Light), 体积光 (Volumetric Light), 丁达尔效应 (God Rays), 高对比度, 镜头光晕 (Lens Flare), 电影氛围 (Cinematic Atmosphere)。
+色彩与调色 (Color & Grading): 电影色彩分级 (Cinematic Color Grading), 橙青色调 (Teal and Orange), 低饱和度现实主义, 分离色调 (Split Toning), 模拟胶片 (Film Emulation, e.g., Kodak Portra 400)。
+画质与纹理 (Quality & Texture): 8K分辨率, 电影级画质, 胶片颗粒 (Film Grain), 精细细节, 锐利对焦。
+2. 动漫风格 (Anime Style)
+核心理念： 运用标志性的日式动画美学，通过清晰的线条、鲜明的色彩和富有表现力的角色设计，构建一个充满活力的二次元视觉世界。
+风格精髓： 此风格的关键在于“风格化”而非“写实”。它简化现实世界的光影和细节，强调轮廓、色彩的情感表达和角色的魅力。无论是清新日常还是热血战斗，其核心都是通过独特的视觉符号体系唤起观众的共鸣。
+核心技术指令：
+构图与线条 (Composition & Line Art): 赛璐璐风格 (Cel Shading), 清晰的轮廓线 (Clean Line Art), 动态构图, 速度线, 漫画分镜感。
+光影与氛围 (Lighting & Atmosphere): 平面阴影 (Flat Shadows), 简约光影, 高光点缀 (Specular Highlights), 魔法光效, 氛围特效粒子。
+色彩与调色 (Color & Grading): 高饱和度色彩, 鲜艳明亮的调色板, 强烈的色彩对比, 渐变色天空, 特定动漫工作室风格 (e.g., Studio Ghibli, Kyoto Animation, Makoto Shinkai style)。
+角色与背景 (Character & Background): 标志性的大眼睛, 风格化发型, 动漫人物设计, 精细绘制的背景, 概念艺术背景。
+3. 写实风格 (Photorealistic Style)
+核心理念： 追求对现实世界的高度模拟，通过精确的光影计算、丰富的细节纹理和逼真的物理材质，生成与专业相机拍摄无异的图像。
+风格精髓： 此风格的目标是“欺骗眼睛”，让观者无法分辨图像是生成还是拍摄的。它强调物理正确性（PBR），从光线反射、折射到物体表面的微观纹理，都力求符合现实规律，核心是极致的细节和无懈可击的真实感。
+核心技术指令：
+构图与镜头 (Composition & Lens): 专业摄影构图, 单反相机拍摄 (DSLR Photography), 定焦镜头效果 (e.g., 50mm f/1.8), 照片级真实感, 微距摄影。
+光影与氛围 (Lighting & Atmosphere): 自然光 (Natural Lighting), 柔光箱布光 (Softbox Lighting), 全局光照 (Global Illumination), 精确的阴影投射, 物理准确的光线追踪。
+色彩与调色 (Color & Grading): 真实的色彩还原, 高动态范围 (HDR), 无明显风格化调色, sRGB色彩空间, RAW照片质感。
+画质与纹理 (Quality & Texture): 超写实 (Hyperrealistic), 极致细节 (Insane Detail), 皮肤纹理 (Skin Pores), 材质细节 (Material Textures), 8K超高清分辨率。
+4. 奇幻风格 (Fantasy Style)
+核心理念： 融合魔法、神话与史诗元素，通过超凡的想象力和宏大的场景构建，创造一个充满敬畏感和神秘色彩的幻想世界。
+风格精髓： 此风格致力于将“不可能”变为“可信”。它将现实中不存在的元素（如魔法、巨龙）与符合物理和美学逻辑的场景相结合，通过宏伟的构图、梦幻的光效和充满想象力的设计，营造强烈的史诗感和沉浸感。
+核心技术指令：
+构图与场景 (Composition & Scene): 史诗级广角构图 (Epic Wide Shot), 概念艺术 (Concept Art), 宏伟的建筑, 漂浮的岛屿, 魔法森林, 数字绘画 (Digital Painting)。
+光影与氛围 (Lighting & Atmosphere): 魔法光辉 (Magical Glow), 神圣光芒 (Divine Light), 发光粒子, 体积雾 (Volumetric Fog), 梦幻氛围 (Dreamlike Atmosphere), 神秘主义。
+色彩与调色 (Color & Grading): 丰富且富有想象力的调色板, 高对比度, 星云色彩, 发光元素的色彩运用。
+核心元素 (Core Elements): 魔法符文, 幻想生物 (龙, 精灵, 独角兽), 古代遗迹, 华丽的盔甲与武器, 神话主题。
+5. 复古风格 (Retro Style)
+核心理念： 捕捉并再现特定历史时期（尤其是20世纪中后期）的视觉特征，通过模拟旧式摄影器材的质感和当时的流行色调，唤起怀旧情怀。
+风格精髓： 此风格的核心是“年代感”。它并非简单地将画面变旧，而是精确复刻特定时代的美学印记，如80年代的霓虹与合成器波、70年代的暖色调与迪斯科文化，或是老式胶片的独特化学反应，营造一种温暖、不完美但充满人情味的视觉体验。
+核心技术指令：
+构图与媒介 (Composition & Medium): 宝丽来相纸 (Polaroid), 柯达克罗姆胶片 (Kodachrome), VHS录像带画面, 20世纪80/90年代摄影风格。
+光影与氛围 (Lighting & Atmosphere): 柔和的自然光, 霓虹灯光, 漏光效果 (Light Leaks), 光晕 (Halation), 怀旧氛围 (Nostalgic Atmosphere)。
+色彩与调色 (Color & Grading): 褪色的色彩, 温暖的黄色/棕色调, 低饱和度, 高色彩容差, 独特的胶片色偏。
+画质与纹理 (Quality & Texture): 胶片颗粒 (Film Grain), 轻微的噪点和划痕, 晕影 (Vignetting), 柔软的焦点。
+6. 极简风格 (Minimalist Style)
+核心理念： 遵循“少即是多”的原则，通过提炼核心元素、运用大面积负空间和限制性色彩，传达出宁静、秩序和高度的视觉纯粹性。
+风格精髓： 此风格是一种视觉上的“断舍离”。它主动剔除所有不必要的干扰元素，强迫观者将注意力集中在主体、形态、色彩和空间关系上。其美感来源于极致的简洁、和谐的比例和背后蕴含的冷静与专注。
+核心技术指令：
+构图与空间 (Composition & Space): 极简主义 (Minimalism), 大量负空间 (Negative Space), 中心构图, 对称构图, 几何形状, 简洁线条。
+光影与氛围 (Lighting & Atmosphere): 简洁的布光, 柔和的阴影, 自然采光, 干净、宁静的氛围 (Clean, Serene Atmosphere), 禅意 (Zen)。
+色彩与调色 (Color & Grading): 单色 (Monochromatic), 限制性调色板 (Limited Color Palette), 莫兰迪色系, 纯色背景, 黑白灰。
+主体与细节 (Subject & Detail): 单一主体, 抽象形态, 无多余装饰, 关注物体的轮廓和形式。
+7. 黑色电影 (Film Noir)
+核心理念： 运用高反差的黑白光影和充满压抑感的构图，塑造一个道德模糊、充满宿命感和悬疑色彩的硬汉派侦探世界。
+风格精髓： 光影即是语言。此风格利用强烈的明暗对比（Chiaroscuro）来切割画面、隐藏信息、塑造人物内心。巨大的阴影不仅是视觉元素，更是悬疑、危险和角色内心黑暗面的外化，营造出一种独特的、充满表现主义色彩的悲观美学。
+核心技术指令：
+构图与角度 (Composition & Angle): 低角度拍摄, 荷兰角, 不平衡构图, 强调线条和阴影的几何感。
+光影与氛围 (Lighting & Atmosphere): 低调照明 (Low-Key Lighting), 硬光 (Hard Light), 强烈的光影对比 (Chiaroscuro), 巨大的投影, 百叶窗光影, 烟雾或雨夜氛围。
+色彩与调色 (Color & Grading): 高对比度黑白摄影, 或带有极低饱和度的“彩色黑色电影”(Neo-Noir)。
+核心元素 (Core Elements): 侦探, 致命女人 (Femme Fatale), 雨中街道, 威尼斯百叶窗, 烟雾, 宿命感。
+8. 赛博朋克 (Cyberpunk)
+核心理念： 在一个“高科技，低生活”的反乌托邦未来中，通过炫目的霓虹光污染、压抑的城市景观和人机融合的元素，探索技术异化与社会阶级的主题。
+风格精髓： 视觉上的“混乱”与“秩序”并存。一方面是未来科技的炫目（霓虹灯、全息广告），另一方面是底层社会的拥挤、潮湿和衰败。这种强烈的视觉矛盾是赛博朋克美学的核心，营造出一种既迷人又令人不安的未来感。
+核心技术指令：
+构图与场景 (Composition & Scene): 垂直感强的摩天大楼, 拥挤的街道, 未来主义城市景观, 反乌托邦建筑, 数字朋克美学。
+光影与氛围 (Lighting & Atmosphere): 霓虹灯光污染 (Neon Light Pollution), 全息投影, 反射的潮湿地面, 压抑的、阴雨连绵的氛围, 科技感。
+色彩与调色 (Color & Grading): 标志性的霓虹色调 (洋红, 青色, 紫色), 与黑暗背景形成强烈对比, 故障艺术 (Glitch Art) 色彩。
+核心元素 (Core Elements): 机械义体, 生物改造, 飞行汽车, 错综复杂的电缆, AI, 巨型企业标识。

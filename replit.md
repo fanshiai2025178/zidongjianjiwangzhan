@@ -29,6 +29,11 @@ The platform features a dark-themed creative studio interface, drawing inspirati
     -   All translation operations use `VOLCENGINE_TRANSLATE_API_KEY` endpoint to avoid resource conflicts.
 -   **Consistency Management**: Ensures character and style consistency across segments by using a Visual Bible, detailed preset style mappings, and explicit reference image guidance.
 -   **Aspect Ratio Handling**: Automatically tracks and alerts users about aspect ratio changes, suggesting regeneration for consistency.
+-   **Preset Style System**: 8 built-in preset styles (cinema, anime, realistic, fantasy, retro, minimalist, noir, cyberpunk) with fixed, professionally-crafted description templates. Each preset includes:
+    -   Core philosophy and artistic essence
+    -   Detailed technical directives covering composition, lighting, color grading, and quality parameters
+    -   Real stock images for visual reference
+    -   Instant display without AI processing (no API calls)
 
 ### Feature Specifications
 
@@ -56,7 +61,7 @@ The platform features a dark-themed creative studio interface, drawing inspirati
     -   Endpoint `ep-20251016063909-7l6gr` (VOLCENGINE_KEYWORD_API_KEY): Dedicated for keyword extraction (single and batch).
     -   Endpoint `ep-20251016064746-rb9dk` (VOLCENGINE_OPTIMIZE_API_KEY): Dedicated for prompt optimization.
     -   Endpoint `ep-20251017114027-mqcbk` (VOLCENGINE_TRANSLATE_API_KEY): Dedicated for Chinese-to-English translation (descriptions and keywords).
-    -   Endpoint `ep-20251018042302-z6gc6` (VOLCENGINE_DOUBAO_API_KEY): **Doubao 多模态 API**, dedicated for image-based style recognition (character images, style references, preset analysis).
+    -   Endpoint `ep-20251018042302-z6gc6` (VOLCENGINE_DOUBAO_API_KEY): **Doubao 多模态 API**, dedicated for image-based style recognition (user-uploaded character images and style reference images only; preset styles use fixed descriptions).
     -   All endpoints use `VOLCENGINE_ACCESS_KEY` as Bearer Token for authentication.
 -   **聚光Chat API (gemini-2.5-flash-image-preview model)**: For image generation.
 -   **Neon Database**: Serverless PostgreSQL.
