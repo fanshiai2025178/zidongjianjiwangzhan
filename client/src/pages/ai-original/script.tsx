@@ -10,7 +10,7 @@ import { useProject } from "@/hooks/use-project";
 
 export default function ScriptPage() {
   const [, setLocation] = useLocation();
-  const { project, updateScriptContent, updateCurrentStep } = useProject();
+  const { project, updateScriptContent, updateSegments, updateCurrentStep } = useProject();
   const [script, setScript] = useState(project?.scriptContent || "");
 
   useEffect(() => {
@@ -20,6 +20,10 @@ export default function ScriptPage() {
   }, [project]);
 
   const handleContinue = () => {
+    // 如果文案改变了，清空旧的分段数据
+    if (project?.scriptContent && script !== project.scriptContent) {
+      updateSegments([]);
+    }
     updateScriptContent(script);
     updateCurrentStep(2);
     setLocation("/ai-original/segments");
