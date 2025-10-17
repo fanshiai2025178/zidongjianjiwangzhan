@@ -197,8 +197,8 @@ export async function translateText(
   chineseText: string,
   translationType: "description" | "keywords" = "description"
 ): Promise<string> {
-  // 翻译端点ID作为model参数
-  const endpointId = process.env.VOLCENGINE_TRANSLATE_ENDPOINT_ID;
+  // 翻译端点ID（与其他API配置模式一致，使用*_API_KEY存储端点ID）
+  const endpointId = process.env.VOLCENGINE_TRANSLATE_API_KEY;
   // 使用统一的火山引擎ACCESS_KEY作为Bearer Token
   const apiKey = process.env.VOLCENGINE_ACCESS_KEY;
   
