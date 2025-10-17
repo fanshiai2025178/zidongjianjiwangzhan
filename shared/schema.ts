@@ -32,10 +32,13 @@ export type Project = typeof projects.$inferSelect;
 export interface StyleSettings {
   useCharacterReference: boolean;
   characterImageUrl?: string;
+  characterAnalysis?: string; // AI识别的人物形象描述
   useStyleReference: boolean;
   styleImageUrl?: string;
+  styleAnalysis?: string; // AI识别的风格描述
   usePresetStyle: boolean;
   presetStyleId?: string;
+  presetStyleAnalysis?: string; // AI识别的预设风格描述
 }
 
 // 分镜片段类型

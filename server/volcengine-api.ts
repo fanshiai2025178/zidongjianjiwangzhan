@@ -268,3 +268,97 @@ ${sourceText}`
   
   return translatedText.trim();
 }
+
+/**
+ * 专门的风格识别API
+ * 使用火山引擎DeepSeek风格识别端点（Bearer Token认证）
+ * 负责识别人物形象、风格参考图片或预设风格
+ */
+export async function analyzeStyle(
+  analysisType: "character" | "style" | "preset",
+  imageBase64OrPresetInfo: string
+): Promise<string> {
+  // 风格识别端点ID（与其他API配置模式一致，使用*_API_KEY存储端点ID）
+  const endpointId = process.env.VOLCENGINE_STYLE_API_KEY;
+  // 使用统一的火山引擎ACCESS_KEY作为Bearer Token
+  const apiKey = process.env.VOLCENGINE_ACCESS_KEY;
+  
+  if (!endpointId || !apiKey) {
+    throw new Error("Volcengine Style API credentials are not configured");
+  }
+
+  let systemPrompt = "";
+  let userPrompt = "";
+
+  switch (analysisType) {
+    case "character":
+      systemPrompt = "你是一位专业的人物形象分析专家，能够精准识别人物的外貌特征、风格和气质。";
+      userPrompt = `请仔细分析这张人物形象图片，提供详细的描述，包括：
+1. 人物的外貌特征（性别、年龄段、发型、肤色等）
+2. 服装风格和配饰
+3. 整体气质和形象定位
+
+请用简洁专业的语言描述，不超过150字。用于后续AI视频生成的人物一致性参考。
+
+图片base64: ${imageBase64OrPresetInfo}`;
+      break;
+
+    case "style":
+      systemPrompt = "你是一位专业的视觉风格分析专家，能够精准识别图片的艺术风格、色彩氛围和视觉特点。";
+      userPrompt = `请仔细分析这张风格参考图片，提供详细的描述，包括：
+1. 整体艺术风格（如写实、动漫、复古、未来科幻等）
+2. 色彩基调和氛围（如冷色调、暖色调、高饱和度等）
+3. 构图特点和视觉元素
+4. 光影处理方式
+
+请用简洁专业的语言描述，不超过150字。用于后续AI视频生成的风格一致性参考。
+
+图片base64: ${imageBase64OrPresetInfo}`;
+      break;
+
+    case "preset":
+      systemPrompt = "你是一位专业的视觉风格专家，能够详细阐释不同艺术风格的特征和应用要点。";
+      userPrompt = `请详细解析"${imageBase64OrPresetInfo}"这种视觉风格，提供专业的描述，包括：
+1. 该风格的核心视觉特征
+2. 典型的色彩运用和光影处理
+3. 常见的构图和镜头语言
+4. 适合表现的场景和情感
+
+请用简洁专业的语言描述，不超过150字。用于指导AI视频生成的风格表现。`;
+      break;
+  }
+
+  const requestBody = JSON.stringify({
+    model: endpointId,
+    messages: [
+      {
+        role: "system",
+        content: systemPrompt
+      },
+      {
+        role: "user",
+        content: userPrompt
+      }
+    ],
+    temperature: 0.5,
+  });
+
+  const response = await fetch("https://ark.cn-beijing.volces.com/api/v3/chat/completions", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "Authorization": `Bearer ${apiKey}`,
+    },
+    body: requestBody,
+  });
+
+  if (!response.ok) {
+    const error = await response.text();
+    throw new Error(`Volcengine Style API error: ${error}`);
+  }
+
+  const data = await response.json();
+  const analysis = data.choices?.[0]?.message?.content || "";
+  
+  return analysis.trim();
+}
