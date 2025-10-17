@@ -122,6 +122,7 @@ export default function DescriptionsPage() {
       return { segmentId, description: data.description, descriptionEn: data.descriptionEn };
     },
     onSuccess: async (data: { segmentId: string, description: string, descriptionEn?: string }) => {
+      console.log("[Description Success] Updating segment:", data.segmentId);
       const currentAspectRatio = project?.aspectRatio || "16:9";
       const updatedSegments = segments.map(seg =>
         seg.id === data.segmentId ? { 
@@ -132,6 +133,7 @@ export default function DescriptionsPage() {
         } : seg
       );
       updateSegments(updatedSegments);
+      console.log("[Description Success] Segments updated");
       
       // 自动保存项目
       if (project?.id) {
