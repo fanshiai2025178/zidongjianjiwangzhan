@@ -48,7 +48,8 @@ export interface Segment {
   sceneDescription?: string; // 中文描述词
   sceneDescriptionEn?: string; // 英文描述词
   descriptionAspectRatio?: string; // 记录生成描述词时的比例
-  keywords?: string; // 关键词提取结果
+  keywords?: string; // 中文关键词（给用户看和修改）
+  keywordsEn?: string; // 英文关键词（给AI使用）
   optimizedPrompt?: string; // 提示词优化结果
   imageUrl?: string;
   videoUrl?: string;
