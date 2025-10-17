@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Card } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
-import { Upload, ArrowLeft, X, Sparkles, Edit2 } from "lucide-react";
+import { Upload, ArrowLeft, X, Sparkles, Edit2, Loader2 } from "lucide-react";
 import { useProject } from "@/hooks/use-project";
 import { useToast } from "@/hooks/use-toast";
 import { Segment } from "@shared/schema";
@@ -708,15 +708,24 @@ export default function StylePage() {
             <Button
               variant="outline"
               onClick={() => handleContinue()}
+              disabled={analyzeStyleMutation.isPending}
               data-testid="button-skip"
             >
               跳过
             </Button>
             <Button
               onClick={() => handleContinue()}
+              disabled={analyzeStyleMutation.isPending}
               data-testid="button-confirm-style"
             >
-              确认选择
+              {analyzeStyleMutation.isPending ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  AI识别中...
+                </>
+              ) : (
+                "确认选择"
+              )}
             </Button>
           </div>
         </div>
