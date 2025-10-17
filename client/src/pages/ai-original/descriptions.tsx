@@ -886,10 +886,20 @@ export default function DescriptionsPage() {
                 className="w-full"
                 size="lg"
                 onClick={() => setLocation("/ai-original/style")}
+                disabled={batchGeneratingDescriptions}
                 data-testid="button-next-style"
               >
-                <ArrowRight className="h-4 w-4 mr-2" />
-                进入风格定制
+                {batchGeneratingDescriptions ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    批量生成中...
+                  </>
+                ) : (
+                  <>
+                    <ArrowRight className="h-4 w-4 mr-2" />
+                    进入风格定制
+                  </>
+                )}
               </Button>
             </Card>
           </div>
