@@ -307,10 +307,10 @@ export default function MaterialsPage() {
   // 生成单个图片
   const generateSingleImage = async (segmentId: string, segs: Segment[] = segments): Promise<Segment[] | null> => {
     const segment = segs.find(s => s.id === segmentId);
-    if (!segment?.sceneDescriptionEn) {
+    if (!segment?.optimizedPrompt) {
       toast({
         title: "提示",
-        description: "请先生成场景描述",
+        description: "请先进行提示词优化",
         variant: "destructive",
       });
       return null;
@@ -319,8 +319,8 @@ export default function MaterialsPage() {
     setGeneratingImages(prev => new Set(prev).add(segmentId));
 
     try {
-      // 使用优化后的提示词，如果没有则使用英文描述词
-      const promptToUse = segment.optimizedPrompt || segment.sceneDescriptionEn;
+      // 使用优化后的提示词
+      const promptToUse = segment.optimizedPrompt;
       
       const response = await apiRequest("POST", "/api/images/generate", {
         prompt: promptToUse,

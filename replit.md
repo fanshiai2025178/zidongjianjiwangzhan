@@ -40,6 +40,7 @@ This is an AI-powered video creation platform designed to streamline professiona
   - 文生视频：增强动态描述、镜头语言、时间结构
   - 文生图：优化构图细节、光影氛围、视觉层次
 - **数据模型**：Segment接口新增`optimizedPrompt`字段存储优化结果
+- **图片生成依赖**：图片生成必须使用提示词优化结果，不使用描述词或关键词
 - **表格布局更新**：提示词优化 | 批量生成图片 | 批量生成视频
 
 **火山引擎API认证方法变更（重要）**
