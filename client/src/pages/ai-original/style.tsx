@@ -5,10 +5,13 @@ import { StepProgress } from "@/components/step-progress";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Card } from "@/components/ui/card";
-import { Upload, ArrowLeft, X } from "lucide-react";
+import { Textarea } from "@/components/ui/textarea";
+import { Upload, ArrowLeft, X, Sparkles, Edit2 } from "lucide-react";
 import { useProject } from "@/hooks/use-project";
 import { useToast } from "@/hooks/use-toast";
 import { Segment } from "@shared/schema";
+import { useMutation } from "@tanstack/react-query";
+import { apiRequest } from "@/lib/queryClient";
 
 const presetStyles = [
   {
@@ -75,8 +78,49 @@ export default function StylePage() {
   const [characterImage, setCharacterImage] = useState<string | null>(null);
   const [styleImage, setStyleImage] = useState<string | null>(null);
   
+  // AI识别结果状态
+  const [characterAnalysis, setCharacterAnalysis] = useState("");
+  const [styleAnalysis, setStyleAnalysis] = useState("");
+  const [presetStyleAnalysis, setPresetStyleAnalysis] = useState("");
+  
+  // 编辑模式状态
+  const [editingCharacter, setEditingCharacter] = useState(false);
+  const [editingStyle, setEditingStyle] = useState(false);
+  const [editingPreset, setEditingPreset] = useState(false);
+  
   const characterInputRef = useRef<HTMLInputElement>(null);
   const styleInputRef = useRef<HTMLInputElement>(null);
+
+  // AI识别风格的mutation
+  const analyzeStyleMutation = useMutation({
+    mutationFn: async ({ analysisType, content }: { analysisType: string; content: string }) => {
+      const response = await apiRequest("POST", "/api/style/analyze", {
+        analysisType,
+        imageBase64OrPresetInfo: content,
+      });
+      return response.json();
+    },
+    onSuccess: (data, variables) => {
+      if (variables.analysisType === "character") {
+        setCharacterAnalysis(data.analysis);
+      } else if (variables.analysisType === "style") {
+        setStyleAnalysis(data.analysis);
+      } else if (variables.analysisType === "preset") {
+        setPresetStyleAnalysis(data.analysis);
+      }
+      toast({
+        title: "识别完成",
+        description: "AI已成功识别风格特征",
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "识别失败",
+        description: error instanceof Error ? error.message : "风格识别失败，请重试",
+        variant: "destructive",
+      });
+    },
+  });
 
   useEffect(() => {
     if (!project) {
@@ -89,6 +133,11 @@ export default function StylePage() {
       setUseStyleRef(settings.useStyleReference || false);
       setUsePreset(settings.usePresetStyle || false);
       setSelectedStyle(settings.presetStyleId || "cinema");
+      setCharacterImage(settings.characterImageUrl || null);
+      setStyleImage(settings.styleImageUrl || null);
+      setCharacterAnalysis(settings.characterAnalysis || "");
+      setStyleAnalysis(settings.styleAnalysis || "");
+      setPresetStyleAnalysis(settings.presetStyleAnalysis || "");
     }
   }, [project, setLocation]);
 
@@ -121,7 +170,13 @@ export default function StylePage() {
       }
       const reader = new FileReader();
       reader.onload = (event) => {
-        setCharacterImage(event.target?.result as string);
+        const base64 = event.target?.result as string;
+        setCharacterImage(base64);
+        // 自动触发AI识别
+        analyzeStyleMutation.mutate({
+          analysisType: "character",
+          content: base64,
+        });
       };
       reader.readAsDataURL(file);
     }
@@ -140,9 +195,28 @@ export default function StylePage() {
       }
       const reader = new FileReader();
       reader.onload = (event) => {
-        setStyleImage(event.target?.result as string);
+        const base64 = event.target?.result as string;
+        setStyleImage(base64);
+        // 自动触发AI识别
+        analyzeStyleMutation.mutate({
+          analysisType: "style",
+          content: base64,
+        });
       };
       reader.readAsDataURL(file);
+    }
+  };
+
+  // 处理预设风格选择（触发AI识别）
+  const handlePresetStyleSelect = (styleId: string) => {
+    setSelectedStyle(styleId);
+    const style = presetStyles.find(s => s.id === styleId);
+    if (style) {
+      // 自动触发AI识别
+      analyzeStyleMutation.mutate({
+        analysisType: "preset",
+        content: style.name,
+      });
     }
   };
 
@@ -150,10 +224,13 @@ export default function StylePage() {
     updateStyleSettings({
       useCharacterReference: useCharacterRef,
       characterImageUrl: characterImage || undefined,
+      characterAnalysis: characterAnalysis || undefined,
       useStyleReference: useStyleRef,
       styleImageUrl: styleImage || undefined,
+      styleAnalysis: styleAnalysis || undefined,
       usePresetStyle: usePreset,
       presetStyleId: selectedStyle,
+      presetStyleAnalysis: presetStyleAnalysis || undefined,
     });
     updateCurrentStep(6);
     setLocation("/ai-original/materials");
@@ -256,6 +333,53 @@ export default function StylePage() {
                       </p>
                     </div>
                   )}
+
+                  {/* AI识别结果展示和编辑 */}
+                  {characterAnalysis && (
+                    <div className="mt-4 p-4 bg-card border border-card-border rounded-lg">
+                      <div className="flex items-start justify-between mb-2">
+                        <div className="flex items-center gap-2">
+                          <Sparkles className="h-4 w-4 text-primary" />
+                          <h4 className="text-sm font-medium text-foreground">AI识别结果</h4>
+                        </div>
+                        {!editingCharacter ? (
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => setEditingCharacter(true)}
+                            data-testid="button-edit-character-analysis"
+                          >
+                            <Edit2 className="h-3 w-3 mr-1" />
+                            编辑
+                          </Button>
+                        ) : (
+                          <Button
+                            size="sm"
+                            onClick={() => setEditingCharacter(false)}
+                            data-testid="button-save-character-analysis"
+                          >
+                            保存
+                          </Button>
+                        )}
+                      </div>
+                      {editingCharacter ? (
+                        <Textarea
+                          value={characterAnalysis}
+                          onChange={(e) => setCharacterAnalysis(e.target.value)}
+                          className="min-h-[100px] text-sm"
+                          placeholder="编辑人物形象识别结果..."
+                          data-testid="textarea-character-analysis"
+                        />
+                      ) : (
+                        <p className="text-sm text-muted-foreground whitespace-pre-wrap" data-testid="text-character-analysis">
+                          {characterAnalysis}
+                        </p>
+                      )}
+                      {analyzeStyleMutation.isPending && analyzeStyleMutation.variables?.analysisType === "character" && (
+                        <p className="text-xs text-muted-foreground mt-2">AI正在识别中...</p>
+                      )}
+                    </div>
+                  )}
                 </div>
               )}
 
@@ -310,6 +434,53 @@ export default function StylePage() {
                       </p>
                     </div>
                   )}
+
+                  {/* AI识别结果展示和编辑 - 风格参考 */}
+                  {styleAnalysis && (
+                    <div className="mt-4 p-4 bg-card border border-card-border rounded-lg">
+                      <div className="flex items-start justify-between mb-2">
+                        <div className="flex items-center gap-2">
+                          <Sparkles className="h-4 w-4 text-primary" />
+                          <h4 className="text-sm font-medium text-foreground">AI识别结果</h4>
+                        </div>
+                        {!editingStyle ? (
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => setEditingStyle(true)}
+                            data-testid="button-edit-style-analysis"
+                          >
+                            <Edit2 className="h-3 w-3 mr-1" />
+                            编辑
+                          </Button>
+                        ) : (
+                          <Button
+                            size="sm"
+                            onClick={() => setEditingStyle(false)}
+                            data-testid="button-save-style-analysis"
+                          >
+                            保存
+                          </Button>
+                        )}
+                      </div>
+                      {editingStyle ? (
+                        <Textarea
+                          value={styleAnalysis}
+                          onChange={(e) => setStyleAnalysis(e.target.value)}
+                          className="min-h-[100px] text-sm"
+                          placeholder="编辑风格识别结果..."
+                          data-testid="textarea-style-analysis"
+                        />
+                      ) : (
+                        <p className="text-sm text-muted-foreground whitespace-pre-wrap" data-testid="text-style-analysis">
+                          {styleAnalysis}
+                        </p>
+                      )}
+                      {analyzeStyleMutation.isPending && analyzeStyleMutation.variables?.analysisType === "style" && (
+                        <p className="text-xs text-muted-foreground mt-2">AI正在识别中...</p>
+                      )}
+                    </div>
+                  )}
                 </div>
               )}
 
@@ -343,7 +514,7 @@ export default function StylePage() {
                             ? "ring-2 ring-primary"
                             : ""
                         )}
-                        onClick={() => setSelectedStyle(style.id)}
+                        onClick={() => handlePresetStyleSelect(style.id)}
                         data-testid={`card-style-${style.id}`}
                       >
                         <div className="aspect-video bg-muted"></div>
@@ -358,6 +529,53 @@ export default function StylePage() {
                       </Card>
                     ))}
                   </div>
+
+                  {/* AI识别结果展示和编辑 - 预设风格 */}
+                  {presetStyleAnalysis && (
+                    <div className="mt-4 p-4 bg-card border border-card-border rounded-lg">
+                      <div className="flex items-start justify-between mb-2">
+                        <div className="flex items-center gap-2">
+                          <Sparkles className="h-4 w-4 text-primary" />
+                          <h4 className="text-sm font-medium text-foreground">AI识别结果</h4>
+                        </div>
+                        {!editingPreset ? (
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => setEditingPreset(true)}
+                            data-testid="button-edit-preset-analysis"
+                          >
+                            <Edit2 className="h-3 w-3 mr-1" />
+                            编辑
+                          </Button>
+                        ) : (
+                          <Button
+                            size="sm"
+                            onClick={() => setEditingPreset(false)}
+                            data-testid="button-save-preset-analysis"
+                          >
+                            保存
+                          </Button>
+                        )}
+                      </div>
+                      {editingPreset ? (
+                        <Textarea
+                          value={presetStyleAnalysis}
+                          onChange={(e) => setPresetStyleAnalysis(e.target.value)}
+                          className="min-h-[100px] text-sm"
+                          placeholder="编辑预设风格识别结果..."
+                          data-testid="textarea-preset-analysis"
+                        />
+                      ) : (
+                        <p className="text-sm text-muted-foreground whitespace-pre-wrap" data-testid="text-preset-analysis">
+                          {presetStyleAnalysis}
+                        </p>
+                      )}
+                      {analyzeStyleMutation.isPending && analyzeStyleMutation.variables?.analysisType === "preset" && (
+                        <p className="text-xs text-muted-foreground mt-2">AI正在识别中...</p>
+                      )}
+                    </div>
+                  )}
                 </div>
               )}
             </div>
