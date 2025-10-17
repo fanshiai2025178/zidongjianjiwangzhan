@@ -13,54 +13,64 @@ import { Segment } from "@shared/schema";
 import { useMutation } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 
+// 导入预设风格图片
+import cinemaImg from "@assets/stock_images/cinematic_movie_scen_d9e7f0e5.jpg";
+import animeImg from "@assets/stock_images/anime_style_illustra_ac99acd1.jpg";
+import realisticImg from "@assets/stock_images/realistic_photograph_60228ed1.jpg";
+import fantasyImg from "@assets/stock_images/fantasy_castle,_magi_14c828af.jpg";
+import retroImg from "@assets/stock_images/vintage_retro_1980s__5209ab00.jpg";
+import minimalistImg from "@assets/stock_images/minimalist_design,_c_4a45cbe1.jpg";
+import noirImg from "@assets/stock_images/film_noir_black_and__9a226515.jpg";
+import cyberpunkImg from "@assets/stock_images/cyberpunk_neon_city,_a154216c.jpg";
+
 const presetStyles = [
   {
     id: "cinema",
     name: "电影风格",
     description: "电影级的视觉氛围，真实电影质感的场景",
-    imageUrl: "/api/placeholder/400/225",
+    imageUrl: cinemaImg,
   },
   {
     id: "anime",
     name: "动漫风格",
     description: "日系动漫画风，鲜艳色彩和夸张的动作表现",
-    imageUrl: "/api/placeholder/400/225",
+    imageUrl: animeImg,
   },
   {
     id: "realistic",
     name: "写实风格",
     description: "真实世界的效果，自然场景和真实光影",
-    imageUrl: "/api/placeholder/400/225",
+    imageUrl: realisticImg,
   },
   {
     id: "fantasy",
     name: "奇幻风格",
     description: "魔法古堡神秘壮观，自然场景和高耸建筑交织",
-    imageUrl: "/api/placeholder/400/225",
+    imageUrl: fantasyImg,
   },
   {
     id: "retro",
     name: "复古风格",
     description: "80-90年代复古氛围，胶片质感与怀旧色调",
-    imageUrl: "/api/placeholder/400/225",
+    imageUrl: retroImg,
   },
   {
     id: "minimalist",
     name: "极简风格",
     description: "简洁干净的画面，注重留白和核心元素",
-    imageUrl: "/api/placeholder/400/225",
+    imageUrl: minimalistImg,
   },
   {
     id: "noir",
     name: "黑色电影",
     description: "黑白或低饱和度色调，强烈的明暗对比",
-    imageUrl: "/api/placeholder/400/225",
+    imageUrl: noirImg,
   },
   {
     id: "cyberpunk",
     name: "赛博朋克",
     description: "未来科技感，霓虹灯光和赛博空间氛围",
-    imageUrl: "/api/placeholder/400/225",
+    imageUrl: cyberpunkImg,
   },
 ];
 
@@ -536,7 +546,7 @@ export default function StylePage() {
                   <h3 className="text-sm font-medium text-foreground mb-4">
                     选择预设风格
                   </h3>
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
                     {presetStyles.map((style) => (
                       <Card
                         key={style.id}
@@ -549,7 +559,13 @@ export default function StylePage() {
                         onClick={() => handlePresetStyleSelect(style.id)}
                         data-testid={`card-style-${style.id}`}
                       >
-                        <div className="aspect-video bg-muted"></div>
+                        <div className="aspect-video bg-muted relative overflow-hidden">
+                          <img 
+                            src={style.imageUrl} 
+                            alt={style.name}
+                            className="w-full h-full object-cover"
+                          />
+                        </div>
                         <div className="p-3">
                           <h4 className="font-medium text-foreground text-sm">
                             {style.name}
@@ -562,50 +578,63 @@ export default function StylePage() {
                     ))}
                   </div>
 
-                  {/* AI识别结果展示和编辑 - 预设风格 */}
-                  {presetStyleAnalysis && (
-                    <div className="mt-4 p-4 bg-card border border-card-border rounded-lg">
-                      <div className="flex items-start justify-between mb-2">
-                        <div className="flex items-center gap-2">
-                          <Sparkles className="h-4 w-4 text-primary" />
-                          <h4 className="text-sm font-medium text-foreground">AI识别结果</h4>
-                        </div>
-                        {!editingPreset ? (
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            onClick={() => setEditingPreset(true)}
-                            data-testid="button-edit-preset-analysis"
-                          >
-                            <Edit2 className="h-3 w-3 mr-1" />
-                            编辑
-                          </Button>
-                        ) : (
-                          <Button
-                            size="sm"
-                            onClick={() => setEditingPreset(false)}
-                            data-testid="button-save-preset-analysis"
-                          >
-                            保存
-                          </Button>
-                        )}
+                  {/* 当选中风格后，显示该风格的详细描述 */}
+                  {selectedStyle && (
+                    <div className="mt-6">
+                      <div className="flex items-center gap-2 mb-4">
+                        <h4 className="text-sm font-medium text-foreground">
+                          当前选择：{presetStyles.find(s => s.id === selectedStyle)?.name}
+                        </h4>
                       </div>
-                      {editingPreset ? (
-                        <Textarea
-                          value={presetStyleAnalysis}
-                          onChange={(e) => setPresetStyleAnalysis(e.target.value)}
-                          className="min-h-[100px] text-sm"
-                          placeholder="编辑预设风格识别结果..."
-                          data-testid="textarea-preset-analysis"
-                        />
-                      ) : (
-                        <p className="text-sm text-muted-foreground whitespace-pre-wrap" data-testid="text-preset-analysis">
-                          {presetStyleAnalysis}
-                        </p>
-                      )}
-                      {analyzeStyleMutation.isPending && analyzeStyleMutation.variables?.analysisType === "preset" && (
-                        <p className="text-xs text-muted-foreground mt-2">AI正在识别中...</p>
-                      )}
+                      
+                      {/* AI识别结果展示和编辑 */}
+                      {presetStyleAnalysis ? (
+                        <div className="p-4 bg-card border border-card-border rounded-lg">
+                          <div className="flex items-start justify-between mb-2">
+                            <div className="flex items-center gap-2">
+                              <Sparkles className="h-4 w-4 text-primary" />
+                              <h4 className="text-sm font-medium text-foreground">风格详细描述</h4>
+                            </div>
+                            {!editingPreset ? (
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                onClick={() => setEditingPreset(true)}
+                                data-testid="button-edit-preset-analysis"
+                              >
+                                <Edit2 className="h-3 w-3 mr-1" />
+                                编辑
+                              </Button>
+                            ) : (
+                              <Button
+                                size="sm"
+                                onClick={() => setEditingPreset(false)}
+                                data-testid="button-save-preset-analysis"
+                              >
+                                保存
+                              </Button>
+                            )}
+                          </div>
+                          {editingPreset ? (
+                            <Textarea
+                              value={presetStyleAnalysis}
+                              onChange={(e) => setPresetStyleAnalysis(e.target.value)}
+                              className="min-h-[120px] text-sm"
+                              placeholder="编辑预设风格识别结果..."
+                              data-testid="textarea-preset-analysis"
+                            />
+                          ) : (
+                            <p className="text-sm text-muted-foreground whitespace-pre-wrap" data-testid="text-preset-analysis">
+                              {presetStyleAnalysis}
+                            </p>
+                          )}
+                        </div>
+                      ) : analyzeStyleMutation.isPending && analyzeStyleMutation.variables?.analysisType === "preset" ? (
+                        <div className="p-8 bg-card border border-card-border rounded-lg text-center">
+                          <Sparkles className="h-8 w-8 mx-auto text-primary animate-pulse mb-2" />
+                          <p className="text-sm text-muted-foreground">AI正在生成风格详细描述...</p>
+                        </div>
+                      ) : null}
                     </div>
                   )}
                 </div>
