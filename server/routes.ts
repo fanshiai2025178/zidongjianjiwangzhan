@@ -614,52 +614,52 @@ Return a JSON object with this exact structure:
       // 准备场景风格指南（来自用户选择的风格）
       const sceneStyleGuide = styleDescription || "No specific style guide provided.";
 
-      const systemPrompt = "You are an advanced AI assistant specializing in synthesizing visual information from multiple sources to create comprehensive keyword lists for AI image/video generation.";
+      const systemPrompt = "你是一位高级AI助手，专门从多个来源合成视觉信息，为AI图片/视频生成创建全面的关键词列表。";
 
-      const extractPrompt = `# AI Persona: Master Visual Synthesizer & Indexer
+      const extractPrompt = `# AI Persona: 主视觉合成与索引大师
 
-## 1. Core Mission
-You are an advanced AI assistant specializing in synthesizing information from multiple sources. Your mission is to read three distinct pieces of visual information (a scene description, a character guide, and a style guide) and merge their core elements into a single, comprehensive, comma-separated list of essential visual keywords in **ENGLISH**.
+## 1. 核心任务
+你是一位高级AI助手，专门从多个来源合成信息。你的任务是阅读三个不同的视觉信息片段（场景描述、角色指南和风格指南），并将其核心元素合并为一个全面的、以逗号分隔的**中文**关键词列表。
 
-## 2. Input Variables
-*   **[CHINESE_SCENE_DESCRIPTION]:** ${description}
-*   **[CHARACTER_STYLE_GUIDE]:** ${characterGuide}
-*   **[SCENE_STYLE_GUIDE]:** ${sceneStyleGuide}
+## 2. 输入变量
+*   **[中文场景描述]:** ${description}
+*   **[角色风格指南]:** ${characterGuide}
+*   **[场景风格指南]:** ${sceneStyleGuide}
 
-## 3. Step-by-Step Execution Logic (Chain of Thought)
+## 3. 逐步执行逻辑（思维链）
 
-### Step 1: Analyze the Scene Description
-- Read the **[CHINESE_SCENE_DESCRIPTION]**.
-- Identify the core elements related to **Setting, Key Objects, and Composition**.
-- Translate these elements into concise **ENGLISH** keywords.
-- **Example**: From "一个傍晚的办公室...", extract \`office, dusk, desk, smartphone, diagonal composition\`.
+### 第1步：分析场景描述
+- 阅读**[中文场景描述]**
+- 识别与**场景设置、关键物体和构图**相关的核心元素
+- 提取为简洁的**中文**关键词
+- **示例**：从"一个傍晚的办公室，桌上放着手机，对角线构图"中，提取\`办公室，傍晚，桌子，手机，对角线构图\`
 
-### Step 2: Analyze the Character Guide
-- Read the **[CHARACTER_STYLE_GUIDE]**.
-- Extract the non-negotiable keywords that define the character's appearance.
-- **Example**: From "A man in his late 20s, with short black hair, wearing a gray wool sweater...", extract \`1man, late 20s, short black hair, gray wool sweater\`.
+### 第2步：分析角色指南
+- 阅读**[角色风格指南]**（可能是英文，需要理解后转为中文关键词）
+- 提取定义角色外观的关键词
+- **示例**：从"A man in his late 20s, with short black hair, wearing a gray wool sweater"中，提取\`1人，20多岁男性，黑色短发，灰色毛衣\`
 
-### Step 3: Analyze the Style Guide
-- Read the **[SCENE_STYLE_GUIDE]**.
-- Extract the most powerful keywords that define the artistic direction.
-- **Example**: From "Cinematic photography, dramatic low-key lighting, desaturated color palette...", extract \`cinematic photography, dramatic lighting, low-key lighting, desaturated colors, moody atmosphere\`.
+### 第3步：分析风格指南
+- 阅读**[场景风格指南]**（可能是英文，需要理解后转为中文关键词）
+- 提取定义艺术方向的关键词
+- **示例**：从"Cinematic photography, dramatic low-key lighting, desaturated color palette"中，提取\`电影摄影，戏剧性低调光，去饱和色调，忧郁氛围\`
 
-### Step 4: Synthesize & De-duplicate
-- **Combine all keywords** from the three steps above into a single list.
-- **Remove any redundant keywords**. For instance, if the scene description mentioned a "gray sweater" and the character guide also specified a "gray sweater," only keep one.
-- **Prioritize and Order**: Arrange the final keywords in a logical sequence, typically:
-    1.  **Core Subject**: (e.g., \`1man, gray sweater...\`)
-    2.  **Core Action/Pose**: (e.g., \`sitting, thinking\`)
-    3.  **Setting & Environment**: (e.g., \`modern office, at dusk, cluttered desk\`)
-    4.  **Art Style & Lighting**: (e.g., \`cinematic photography, dramatic lighting\`)
-    5.  **Composition**: (e.g., \`close-up shot, rule of thirds\`)
-    6.  **Atmosphere & Mood**: (e.g., \`moody, introspective\`)
+### 第4步：合成与去重
+- **合并关键词**：将以上三个步骤的所有关键词合并为一个列表
+- **删除重复**：例如，场景描述中提到"灰色毛衣"，角色指南也提到，则只保留一个
+- **优先级排序**：按照以下逻辑顺序排列最终关键词：
+    1.  **核心主体**：(如\`1人，灰色毛衣\`)
+    2.  **核心动作/姿态**：(如\`坐着，思考\`)
+    3.  **场景与环境**：(如\`现代办公室，黄昏，杂乱的桌子\`)
+    4.  **艺术风格与光影**：(如\`电影摄影，戏剧性光影\`)
+    5.  **构图**：(如\`特写镜头，三分法\`)
+    6.  **氛围与情绪**：(如\`忧郁，内省\`)
 
-## 4. Output Format
-Return ONLY a JSON object with this exact structure:
+## 4. 输出格式
+只返回一个JSON对象，结构如下：
 \`\`\`json
 {
-  "keywords_en": "your synthesized English keywords here"
+  "keywords_cn": "你合成的中文关键词"
 }
 \`\`\``;
 
@@ -697,24 +697,34 @@ Return ONLY a JSON object with this exact structure:
       const rawContent = data.choices?.[0]?.message?.content || "";
 
       // 提取JSON对象
-      let keywordsEn = "";
+      let keywordsCn = "";
       try {
         const jsonMatch = rawContent.match(/\{[\s\S]*\}/);
         if (jsonMatch) {
           const parsed = JSON.parse(jsonMatch[0]);
-          keywordsEn = parsed.keywords_en || "";
+          keywordsCn = parsed.keywords_cn || "";
         } else {
           // 如果没有找到JSON，直接使用返回的文本作为关键词
-          keywordsEn = rawContent.trim();
+          keywordsCn = rawContent.trim();
         }
       } catch (parseError) {
         console.error("[Keyword Extract] JSON parse error, using raw content");
-        keywordsEn = rawContent.trim();
+        keywordsCn = rawContent.trim();
       }
 
-      console.log("[Keyword Extract] Successfully extracted keywords");
+      console.log("[Keyword Extract] Successfully extracted Chinese keywords");
+      
+      // 翻译为英文（用于AI生成）
+      let keywordsEn = keywordsCn;
+      try {
+        keywordsEn = await translateText(keywordsCn, "keywords", "zh-to-en");
+        console.log("[Keyword Extract] Successfully translated keywords to English");
+      } catch (translateError) {
+        console.error("[Keyword Extract] Translation error:", translateError);
+      }
       
       res.json({ 
+        keywords: keywordsCn,
         keywordsEn: keywordsEn
       });
     } catch (error) {
@@ -743,13 +753,13 @@ Return ONLY a JSON object with this exact structure:
       console.log("[Batch Keyword Extract] Style Description:", styleDescription ? "provided" : "not provided");
 
       const results = [];
-      const systemPrompt = "You are an advanced AI assistant specializing in synthesizing visual information from multiple sources to create comprehensive keyword lists for AI image/video generation.";
+      const systemPrompt = "你是一位高级AI助手，专门从多个来源合成视觉信息，为AI图片/视频生成创建全面的关键词列表。";
 
       // 准备角色风格指南（来自Visual Bible）
-      const characterGuide = visualBible?.core_elements_anchor || "No specific character guide provided.";
+      const characterGuide = visualBible?.core_elements_anchor || "无特定角色指南";
       
       // 准备场景风格指南（来自用户选择的风格）
-      const sceneStyleGuide = styleDescription || "No specific style guide provided.";
+      const sceneStyleGuide = styleDescription || "无特定风格指南";
 
       for (const segment of segments) {
         if (!segment.sceneDescription) {
@@ -760,51 +770,51 @@ Return ONLY a JSON object with this exact structure:
           continue;
         }
 
-        // 使用新的Master Visual Synthesizer & Indexer prompt
-        const extractPrompt = `# AI Persona: Master Visual Synthesizer & Indexer
+        // 使用新的Master Visual Synthesizer & Indexer prompt（中文版）
+        const extractPrompt = `# AI Persona: 主视觉合成与索引大师
 
-## 1. Core Mission
-You are an advanced AI assistant specializing in synthesizing information from multiple sources. Your mission is to read three distinct pieces of visual information (a scene description, a character guide, and a style guide) and merge their core elements into a single, comprehensive, comma-separated list of essential visual keywords in **ENGLISH**.
+## 1. 核心任务
+你是一位高级AI助手，专门从多个来源合成信息。你的任务是阅读三个不同的视觉信息片段（场景描述、角色指南和风格指南），并将其核心元素合并为一个全面的、以逗号分隔的**中文**关键词列表。
 
-## 2. Input Variables
-*   **[CHINESE_SCENE_DESCRIPTION]:** ${segment.sceneDescription}
-*   **[CHARACTER_STYLE_GUIDE]:** ${characterGuide}
-*   **[SCENE_STYLE_GUIDE]:** ${sceneStyleGuide}
+## 2. 输入变量
+*   **[中文场景描述]:** ${segment.sceneDescription}
+*   **[角色风格指南]:** ${characterGuide}
+*   **[场景风格指南]:** ${sceneStyleGuide}
 
-## 3. Step-by-Step Execution Logic (Chain of Thought)
+## 3. 逐步执行逻辑（思维链）
 
-### Step 1: Analyze the Scene Description
-- Read the **[CHINESE_SCENE_DESCRIPTION]**.
-- Identify the core elements related to **Setting, Key Objects, and Composition**.
-- Translate these elements into concise **ENGLISH** keywords.
-- **Example**: From "一个傍晚的办公室...", extract \`office, dusk, desk, smartphone, diagonal composition\`.
+### 第1步：分析场景描述
+- 阅读**[中文场景描述]**
+- 识别与**场景设置、关键物体和构图**相关的核心元素
+- 提取为简洁的**中文**关键词
+- **示例**：从"一个傍晚的办公室，桌上放着手机，对角线构图"中，提取\`办公室，傍晚，桌子，手机，对角线构图\`
 
-### Step 2: Analyze the Character Guide
-- Read the **[CHARACTER_STYLE_GUIDE]**.
-- Extract the non-negotiable keywords that define the character's appearance.
-- **Example**: From "A man in his late 20s, with short black hair, wearing a gray wool sweater...", extract \`1man, late 20s, short black hair, gray wool sweater\`.
+### 第2步：分析角色指南
+- 阅读**[角色风格指南]**（可能是英文，需要理解后转为中文关键词）
+- 提取定义角色外观的关键词
+- **示例**：从"A man in his late 20s, with short black hair, wearing a gray wool sweater"中，提取\`1人，20多岁男性，黑色短发，灰色毛衣\`
 
-### Step 3: Analyze the Style Guide
-- Read the **[SCENE_STYLE_GUIDE]**.
-- Extract the most powerful keywords that define the artistic direction.
-- **Example**: From "Cinematic photography, dramatic low-key lighting, desaturated color palette...", extract \`cinematic photography, dramatic lighting, low-key lighting, desaturated colors, moody atmosphere\`.
+### 第3步：分析风格指南
+- 阅读**[场景风格指南]**（可能是英文，需要理解后转为中文关键词）
+- 提取定义艺术方向的关键词
+- **示例**：从"Cinematic photography, dramatic low-key lighting, desaturated color palette"中，提取\`电影摄影，戏剧性低调光，去饱和色调，忧郁氛围\`
 
-### Step 4: Synthesize & De-duplicate
-- **Combine all keywords** from the three steps above into a single list.
-- **Remove any redundant keywords**. For instance, if the scene description mentioned a "gray sweater" and the character guide also specified a "gray sweater," only keep one.
-- **Prioritize and Order**: Arrange the final keywords in a logical sequence, typically:
-    1.  **Core Subject**: (e.g., \`1man, gray sweater...\`)
-    2.  **Core Action/Pose**: (e.g., \`sitting, thinking\`)
-    3.  **Setting & Environment**: (e.g., \`modern office, at dusk, cluttered desk\`)
-    4.  **Art Style & Lighting**: (e.g., \`cinematic photography, dramatic lighting\`)
-    5.  **Composition**: (e.g., \`close-up shot, rule of thirds\`)
-    6.  **Atmosphere & Mood**: (e.g., \`moody, introspective\`)
+### 第4步：合成与去重
+- **合并关键词**：将以上三个步骤的所有关键词合并为一个列表
+- **删除重复**：例如，场景描述中提到"灰色毛衣"，角色指南也提到，则只保留一个
+- **优先级排序**：按照以下逻辑顺序排列最终关键词：
+    1.  **核心主体**：(如\`1人，灰色毛衣\`)
+    2.  **核心动作/姿态**：(如\`坐着，思考\`)
+    3.  **场景与环境**：(如\`现代办公室，黄昏，杂乱的桌子\`)
+    4.  **艺术风格与光影**：(如\`电影摄影，戏剧性光影\`)
+    5.  **构图**：(如\`特写镜头，三分法\`)
+    6.  **氛围与情绪**：(如\`忧郁，内省\`)
 
-## 4. Output Format
-Return ONLY a JSON object with this exact structure:
+## 4. 输出格式
+只返回一个JSON对象，结构如下：
 \`\`\`json
 {
-  "keywords_en": "your synthesized English keywords here"
+  "keywords_cn": "你合成的中文关键词"
 }
 \`\`\``;
 
@@ -843,23 +853,32 @@ Return ONLY a JSON object with this exact structure:
           const rawContent = data.choices?.[0]?.message?.content || "";
 
           // 提取JSON对象
-          let keywordsEn = "";
+          let keywordsCn = "";
           try {
             const jsonMatch = rawContent.match(/\{[\s\S]*\}/);
             if (jsonMatch) {
               const parsed = JSON.parse(jsonMatch[0]);
-              keywordsEn = parsed.keywords_en || "";
+              keywordsCn = parsed.keywords_cn || "";
             } else {
               // 如果没有找到JSON，直接使用返回的文本作为关键词
-              keywordsEn = rawContent.trim();
+              keywordsCn = rawContent.trim();
             }
           } catch (parseError) {
             console.error(`[Batch Keyword Extract] JSON parse error for segment ${segment.id}, using raw content`);
-            keywordsEn = rawContent.trim();
+            keywordsCn = rawContent.trim();
+          }
+
+          // 翻译为英文（用于AI生成）
+          let keywordsEn = keywordsCn;
+          try {
+            keywordsEn = await translateText(keywordsCn, "keywords", "zh-to-en");
+          } catch (translateError) {
+            console.error(`[Batch Keyword Extract] Translation error for segment ${segment.id}:`, translateError);
           }
 
           results.push({
             id: segment.id,
+            keywords: keywordsCn,
             keywordsEn: keywordsEn,
           });
           console.log(`[Batch Keyword Extract] Extracted keywords for segment ${segment.id}`);

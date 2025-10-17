@@ -83,6 +83,7 @@ export default function MaterialsPage() {
       const updatedSegments = segments.map(seg =>
         seg.id === segmentId ? { 
           ...seg, 
+          keywords: data.keywords,
           keywordsEn: data.keywordsEn 
         } : seg
       );
@@ -121,7 +122,7 @@ export default function MaterialsPage() {
 
   // 批量关键词提取
   const handleBatchExtractKeywords = async () => {
-    const segmentsToExtract = segments.filter(s => s.sceneDescription && !s.keywordsEn);
+    const segmentsToExtract = segments.filter(s => s.sceneDescription && !s.keywords);
     
     if (segmentsToExtract.length === 0) {
       toast({
@@ -161,11 +162,12 @@ export default function MaterialsPage() {
       let currentSegments = [...segments];
       
       for (const result of results) {
-        if (result.keywordsEn) {
+        if (result.keywords) {
           currentSegments = currentSegments.map(seg =>
             seg.id === result.id ? { 
               ...seg, 
-              keywordsEn: result.keywordsEn
+              keywords: result.keywords,
+              keywordsEn: result.keywordsEn || result.keywords
             } : seg
           );
           successCount++;
@@ -721,7 +723,7 @@ export default function MaterialsPage() {
 
                 {/* 关键词提取 */}
                 <div className="col-span-2 p-3 border-r border-border">
-                  {segment.keywordsEn ? (
+                  {segment.keywords ? (
                     <div className="space-y-2">
                       {editingKeywordsId === segment.id ? (
                         <div className="space-y-2">
@@ -735,31 +737,61 @@ export default function MaterialsPage() {
                             <Button
                               size="sm"
                               onClick={async () => {
-                                const updated = segments.map(s =>
-                                  s.id === segment.id ? { 
-                                    ...s, 
-                                    keywordsEn: editedKeywords
-                                  } : s
-                                );
-                                updateSegments(updated);
-                                
-                                // 保存到后端
-                                if (project?.id) {
-                                  try {
+                                // 自动翻译为英文
+                                try {
+                                  const translateResponse = await apiRequest("POST", "/api/keywords/translate-to-english", {
+                                    chineseKeywords: editedKeywords,
+                                  });
+                                  const translateData = await translateResponse.json();
+                                  
+                                  const updated = segments.map(s =>
+                                    s.id === segment.id ? { 
+                                      ...s, 
+                                      keywords: editedKeywords,
+                                      keywordsEn: translateData.englishKeywords 
+                                    } : s
+                                  );
+                                  updateSegments(updated);
+                                  
+                                  // 保存到后端
+                                  if (project?.id) {
                                     await apiRequest("PATCH", `/api/projects/${project.id}`, {
                                       ...project,
                                       segments: updated,
                                     });
-                                  } catch (error) {
-                                    console.error("Failed to save project:", error);
                                   }
+                                  
+                                  toast({
+                                    title: "保存成功",
+                                    description: "关键词已更新并翻译为英文",
+                                  });
+                                  setEditingKeywordsId(null);
+                                } catch (error) {
+                                  console.error("Failed to translate keywords:", error);
+                                  // 即使翻译失败，仍保存中文
+                                  const updated = segments.map(s =>
+                                    s.id === segment.id ? { ...s, keywords: editedKeywords } : s
+                                  );
+                                  updateSegments(updated);
+                                  
+                                  if (project?.id) {
+                                    try {
+                                      await apiRequest("PATCH", `/api/projects/${project.id}`, {
+                                        ...project,
+                                        segments: updated,
+                                      });
+                                    } catch (error) {
+                                      console.error("Failed to save project:", error);
+                                    }
+                                  }
+                                  
+                                  setEditingKeywordsId(null);
+                                  toast({
+                                    title: "保存成功",
+                                    description: "关键词已保存，但英文翻译失败",
+                                    variant: "destructive",
+                                  });
                                 }
-                                
-                                toast({
-                                  title: "保存成功",
-                                  description: "关键词已更新",
-                                });
-                                setEditingKeywordsId(null);
                               }}
                               data-testid={`button-save-keywords-${segment.number}`}
                             >
@@ -780,7 +812,7 @@ export default function MaterialsPage() {
                       ) : (
                         <div className="group relative">
                           <div className="text-sm max-h-32 overflow-y-auto pr-8">
-                            {segment.keywordsEn}
+                            {segment.keywords}
                           </div>
                           <Button
                             size="icon"
@@ -788,7 +820,7 @@ export default function MaterialsPage() {
                             className="absolute top-0 right-0 h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
                             onClick={() => {
                               setEditingKeywordsId(segment.id);
-                              setEditedKeywords(segment.keywordsEn || "");
+                              setEditedKeywords(segment.keywords || "");
                             }}
                             data-testid={`button-edit-keywords-${segment.number}`}
                           >
