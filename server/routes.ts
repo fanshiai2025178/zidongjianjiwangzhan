@@ -3,7 +3,7 @@ import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { insertProjectSchema } from "@shared/schema";
 import { callJuguangAPI, generateImageWithJuguang } from "./juguang-api";
-import { callVolcengineDeepSeek, translateText } from "./volcengine-api";
+import { callVolcengineDeepSeek, translateText, analyzeStyle } from "./volcengine-api";
 
 // DeepSeek API调用（已废弃，改用 Gemini）
 async function callDeepSeekAPI(prompt: string, systemPrompt?: string): Promise<string> {
@@ -1193,6 +1193,37 @@ Output the optimized prompt directly, without explanations.`;
     } catch (error) {
       console.error("[Segments] Error:", error);
       res.status(500).json({ error: "Failed to generate segments", details: error instanceof Error ? error.message : String(error) });
+    }
+  });
+
+  // 风格识别API（使用专门的风格识别端点）
+  app.post("/api/style/analyze", async (req, res) => {
+    try {
+      const { analysisType, imageBase64OrPresetInfo } = req.body;
+      
+      if (!analysisType || !imageBase64OrPresetInfo) {
+        return res.status(400).json({ error: "Analysis type and content are required" });
+      }
+
+      if (!["character", "style", "preset"].includes(analysisType)) {
+        return res.status(400).json({ error: "Invalid analysis type. Must be 'character', 'style', or 'preset'" });
+      }
+
+      console.log(`[Style Analysis] Analyzing ${analysisType} using dedicated style API`);
+
+      const analysis = await analyzeStyle(
+        analysisType as "character" | "style" | "preset",
+        imageBase64OrPresetInfo
+      );
+
+      console.log(`[Style Analysis] Successfully analyzed ${analysisType}`);
+      res.json({ analysis });
+    } catch (error) {
+      console.error("[Style Analysis] Error:", error);
+      res.status(500).json({ 
+        error: "Failed to analyze style", 
+        details: error instanceof Error ? error.message : String(error) 
+      });
     }
   });
 
