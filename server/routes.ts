@@ -128,12 +128,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // 生成分镜描述API（使用火山引擎DeepSeek）
-  app.post("/api/descriptions/generate", async (req, res) => {
+  // API 0: Director - 生成 Visual Bible（视觉圣经）
+  app.post("/api/visual-bible/generate", async (req, res) => {
     try {
-      const { text, translation, language, generationMode = "text-to-image-to-video", aspectRatio = "16:9", styleSettings } = req.body;
-      if (!text) {
-        return res.status(400).json({ error: "Text is required" });
+      const { fullText } = req.body;
+      if (!fullText) {
+        return res.status(400).json({ error: "Full text is required" });
       }
 
       const volcengineEndpointId = process.env.VOLCENGINE_DEEPSEEK_API_KEY;
@@ -143,37 +143,185 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(500).json({ error: "Volcengine DeepSeek credentials are not configured" });
       }
 
-      console.log("[Description - Volcengine DeepSeek] Generating description for:", text.substring(0, 30) + "...");
-      console.log("[Description - Volcengine DeepSeek] Endpoint:", volcengineEndpointId);
-      console.log("[Description - Volcengine DeepSeek] Generation mode:", generationMode);
-      console.log("[Description - Volcengine DeepSeek] Aspect ratio:", aspectRatio);
-      console.log("[Description - Volcengine DeepSeek] Style settings:", styleSettings ? "Provided" : "None");
+      console.log("[Visual Bible - Director] Analyzing full text, length:", fullText.length);
 
-      // 构建提示词
-      const contentToDescribe = language === "English" && translation 
+      const directorPrompt = `# AI Persona: Film Director (Visual Bible Creator)
+
+## Mission
+You are an experienced film director. Read the **entire script** provided by the user and create a comprehensive "Visual Bible" — a master plan that will guide all storyboard artists to maintain perfect visual consistency across every scene.
+
+## Input
+**[FULL_SCRIPT]:**
+${fullText}
+
+## Your Task: Create the Visual Bible
+Analyze the full script and generate a detailed JSON object containing these five critical elements:
+
+### 1. overall_theme (整体主题)
+- What is the central theme or core idea of this story?
+- Example: "孤独个体在现代都市中寻找归属感" or "科技进步与人性温暖的对立统一"
+
+### 2. emotional_arc (情感弧线)
+- Describe the emotional journey from beginning to end.
+- Example: "从压抑焦虑 → 短暂释放 → 深层孤独 → 温暖希望"
+
+### 3. visual_metaphor (视觉隐喻)
+- What recurring visual metaphor or symbol should appear throughout?
+- Example: "玻璃窗/镜子（反映主角内心的隔离感）" or "暖光与冷光的对比（人性与科技）"
+
+### 4. lighting_and_color_plan (光影与色彩规划)
+- Define the lighting style and color palette for the entire story.
+- Be specific about color temperature, contrast, and mood.
+- Example: "整体冷色调（青蓝色主导），人物特写时加入暖橙色边缘光，营造疏离中的温暖"
+
+### 5. core_elements_anchor (核心元素锚点)
+- Define the exact visual appearance of recurring characters, objects, or settings.
+- **This is the consistency anchor** — every storyboard artist must follow this exactly.
+- Example: "主角Lynn：25岁左右，黑色短发，白色衬衫+深色长裤，眼神疲惫但坚定"
+
+## Output Format (MUST be valid JSON)
+\`\`\`json
+{
+  "overall_theme": "...",
+  "emotional_arc": "...",
+  "visual_metaphor": "...",
+  "lighting_and_color_plan": "...",
+  "core_elements_anchor": "..."
+}
+\`\`\`
+
+## Rules
+- Output **ONLY** the JSON object above. No additional text.
+- Write in Chinese (中文).
+- Be specific and detailed — this is the bible that ensures visual consistency.`;
+
+      const systemPrompt = "你是一位资深电影导演，擅长从剧本中提炼核心视觉元素，创建完整的视觉圣经（Visual Bible）来指导整个项目的视觉统一性。";
+
+      const requestBody = JSON.stringify({
+        model: volcengineEndpointId,
+        messages: [
+          {
+            role: "system",
+            content: systemPrompt
+          },
+          {
+            role: "user",
+            content: directorPrompt
+          }
+        ],
+        temperature: 0.5,
+      });
+
+      const response = await fetch("https://ark.cn-beijing.volces.com/api/v3/chat/completions", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${apiKey}`,
+        },
+        body: requestBody,
+      });
+
+      if (!response.ok) {
+        const error = await response.text();
+        throw new Error(`Volcengine Director API error: ${error}`);
+      }
+
+      const data = await response.json();
+      const visualBibleText = data.choices?.[0]?.message?.content || "";
+      
+      // 提取JSON对象
+      let visualBible;
+      try {
+        const jsonMatch = visualBibleText.match(/\{[\s\S]*\}/);
+        if (jsonMatch) {
+          visualBible = JSON.parse(jsonMatch[0]);
+        } else {
+          throw new Error("No JSON object found in response");
+        }
+      } catch (parseError) {
+        console.error("[Visual Bible - Director] Failed to parse JSON:", visualBibleText);
+        throw new Error("Failed to parse Visual Bible JSON");
+      }
+
+      console.log("[Visual Bible - Director] Successfully generated Visual Bible");
+      
+      res.json({ visualBible });
+    } catch (error) {
+      console.error("[Visual Bible - Director] Error:", error);
+      res.status(500).json({ error: "Failed to generate Visual Bible", details: error instanceof Error ? error.message : String(error) });
+    }
+  });
+
+  // API 1: Storyboard Artist - 生成分镜描述（使用火山引擎DeepSeek + Visual Bible）
+  app.post("/api/descriptions/generate", async (req, res) => {
+    try {
+      const { text, translation, language, visualBible } = req.body;
+      if (!text) {
+        return res.status(400).json({ error: "Text is required" });
+      }
+      if (!visualBible) {
+        return res.status(400).json({ error: "Visual Bible is required" });
+      }
+
+      const volcengineEndpointId = process.env.VOLCENGINE_DEEPSEEK_API_KEY;
+      const apiKey = process.env.VOLCENGINE_ACCESS_KEY;
+      
+      if (!volcengineEndpointId || !apiKey) {
+        return res.status(500).json({ error: "Volcengine DeepSeek credentials are not configured" });
+      }
+
+      console.log("[Storyboard Artist] Generating description for:", text.substring(0, 30) + "...");
+      console.log("[Storyboard Artist] Visual Bible:", visualBible);
+
+      // 构建文本片段
+      const textSegment = language === "English" && translation 
         ? `${text}\n(中文翻译: ${translation})`
         : text;
 
-      // 新规则：生成纯客观的中文场景描述
-      const descriptionPrompt = `# Role: Objective Scene Describer
+      // 使用附件中的 Storyboard Artist prompt
+      const descriptionPrompt = `# AI Persona: Storyboard Artist (Under Director's Supervision)
 
-# Task
-Read the user's text segment. Your sole mission is to generate a detailed, objective, and purely descriptive scene in CHINESE. Imagine you are writing a script for a blind person, describing only what can be seen.
+## 1. Core Mission
+You are a meticulous storyboard artist working under a film director. Your mission is to take a specific scene (a text segment) and, while **STRICTLY ADHERING** to the director's "Visual Bible," design a single, powerful, well-composed **static storyboard panel** for it. Your loyalty is to the director's vision above all else.
 
-# Rules
-- **DO NOT** add any artistic style, camera angles, or emotional interpretation.
-- Describe the setting, characters, objects, and actions as literally as possible.
-- Focus on "what" is in the scene, not "how" it should look.
-- Output only the Chinese description paragraph.
-- Keep it concise (100-150 words in Chinese).
+## 2. Input Variables
+*   **[TEXT_SEGMENT]:** ${textSegment}
+*   **[VISUAL_BIBLE]:** ${JSON.stringify(visualBible, null, 2)}
 
-# Input Text:
-${contentToDescribe}
+## 3. Step-by-Step Execution Logic (Chain of Thought)
 
-# Output:
-(Provide only the Chinese objective scene description below)`;
+### Step 1: Study the Director's Orders
+- Read the **[VISUAL_BIBLE]** with extreme care. This is your absolute source of truth.
+- Pay special attention to the \`lighting_and_color_plan\` and the \`core_elements_anchor\`. These are non-negotiable.
+
+### Step 2: Analyze the Scene
+- Read the current **[TEXT_SEGMENT]** to understand its specific content.
+
+### Step 3: Design the Shot (Execution)
+- **Adhere to the Vision**: Compose a single, static image for the text segment that perfectly embodies the director's vision.
+    - **Lighting & Color**: Does the \`lighting_and_color_plan\` call for cold, artificial light for this part of the story? Then you MUST use it, even if the text mentions "sunshine." Your job is to interpret the scene *through the lens* of the director's plan.
+    - **Character Consistency**: Any character depicted (e.g., "Lynn," "coworker") **MUST STRICTLY** match the visual description provided in the \`core_elements_anchor\`. No exceptions.
+- **Freeze the Moment**: Capture a single, freezable instant. Eliminate all verbs of continuous action. Describe a static pose.
+- **Think Like a Painter**: Describe the composition (rule of thirds, symmetry), subject's position in the frame, foreground/background elements, and the exact physical pose and gaze of the subject.
+- **Be Objective**: Describe only what is visually present. Do not use interpretive words like "sad," "beautiful," or "cinematic." Describe the visual cues that *create* those feelings.
+
+### Step 4: Final Self-Correction (Quality Control)
+- Before finalizing your description, perform a last check.
+- **Ask yourself**: "Does the lighting I've described match the \`lighting_and_color_plan\`? Does the character look exactly like the \`core_elements_anchor\` says they should?"
+- If there are any inconsistencies, **revise your description now** until it is in 100% compliance with the **[VISUAL_BIBLE]**.
+
+### Step 5: Write the Final Description
+- Write the final, corrected storyboard panel description in a single, flowing paragraph of **CHINESE**.
+
+## 4. Output Format
+Return a JSON object with this exact structure:
+\`\`\`json
+{
+  "storyboard_description": "[在这里输出你最终创作出的、唯一的、为静态画面设计的、并且严格遵循了Visual Bible的中文分镜脚本]"
+}
+\`\`\``;
         
-      const systemPrompt = "你是一个专业的场景描述专家，擅长将文本转化为客观、详细的视觉场景描述（中文）。你的描述就像为盲人写剧本一样，只描述可以看到的内容，不添加任何艺术风格或情感解读。";
+      const systemPrompt = "你是一位专业的分镜师（Storyboard Artist），严格遵循导演提供的视觉圣经（Visual Bible），为每个文本片段设计静态分镜画面。你的忠诚度首先是对导演视觉的遵循，其次才是对文本的理解。";
       
       // 使用Bearer Token认证
       const requestBody = JSON.stringify({
@@ -206,23 +354,38 @@ ${contentToDescribe}
       }
 
       const data = await response.json();
-      const descriptionEn = data.choices?.[0]?.message?.content || "";
+      const responseText = data.choices?.[0]?.message?.content || "";
 
-      console.log("[Description - Volcengine DeepSeek] Generated English description successfully");
+      // 提取 JSON 对象中的 storyboard_description
+      let descriptionCn = responseText;
+      try {
+        const jsonMatch = responseText.match(/\{[\s\S]*\}/);
+        if (jsonMatch) {
+          const jsonObj = JSON.parse(jsonMatch[0]);
+          if (jsonObj.storyboard_description) {
+            descriptionCn = jsonObj.storyboard_description;
+          }
+        }
+      } catch (parseError) {
+        console.log("[Storyboard Artist] No JSON found, using raw text");
+        // 如果无法解析JSON，使用原始文本
+      }
+
+      console.log("[Storyboard Artist] Generated Chinese storyboard description successfully");
       
-      // 翻译英文描述词为中文
-      let descriptionCn = descriptionEn;
+      // 翻译中文描述词为英文（用于后续提示词优化）
+      let descriptionEn = descriptionCn;
       try {
         const translateBody = JSON.stringify({
           model: volcengineEndpointId,
           messages: [
             {
               role: "system",
-              content: "You are a professional translator. Translate the following English AI video/image generation prompt to Chinese. Keep the technical terms and maintain the same structure and details. Output only the Chinese translation without any additional explanation."
+              content: "You are a professional translator. Translate the following Chinese storyboard description to English. Keep the visual details and maintain the same structure. Output only the English translation without any additional explanation."
             },
             {
               role: "user",
-              content: `Translate this prompt to Chinese:\n\n${descriptionEn}`
+              content: `Translate this Chinese description to English:\n\n${descriptionCn}`
             }
           ],
           temperature: 0.3,
@@ -239,12 +402,12 @@ ${contentToDescribe}
 
         if (translateResponse.ok) {
           const translateData = await translateResponse.json();
-          descriptionCn = translateData.choices?.[0]?.message?.content || descriptionEn;
-          console.log("[Description - Volcengine DeepSeek] Translated to Chinese successfully");
+          descriptionEn = translateData.choices?.[0]?.message?.content || descriptionCn;
+          console.log("[Storyboard Artist] Translated to English successfully");
         }
       } catch (translateError) {
-        console.error("[Description - Volcengine DeepSeek] Translation error:", translateError);
-        // 如果翻译失败，使用英文原文
+        console.error("[Storyboard Artist] Translation error:", translateError);
+        // 如果翻译失败，使用中文原文
       }
       
       res.json({ 
@@ -316,12 +479,15 @@ ${contentToDescribe}
     }
   });
 
-  // 批量生成描述词API（专用火山引擎DeepSeek）
+  // 批量生成描述词API（使用 Visual Bible + Storyboard Artist）
   app.post("/api/descriptions/batch-generate", async (req, res) => {
     try {
-      const { segments, generationMode = "text-to-image-to-video", aspectRatio = "16:9", styleSettings } = req.body;
+      const { segments, visualBible } = req.body;
       if (!segments || !Array.isArray(segments)) {
         return res.status(400).json({ error: "Segments array is required" });
+      }
+      if (!visualBible) {
+        return res.status(400).json({ error: "Visual Bible is required" });
       }
 
       const volcengineEndpointId = process.env.VOLCENGINE_DEEPSEEK_API_KEY;
@@ -331,39 +497,60 @@ ${contentToDescribe}
         return res.status(500).json({ error: "Volcengine DeepSeek credentials are not configured" });
       }
 
-      console.log("[Batch Description - Volcengine DeepSeek] Generating", segments.length, "descriptions");
-      console.log("[Batch Description - Volcengine DeepSeek] Endpoint:", volcengineEndpointId);
-      console.log("[Batch Description - Volcengine DeepSeek] Generation mode:", generationMode);
-      console.log("[Batch Description - Volcengine DeepSeek] Aspect ratio:", aspectRatio);
+      console.log("[Batch Storyboard Artist] Generating", segments.length, "storyboard descriptions");
+      console.log("[Batch Storyboard Artist] Visual Bible:", visualBible);
 
       const results = [];
+      const systemPrompt = "你是一位专业的分镜师（Storyboard Artist），严格遵循导演提供的视觉圣经（Visual Bible），为每个文本片段设计静态分镜画面。你的忠诚度首先是对导演视觉的遵循，其次才是对文本的理解。";
 
       // 逐个生成描述词
       for (const segment of segments) {
-        const contentToDescribe = segment.language === "English" && segment.translation 
+        const textSegment = segment.language === "English" && segment.translation 
           ? `${segment.text}\n(中文翻译: ${segment.translation})`
           : segment.text;
 
-        // 新规则：生成纯客观的中文场景描述
-        const descriptionPrompt = `# Role: Objective Scene Describer
+        // 使用 Storyboard Artist prompt
+        const descriptionPrompt = `# AI Persona: Storyboard Artist (Under Director's Supervision)
 
-# Task
-Read the user's text segment. Your sole mission is to generate a detailed, objective, and purely descriptive scene in CHINESE. Imagine you are writing a script for a blind person, describing only what can be seen.
+## 1. Core Mission
+You are a meticulous storyboard artist working under a film director. Your mission is to take a specific scene (a text segment) and, while **STRICTLY ADHERING** to the director's "Visual Bible," design a single, powerful, well-composed **static storyboard panel** for it. Your loyalty is to the director's vision above all else.
 
-# Rules
-- **DO NOT** add any artistic style, camera angles, or emotional interpretation.
-- Describe the setting, characters, objects, and actions as literally as possible.
-- Focus on "what" is in the scene, not "how" it should look.
-- Output only the Chinese description paragraph.
-- Keep it concise (100-150 words in Chinese).
+## 2. Input Variables
+*   **[TEXT_SEGMENT]:** ${textSegment}
+*   **[VISUAL_BIBLE]:** ${JSON.stringify(visualBible, null, 2)}
 
-# Input Text:
-${contentToDescribe}
+## 3. Step-by-Step Execution Logic (Chain of Thought)
 
-# Output:
-(Provide only the Chinese objective scene description below)`;
-          
-        const systemPrompt = "你是一个专业的场景描述专家，擅长将文本转化为客观、详细的视觉场景描述（中文）。你的描述就像为盲人写剧本一样，只描述可以看到的内容，不添加任何艺术风格或情感解读。";
+### Step 1: Study the Director's Orders
+- Read the **[VISUAL_BIBLE]** with extreme care. This is your absolute source of truth.
+- Pay special attention to the \`lighting_and_color_plan\` and the \`core_elements_anchor\`. These are non-negotiable.
+
+### Step 2: Analyze the Scene
+- Read the current **[TEXT_SEGMENT]** to understand its specific content.
+
+### Step 3: Design the Shot (Execution)
+- **Adhere to the Vision**: Compose a single, static image for the text segment that perfectly embodies the director's vision.
+    - **Lighting & Color**: Does the \`lighting_and_color_plan\` call for cold, artificial light for this part of the story? Then you MUST use it, even if the text mentions "sunshine." Your job is to interpret the scene *through the lens* of the director's plan.
+    - **Character Consistency**: Any character depicted (e.g., "Lynn," "coworker") **MUST STRICTLY** match the visual description provided in the \`core_elements_anchor\`. No exceptions.
+- **Freeze the Moment**: Capture a single, freezable instant. Eliminate all verbs of continuous action. Describe a static pose.
+- **Think Like a Painter**: Describe the composition (rule of thirds, symmetry), subject's position in the frame, foreground/background elements, and the exact physical pose and gaze of the subject.
+- **Be Objective**: Describe only what is visually present. Do not use interpretive words like "sad," "beautiful," or "cinematic." Describe the visual cues that *create* those feelings.
+
+### Step 4: Final Self-Correction (Quality Control)
+- Before finalizing your description, perform a last check.
+- **Ask yourself**: "Does the lighting I've described match the \`lighting_and_color_plan\`? Does the character look exactly like the \`core_elements_anchor\` says they should?"
+- If there are any inconsistencies, **revise your description now** until it is in 100% compliance with the **[VISUAL_BIBLE]**.
+
+### Step 5: Write the Final Description
+- Write the final, corrected storyboard panel description in a single, flowing paragraph of **CHINESE**.
+
+## 4. Output Format
+Return a JSON object with this exact structure:
+\`\`\`json
+{
+  "storyboard_description": "[在这里输出你最终创作出的、唯一的、为静态画面设计的、并且严格遵循了Visual Bible的中文分镜脚本]"
+}
+\`\`\``;
 
         try {
           // 使用Bearer Token认证（专用于批量生成）
@@ -397,21 +584,35 @@ ${contentToDescribe}
           }
 
           const data = await response.json();
-          const descriptionEn = data.choices?.[0]?.message?.content || "";
+          const responseText = data.choices?.[0]?.message?.content || "";
 
-          // 翻译英文描述词为中文
-          let descriptionCn = descriptionEn;
+          // 提取 JSON 对象中的 storyboard_description
+          let descriptionCn = responseText;
+          try {
+            const jsonMatch = responseText.match(/\{[\s\S]*\}/);
+            if (jsonMatch) {
+              const jsonObj = JSON.parse(jsonMatch[0]);
+              if (jsonObj.storyboard_description) {
+                descriptionCn = jsonObj.storyboard_description;
+              }
+            }
+          } catch (parseError) {
+            console.log(`[Batch Storyboard Artist] No JSON found for segment ${segment.id}, using raw text`);
+          }
+
+          // 翻译中文描述词为英文（用于后续提示词优化）
+          let descriptionEn = descriptionCn;
           try {
             const translateBody = JSON.stringify({
               model: volcengineEndpointId,
               messages: [
                 {
                   role: "system",
-                  content: "You are a professional translator. Translate the following English AI video/image generation prompt to Chinese. Keep the technical terms and maintain the same structure and details. Output only the Chinese translation without any additional explanation."
+                  content: "You are a professional translator. Translate the following Chinese storyboard description to English. Keep the visual details and maintain the same structure. Output only the English translation without any additional explanation."
                 },
                 {
                   role: "user",
-                  content: `Translate this prompt to Chinese:\n\n${descriptionEn}`
+                  content: `Translate this Chinese description to English:\n\n${descriptionCn}`
                 }
               ],
               temperature: 0.3,
@@ -428,10 +629,10 @@ ${contentToDescribe}
 
             if (translateResponse.ok) {
               const translateData = await translateResponse.json();
-              descriptionCn = translateData.choices?.[0]?.message?.content || descriptionEn;
+              descriptionEn = translateData.choices?.[0]?.message?.content || descriptionCn;
             }
           } catch (translateError) {
-            console.error(`[Batch Description] Translation error for segment ${segment.id}:`, translateError);
+            console.error(`[Batch Storyboard Artist] Translation error for segment ${segment.id}:`, translateError);
           }
 
           results.push({
@@ -439,7 +640,7 @@ ${contentToDescribe}
             description: descriptionCn.trim(),
             descriptionEn: descriptionEn.trim(),
           });
-          console.log(`[Batch Description - Volcengine DeepSeek] Generated description for segment ${segment.id}`);
+          console.log(`[Batch Storyboard Artist] Generated storyboard description for segment ${segment.id}`);
         } catch (error) {
           console.error(`[Batch Description - Volcengine DeepSeek] Error for segment ${segment.id}:`, error);
           results.push({
