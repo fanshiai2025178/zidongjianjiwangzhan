@@ -307,79 +307,95 @@ export default function StylePage() {
                     onChange={handleCharacterImageUpload}
                     className="hidden"
                   />
-                  {characterImage ? (
-                    <div 
-                      className="border-2 border-dashed border-border rounded-xl p-8 text-center hover-elevate transition-all cursor-pointer"
-                      onClick={() => characterInputRef.current?.click()}
-                    >
-                      <div className="bg-white rounded-lg p-4 mb-4 inline-block">
-                        <img src={characterImage} alt="人物形象参考" className="max-w-[240px] max-h-[240px] object-contain" />
-                      </div>
-                      <p className="text-sm text-muted-foreground">
-                        点击更换图片
-                      </p>
-                    </div>
-                  ) : (
-                    <div 
-                      className="border-2 border-dashed border-border rounded-xl p-12 text-center hover-elevate transition-all cursor-pointer"
-                      onClick={() => characterInputRef.current?.click()}
-                    >
-                      <Upload className="h-12 w-12 mx-auto text-muted-foreground mb-3" />
-                      <p className="text-sm text-muted-foreground">
-                        点击上传人物形象参考
-                      </p>
-                      <p className="text-xs text-muted-foreground mt-2">
-                        支持 JPG, PNG 格式，最大 5MB
-                      </p>
-                    </div>
-                  )}
-
-                  {/* AI识别结果展示和编辑 */}
-                  {characterAnalysis && (
-                    <div className="mt-4 p-4 bg-card border border-card-border rounded-lg">
-                      <div className="flex items-start justify-between mb-2">
-                        <div className="flex items-center gap-2">
-                          <Sparkles className="h-4 w-4 text-primary" />
-                          <h4 className="text-sm font-medium text-foreground">AI识别结果</h4>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {/* 左侧：图片上传区域 */}
+                    <div>
+                      {characterImage ? (
+                        <div 
+                          className="border-2 border-dashed border-border rounded-xl p-8 text-center hover-elevate transition-all cursor-pointer"
+                          onClick={() => characterInputRef.current?.click()}
+                        >
+                          <div className="bg-white rounded-lg p-4 mb-4 inline-block">
+                            <img src={characterImage} alt="人物形象参考" className="max-w-[240px] max-h-[240px] object-contain" />
+                          </div>
+                          <p className="text-sm text-muted-foreground">
+                            点击更换图片
+                          </p>
                         </div>
-                        {!editingCharacter ? (
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            onClick={() => setEditingCharacter(true)}
-                            data-testid="button-edit-character-analysis"
-                          >
-                            <Edit2 className="h-3 w-3 mr-1" />
-                            编辑
-                          </Button>
-                        ) : (
-                          <Button
-                            size="sm"
-                            onClick={() => setEditingCharacter(false)}
-                            data-testid="button-save-character-analysis"
-                          >
-                            保存
-                          </Button>
-                        )}
-                      </div>
-                      {editingCharacter ? (
-                        <Textarea
-                          value={characterAnalysis}
-                          onChange={(e) => setCharacterAnalysis(e.target.value)}
-                          className="min-h-[100px] text-sm"
-                          placeholder="编辑人物形象识别结果..."
-                          data-testid="textarea-character-analysis"
-                        />
                       ) : (
-                        <p className="text-sm text-muted-foreground whitespace-pre-wrap" data-testid="text-character-analysis">
-                          {characterAnalysis}
-                        </p>
-                      )}
-                      {analyzeStyleMutation.isPending && analyzeStyleMutation.variables?.analysisType === "character" && (
-                        <p className="text-xs text-muted-foreground mt-2">AI正在识别中...</p>
+                        <div 
+                          className="border-2 border-dashed border-border rounded-xl p-12 text-center hover-elevate transition-all cursor-pointer"
+                          onClick={() => characterInputRef.current?.click()}
+                        >
+                          <Upload className="h-12 w-12 mx-auto text-muted-foreground mb-3" />
+                          <p className="text-sm text-muted-foreground">
+                            点击上传人物形象参考
+                          </p>
+                          <p className="text-xs text-muted-foreground mt-2">
+                            支持 JPG, PNG 格式，最大 5MB
+                          </p>
+                        </div>
                       )}
                     </div>
-                  )}
+
+                    {/* 右侧：AI识别结果展示和编辑 */}
+                    <div>
+                      {characterAnalysis ? (
+                        <div className="p-4 bg-card border border-card-border rounded-lg h-full">
+                          <div className="flex items-start justify-between mb-2">
+                            <div className="flex items-center gap-2">
+                              <Sparkles className="h-4 w-4 text-primary" />
+                              <h4 className="text-sm font-medium text-foreground">AI识别结果</h4>
+                            </div>
+                            {!editingCharacter ? (
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                onClick={() => setEditingCharacter(true)}
+                                data-testid="button-edit-character-analysis"
+                              >
+                                <Edit2 className="h-3 w-3 mr-1" />
+                                编辑
+                              </Button>
+                            ) : (
+                              <Button
+                                size="sm"
+                                onClick={() => setEditingCharacter(false)}
+                                data-testid="button-save-character-analysis"
+                              >
+                                保存
+                              </Button>
+                            )}
+                          </div>
+                          {editingCharacter ? (
+                            <Textarea
+                              value={characterAnalysis}
+                              onChange={(e) => setCharacterAnalysis(e.target.value)}
+                              className="min-h-[200px] text-sm"
+                              placeholder="编辑人物形象识别结果..."
+                              data-testid="textarea-character-analysis"
+                            />
+                          ) : (
+                            <p className="text-sm text-muted-foreground whitespace-pre-wrap" data-testid="text-character-analysis">
+                              {characterAnalysis}
+                            </p>
+                          )}
+                        </div>
+                      ) : (
+                        <div className="flex items-center justify-center h-full border-2 border-dashed border-border rounded-xl p-8">
+                          {analyzeStyleMutation.isPending && analyzeStyleMutation.variables?.analysisType === "character" ? (
+                            <div className="text-center">
+                              <Sparkles className="h-8 w-8 mx-auto text-primary animate-pulse mb-2" />
+                              <p className="text-sm text-muted-foreground">AI正在识别中...</p>
+                            </div>
+                          ) : (
+                            <p className="text-sm text-muted-foreground text-center">上传图片后，AI将自动识别人物形象特征</p>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  </div>
                 </div>
               )}
 
@@ -408,79 +424,95 @@ export default function StylePage() {
                     onChange={handleStyleImageUpload}
                     className="hidden"
                   />
-                  {styleImage ? (
-                    <div 
-                      className="border-2 border-dashed border-border rounded-xl p-8 text-center hover-elevate transition-all cursor-pointer"
-                      onClick={() => styleInputRef.current?.click()}
-                    >
-                      <div className="bg-white rounded-lg p-4 mb-4 inline-block">
-                        <img src={styleImage} alt="风格参考" className="max-w-[240px] max-h-[240px] object-contain" />
-                      </div>
-                      <p className="text-sm text-muted-foreground">
-                        点击更换图片
-                      </p>
-                    </div>
-                  ) : (
-                    <div 
-                      className="border-2 border-dashed border-border rounded-xl p-12 text-center hover-elevate transition-all cursor-pointer"
-                      onClick={() => styleInputRef.current?.click()}
-                    >
-                      <Upload className="h-12 w-12 mx-auto text-muted-foreground mb-3" />
-                      <p className="text-sm text-muted-foreground">
-                        点击上传风格参考图片
-                      </p>
-                      <p className="text-xs text-muted-foreground mt-2">
-                        支持 JPG, PNG 格式，最大 5MB
-                      </p>
-                    </div>
-                  )}
-
-                  {/* AI识别结果展示和编辑 - 风格参考 */}
-                  {styleAnalysis && (
-                    <div className="mt-4 p-4 bg-card border border-card-border rounded-lg">
-                      <div className="flex items-start justify-between mb-2">
-                        <div className="flex items-center gap-2">
-                          <Sparkles className="h-4 w-4 text-primary" />
-                          <h4 className="text-sm font-medium text-foreground">AI识别结果</h4>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {/* 左侧：图片上传区域 */}
+                    <div>
+                      {styleImage ? (
+                        <div 
+                          className="border-2 border-dashed border-border rounded-xl p-8 text-center hover-elevate transition-all cursor-pointer"
+                          onClick={() => styleInputRef.current?.click()}
+                        >
+                          <div className="bg-white rounded-lg p-4 mb-4 inline-block">
+                            <img src={styleImage} alt="风格参考" className="max-w-[240px] max-h-[240px] object-contain" />
+                          </div>
+                          <p className="text-sm text-muted-foreground">
+                            点击更换图片
+                          </p>
                         </div>
-                        {!editingStyle ? (
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            onClick={() => setEditingStyle(true)}
-                            data-testid="button-edit-style-analysis"
-                          >
-                            <Edit2 className="h-3 w-3 mr-1" />
-                            编辑
-                          </Button>
-                        ) : (
-                          <Button
-                            size="sm"
-                            onClick={() => setEditingStyle(false)}
-                            data-testid="button-save-style-analysis"
-                          >
-                            保存
-                          </Button>
-                        )}
-                      </div>
-                      {editingStyle ? (
-                        <Textarea
-                          value={styleAnalysis}
-                          onChange={(e) => setStyleAnalysis(e.target.value)}
-                          className="min-h-[100px] text-sm"
-                          placeholder="编辑风格识别结果..."
-                          data-testid="textarea-style-analysis"
-                        />
                       ) : (
-                        <p className="text-sm text-muted-foreground whitespace-pre-wrap" data-testid="text-style-analysis">
-                          {styleAnalysis}
-                        </p>
-                      )}
-                      {analyzeStyleMutation.isPending && analyzeStyleMutation.variables?.analysisType === "style" && (
-                        <p className="text-xs text-muted-foreground mt-2">AI正在识别中...</p>
+                        <div 
+                          className="border-2 border-dashed border-border rounded-xl p-12 text-center hover-elevate transition-all cursor-pointer"
+                          onClick={() => styleInputRef.current?.click()}
+                        >
+                          <Upload className="h-12 w-12 mx-auto text-muted-foreground mb-3" />
+                          <p className="text-sm text-muted-foreground">
+                            点击上传风格参考图片
+                          </p>
+                          <p className="text-xs text-muted-foreground mt-2">
+                            支持 JPG, PNG 格式，最大 5MB
+                          </p>
+                        </div>
                       )}
                     </div>
-                  )}
+
+                    {/* 右侧：AI识别结果展示和编辑 */}
+                    <div>
+                      {styleAnalysis ? (
+                        <div className="p-4 bg-card border border-card-border rounded-lg h-full">
+                          <div className="flex items-start justify-between mb-2">
+                            <div className="flex items-center gap-2">
+                              <Sparkles className="h-4 w-4 text-primary" />
+                              <h4 className="text-sm font-medium text-foreground">AI识别结果</h4>
+                            </div>
+                            {!editingStyle ? (
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                onClick={() => setEditingStyle(true)}
+                                data-testid="button-edit-style-analysis"
+                              >
+                                <Edit2 className="h-3 w-3 mr-1" />
+                                编辑
+                              </Button>
+                            ) : (
+                              <Button
+                                size="sm"
+                                onClick={() => setEditingStyle(false)}
+                                data-testid="button-save-style-analysis"
+                              >
+                                保存
+                              </Button>
+                            )}
+                          </div>
+                          {editingStyle ? (
+                            <Textarea
+                              value={styleAnalysis}
+                              onChange={(e) => setStyleAnalysis(e.target.value)}
+                              className="min-h-[200px] text-sm"
+                              placeholder="编辑风格识别结果..."
+                              data-testid="textarea-style-analysis"
+                            />
+                          ) : (
+                            <p className="text-sm text-muted-foreground whitespace-pre-wrap" data-testid="text-style-analysis">
+                              {styleAnalysis}
+                            </p>
+                          )}
+                        </div>
+                      ) : (
+                        <div className="flex items-center justify-center h-full border-2 border-dashed border-border rounded-xl p-8">
+                          {analyzeStyleMutation.isPending && analyzeStyleMutation.variables?.analysisType === "style" ? (
+                            <div className="text-center">
+                              <Sparkles className="h-8 w-8 mx-auto text-primary animate-pulse mb-2" />
+                              <p className="text-sm text-muted-foreground">AI正在识别中...</p>
+                            </div>
+                          ) : (
+                            <p className="text-sm text-muted-foreground text-center">上传图片后，AI将自动识别风格特征</p>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  </div>
                 </div>
               )}
 
