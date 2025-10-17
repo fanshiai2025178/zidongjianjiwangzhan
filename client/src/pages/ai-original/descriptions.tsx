@@ -37,7 +37,7 @@ export default function DescriptionsPage() {
   const { toast } = useToast();
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editedDescription, setEditedDescription] = useState("");
-  const [isSaving, setIsSaving] = useState(false);
+  const [savingDescriptions, setSavingDescriptions] = useState<Set<string>>(new Set());
   const [generatingDescriptions, setGeneratingDescriptions] = useState<Set<string>>(new Set());
   const [generatingImages, setGeneratingImages] = useState<Set<string>>(new Set());
   const [generatingVideos, setGeneratingVideos] = useState<Set<string>>(new Set());
@@ -510,9 +510,9 @@ export default function DescriptionsPage() {
   };
 
   const handleSaveEdit = async (segmentId: string) => {
-    if (isSaving) return; // 防止重复点击
+    if (savingDescriptions.has(segmentId)) return; // 防止重复点击
     
-    setIsSaving(true);
+    setSavingDescriptions(prev => new Set(prev).add(segmentId));
     try {
       // 调用翻译API将中文描述词翻译成英文
       console.log("[Edit Save] Translating Chinese description to English");
@@ -579,7 +579,11 @@ export default function DescriptionsPage() {
       setEditingId(null);
       setEditedDescription("");
     } finally {
-      setIsSaving(false);
+      setSavingDescriptions(prev => {
+        const next = new Set(prev);
+        next.delete(segmentId);
+        return next;
+      });
     }
   };
 
@@ -714,10 +718,10 @@ export default function DescriptionsPage() {
                           <Button
                             size="sm"
                             onClick={() => handleSaveEdit(segment.id)}
-                            disabled={isSaving}
+                            disabled={savingDescriptions.has(segment.id)}
                             data-testid={`button-save-${segment.number}`}
                           >
-                            {isSaving ? (
+                            {savingDescriptions.has(segment.id) ? (
                               <>
                                 <Loader2 className="h-3 w-3 mr-1 animate-spin" />
                                 保存中...

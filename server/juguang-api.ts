@@ -107,14 +107,15 @@ export async function generateImageWithJuguang(prompt: string, retries: number =
 
       const data: JuguangResponse = await response.json();
       
-      // 详细日志：查看完整响应结构
-      console.log("[Juguang Image] Full response structure:", JSON.stringify(data, null, 2));
-      
-      const imageBase64 = data.candidates[0]?.content?.parts[0]?.inlineData?.data;
+      // 查找包含图片数据的part（可能不在第一个位置）
+      const parts = data.candidates[0]?.content?.parts || [];
+      const imagePart = parts.find(part => part.inlineData?.data);
+      const imageBase64 = imagePart?.inlineData?.data;
       
       if (!imageBase64) {
         console.warn(`[Juguang Image] No image data in response (attempt ${attempt}/${retries})`);
-        console.warn(`[Juguang Image] Response parts:`, JSON.stringify(data.candidates[0]?.content?.parts));
+        console.warn(`[Juguang Image] Response has ${parts.length} parts`);
+        console.warn(`[Juguang Image] Parts structure:`, parts.map(p => Object.keys(p)));
         if (attempt === retries) {
           throw new Error("No image data in response after all retries");
         }
@@ -122,7 +123,7 @@ export async function generateImageWithJuguang(prompt: string, retries: number =
       }
 
       // 将base64转换为data URL
-      const mimeType = data.candidates[0]?.content?.parts[0]?.inlineData?.mimeType || "image/png";
+      const mimeType = imagePart?.inlineData?.mimeType || "image/png";
       const dataUrl = `data:${mimeType};base64,${imageBase64}`;
 
       console.log(`[Juguang Image] Image generated successfully (attempt ${attempt}/${retries})`);
