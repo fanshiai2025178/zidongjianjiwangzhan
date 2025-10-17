@@ -123,17 +123,23 @@ export default function DescriptionsPage() {
     },
     onSuccess: async (data: { segmentId: string, description: string, descriptionEn?: string }) => {
       console.log("[Description Success] Updating segment:", data.segmentId);
+      console.log("[Description Success] Total segments:", segments.length);
       const currentAspectRatio = project?.aspectRatio || "16:9";
-      const updatedSegments = segments.map(seg =>
-        seg.id === data.segmentId ? { 
-          ...seg, 
-          sceneDescription: data.description, // 中文描述词
-          sceneDescriptionEn: data.descriptionEn || data.description, // 英文描述词
-          descriptionAspectRatio: currentAspectRatio // 记录生成时的比例
-        } : seg
-      );
+      const updatedSegments = segments.map(seg => {
+        if (seg.id === data.segmentId) {
+          console.log("[Description Success] Found matching segment, updating:", seg.id);
+          return {
+            ...seg, 
+            sceneDescription: data.description, // 中文描述词
+            sceneDescriptionEn: data.descriptionEn || data.description, // 英文描述词
+            descriptionAspectRatio: currentAspectRatio // 记录生成时的比例
+          };
+        }
+        return seg;
+      });
+      console.log("[Description Success] Updated segments count:", updatedSegments.filter(s => s.sceneDescription).length);
       updateSegments(updatedSegments);
-      console.log("[Description Success] Segments updated");
+      console.log("[Description Success] Segments state updated");
       
       // 自动保存项目
       if (project?.id) {
