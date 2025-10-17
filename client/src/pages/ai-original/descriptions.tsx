@@ -98,16 +98,36 @@ export default function DescriptionsPage() {
     }
   };
 
-  // 生成描述API调用
+  // 生成描述API调用（使用 Visual Bible + Storyboard Artist）
   const generateDescriptionMutation = useMutation({
     mutationFn: async (segmentId: string) => {
       const segment = segments.find(s => s.id === segmentId);
       if (!segment) throw new Error("Segment not found");
 
-      // 确保使用最新的aspectRatio
-      const currentAspectRatio = project?.aspectRatio || "16:9";
-      console.log("[Frontend] Generating description with aspectRatio:", currentAspectRatio);
+      // Step 1: 确保有 Visual Bible
+      let visualBible = project?.visualBible;
+      
+      if (!visualBible) {
+        console.log("[Visual Bible] Generating from full script...");
+        const fullText = segments.map(s => s.text).join('\n');
+        const vbResponse = await apiRequest(
+          "POST",
+          "/api/visual-bible/generate",
+          { fullText }
+        );
+        const vbData = await vbResponse.json();
+        visualBible = vbData.visualBible;
+        
+        // 保存 Visual Bible 到项目
+        if (project?.id) {
+          await apiRequest("PATCH", `/api/projects/${project.id}`, {
+            ...project,
+            visualBible,
+          });
+        }
+      }
 
+      // Step 2: 使用 Visual Bible 生成描述词
       const response = await apiRequest(
         "POST",
         "/api/descriptions/generate",
@@ -115,9 +135,7 @@ export default function DescriptionsPage() {
           text: segment.text,
           translation: segment.translation,
           language: segment.language,
-          generationMode: generationMode,
-          aspectRatio: currentAspectRatio,
-          styleSettings: project?.styleSettings,
+          visualBible,
         }
       );
       const data = await response.json();
@@ -248,7 +266,7 @@ export default function DescriptionsPage() {
     }
   };
 
-  // 批量生成描述词（使用火山引擎DeepSeek API）
+  // 批量生成描述词（使用 Visual Bible + Storyboard Artist）
   const handleBatchGenerateDescriptions = async () => {
     // 过滤出：没有描述词 OR 比例不匹配的片段
     const segmentsToGenerate = segments.filter(s => 
@@ -268,11 +286,47 @@ export default function DescriptionsPage() {
     setShouldStopDescriptions(false);
     
     const currentAspectRatio = project?.aspectRatio || "16:9";
-    console.log("[Batch - Volcengine] Generating", segmentsToGenerate.length, "descriptions");
-    console.log("[Batch - Volcengine] Aspect ratio:", currentAspectRatio);
+    console.log("[Batch Storyboard] Generating", segmentsToGenerate.length, "descriptions");
+    console.log("[Batch Storyboard] Aspect ratio:", currentAspectRatio);
 
     try {
-      // 调用火山引擎批量生成API
+      // Step 1: 确保有 Visual Bible
+      let visualBible = project?.visualBible;
+      
+      if (!visualBible) {
+        console.log("[Visual Bible] Generating from full script...");
+        toast({
+          title: "正在分析剧本",
+          description: "导演正在创建视觉圣经...",
+        });
+
+        const fullText = segments.map(s => s.text).join('\n');
+        const vbResponse = await apiRequest(
+          "POST",
+          "/api/visual-bible/generate",
+          { fullText }
+        );
+        const vbData = await vbResponse.json();
+        visualBible = vbData.visualBible;
+        
+        // 保存 Visual Bible 到项目
+        if (project?.id) {
+          await apiRequest("PATCH", `/api/projects/${project.id}`, {
+            ...project,
+            visualBible,
+          });
+        }
+
+        console.log("[Visual Bible] Generated successfully:", visualBible);
+        toast({
+          title: "视觉圣经创建完成",
+          description: "开始生成分镜描述...",
+        });
+      } else {
+        console.log("[Visual Bible] Using existing:", visualBible);
+      }
+
+      // Step 2: 使用 Visual Bible 批量生成描述词
       const response = await apiRequest(
         "POST",
         "/api/descriptions/batch-generate",
@@ -283,9 +337,7 @@ export default function DescriptionsPage() {
             translation: s.translation,
             language: s.language,
           })),
-          generationMode: generationMode,
-          aspectRatio: currentAspectRatio,
-          styleSettings: project?.styleSettings,
+          visualBible,
         }
       );
       const data = await response.json();
