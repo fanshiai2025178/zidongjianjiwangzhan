@@ -42,10 +42,13 @@ export default function SegmentsPage() {
 
   // 加载或生成分段
   useEffect(() => {
-    if (project?.segments && Array.isArray(project.segments) && (project.segments as any).length > 0) {
-      setSegments(project.segments as Segment[]);
-    } else if (project?.scriptContent) {
-      generateSegments();
+    // 只在segments为空时从project加载，避免覆盖本地已更新的数据
+    if (segments.length === 0) {
+      if (project?.segments && Array.isArray(project.segments) && (project.segments as any).length > 0) {
+        setSegments(project.segments as Segment[]);
+      } else if (project?.scriptContent) {
+        generateSegments();
+      }
     }
   }, [project]);
 
