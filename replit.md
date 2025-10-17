@@ -21,7 +21,10 @@ The platform features a dark-themed creative studio interface, drawing inspirati
 -   **Data Storage**: PostgreSQL, leveraged via Neon Database for serverless deployment, with Drizzle ORM for type-safe interactions and schema management.
 -   **AI Workflow**: Implements a "Director + Storyboard Artist" two-step architecture. The "Director" (API 0) generates a Visual Bible for global consistency across the entire script. The "Storyboard Artist" (API 1) then generates objective Chinese scene descriptions for individual segments based on the Visual Bible.
 -   **Prompt Optimization**: Features dedicated API endpoints for single and batch prompt optimization, specifically tailored for video (dynamic descriptions, camera language) and image generation (composition, lighting).
--   **Multi-language Support**: Descriptions are managed in both Chinese and English, with automatic translation between the two using dedicated APIs. English descriptions are prioritized for AI material generation.
+-   **Multi-language Support**: Both descriptions and keywords are managed in dual-language (Chinese and English) with automatic translation:
+    -   **Descriptions**: Chinese version for user viewing/editing, English version auto-translated for AI material generation.
+    -   **Keywords**: Chinese version (`keywords`) for user viewing/editing, English version (`keywordsEn`) auto-generated/translated for future AI consumption.
+    -   User edits to Chinese content automatically trigger translation API to update English versions.
 -   **Consistency Management**: Ensures character and style consistency across segments by using a Visual Bible, detailed preset style mappings, and explicit reference image guidance.
 -   **Aspect Ratio Handling**: Automatically tracks and alerts users about aspect ratio changes, suggesting regeneration for consistency.
 
@@ -45,10 +48,10 @@ The platform features a dark-themed creative studio interface, drawing inspirati
 
 ### API Integrations
 
--   **DeepSeek API (deepseek-chat model)**: For intelligent text segmentation and English-to-Chinese translation.
+-   **DeepSeek API (deepseek-chat model)**: For intelligent text segmentation and Chinese-to-English translation (descriptions and keywords).
 -   **火山引擎DeepSeek API**:
     -   Endpoint `ep-20251016061331-8bgnk`: Dedicated for description generation (single and batch).
-    -   Endpoint `ep-20251016063909-7l6gr`: Dedicated for keyword extraction (single and batch).
+    -   Endpoint `ep-20251016063909-7l6gr`: Dedicated for keyword extraction (single and batch, returns both Chinese and English versions).
     -   Endpoint `ep-20251016064746-rb9dk`: Dedicated for prompt optimization.
 -   **聚光Chat API (gemini-2.5-flash-image-preview model)**: For image generation.
 -   **Neon Database**: Serverless PostgreSQL.
