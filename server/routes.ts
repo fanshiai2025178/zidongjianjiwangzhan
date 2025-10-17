@@ -154,130 +154,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
         ? `${text}\n(中文翻译: ${translation})`
         : text;
 
-      // 预设风格映射表（英文描述）
-      const presetStyleDescriptions: Record<string, string> = {
-        "cinema": "Cinematic quality with film language (depth of field, camera movements, professional lighting), rich visual layers, clear color grading, strong atmospheric presence",
-        "anime": "Japanese anime style with clean lines, vivid saturated colors, exaggerated character expressions, simplified backgrounds, anime-style lighting effects",
-        "realistic": "Photorealistic style with natural lighting effects, rich details, authentic material textures, accurate natural colors, follows physical laws",
-        "fantasy": "Fantasy magical atmosphere with mystical dreamy tones (purple, blue, gold dominant), magical light effects, castle architecture elements, surreal scenes",
-        "retro": "80s-90s retro vibe with film grain, faded effects, nostalgic color palette (warm yellow, orange-red, brown), vintage filter textures",
-        "minimalist": "Minimalist approach with ample negative space, clean composition, restrained colors (monochrome or dual-color), emphasis on geometric shapes and lines",
-        "noir": "Film noir style with black-white or desaturated tones, strong contrast between light and shadow, dramatic lighting, suspenseful oppressive atmosphere",
-        "cyberpunk": "Cyberpunk futuristic feel with neon lighting effects (blue, pink, purple), tech elements, urban nightscape, rain-soaked reflective textures"
-      };
+      // 新规则：生成纯客观的中文场景描述
+      const descriptionPrompt = `# Role: Objective Scene Describer
 
-      // 构建风格参考信息（英文）
-      let styleContext = "";
-      if (styleSettings) {
-        // 角色参考
-        if (styleSettings.useCharacterReference && styleSettings.characterImageUrl) {
-          styleContext += "\n\n[CHARACTER CONSISTENCY REQUIREMENTS - MUST STRICTLY FOLLOW]\nUser has uploaded a character reference image. In all shot descriptions:\n• Main character must maintain the same appearance features (gender, age, hairstyle, body type, clothing style)\n• Describe specific features: e.g., 'young woman with shoulder-length black hair in white shirt' rather than 'protagonist' or 'she'\n• Ensure character image is completely consistent throughout the story, no different character appearances\n• If specific features cannot be determined, use 'the same character' and keep descriptions uniform";
-        }
-        
-        // 风格参考
-        if (styleSettings.useStyleReference && styleSettings.styleImageUrl) {
-          styleContext += "\n\n[VISUAL STYLE REQUIREMENTS - MUST STRICTLY FOLLOW]\nUser has uploaded a style reference image. All shots must maintain:\n• Same color tones and color schemes\n• Consistent lighting style and atmosphere\n• Unified artistic expression techniques\n• Similar visual textures and detail treatment";
-        }
-        
-        // 预设风格
-        if (styleSettings.usePresetStyle && styleSettings.presetStyleId) {
-          const styleDesc = presetStyleDescriptions[styleSettings.presetStyleId];
-          if (styleDesc) {
-            styleContext += `\n\n[PRESET STYLE REQUIREMENTS - MUST STRICTLY FOLLOW]\nStyle: ${styleSettings.presetStyleId}\nCharacteristics: ${styleDesc}\n\nAll shot descriptions must reflect the above style characteristics and maintain complete visual style unity.`;
-          }
-        }
-      }
+# Task
+Read the user's text segment. Your sole mission is to generate a detailed, objective, and purely descriptive scene in CHINESE. Imagine you are writing a script for a blind person, describing only what can be seen.
 
-      let descriptionPrompt: string;
-      let systemPrompt: string;
+# Rules
+- **DO NOT** add any artistic style, camera angles, or emotional interpretation.
+- Describe the setting, characters, objects, and actions as literally as possible.
+- Focus on "what" is in the scene, not "how" it should look.
+- Output only the Chinese description paragraph.
+- Keep it concise (100-150 words in Chinese).
 
-      if (generationMode === "text-to-video") {
-        // 文生视频：生成视频场景描述（强调动态、运动、镜头运动）
-        descriptionPrompt = `Generate a professional AI video generation prompt for the following content.
-
-Content:
+# Input Text:
 ${contentToDescribe}
 
-Aspect Ratio: ${aspectRatio} (${aspectRatio === '9:16' || aspectRatio === '3:4' ? 'Vertical/Portrait' : aspectRatio === '1:1' ? 'Square' : 'Horizontal/Landscape'})
-
-[VIDEO PROMPT CORE REQUIREMENTS]
-1. **Dynamic Expression**: Must describe clear actions and movements (character movement, object changes, camera movements, etc.)
-2. **Camera Language**: Specify camera movement methods (push in, pull out, pan, follow, tilt, etc.)
-3. **Time Evolution**: Describe temporal flow and progression of the scene
-4. **Ratio Adaptation**: Optimize dynamic performance for ${aspectRatio} ${aspectRatio === '9:16' || aspectRatio === '3:4' ? 'vertical' : aspectRatio === '1:1' ? 'square' : 'horizontal'} composition
-5. **English Output**: Write in English with specific, vivid descriptions
-
-[VIDEO-SPECIFIC ELEMENTS (Distinguished from Static Images)]
-• **Action Description**: Specific actions and posture changes of characters/objects (e.g., "slowly turns around", "raises hand to shield")
-• **Camera Movement**: Clear camera motion methods (e.g., "camera pushes from distance to close-up", "follows character panning")
-• **Temporal Flow**: Scene progression from start → development → end (e.g., "begins with... then... finally...")
-• **Dynamic Elements**: Moving elements in environment (e.g., "falling leaves", "flowing crowd")
-• **Rhythm Control**: Speed and rhythm of actions (e.g., "slowly", "rapidly", "pause")
-
-[REQUIRED ELEMENTS]
-• Subject Action: Specific action descriptions, not static states
-• Scene Environment: Specific location, atmosphere, dynamic lighting changes
-• Camera Movement: Professional camera terms like push/pull/pan/tilt
-• Visual Details: Colors, textures, motion trajectories
-• Emotional Evolution: Changes and fluctuations in emotion${styleContext}
-
-[FORMAT REQUIREMENTS]
-- Limit to 200 words
-- Avoid abstract concepts, use concrete action descriptions
-- No markdown formatting
-- Output in English
-
-Output the prompt directly without additional explanation.`;
+# Output:
+(Provide only the Chinese objective scene description below)`;
         
-        systemPrompt = "You are a professional AI video prompt expert with deep understanding of cinematography, movement aesthetics, and visual storytelling. You excel at transforming text into dynamic scene descriptions that precisely guide AI to generate smooth, natural video content.";
-      } else {
-        // 文生图+图生视频：生成静态图片描述（强调画面、构图、色彩、氛围）
-        const orientationDescription = aspectRatio === '9:16' || aspectRatio === '3:4' 
-          ? 'Vertical/Portrait (height > width, suitable for character close-ups, full body shots)' 
-          : aspectRatio === '1:1' 
-          ? 'Square (equal width and height, suitable for centered symmetric layouts)' 
-          : 'Horizontal/Landscape (width > height, suitable for scenery, scene narratives)';
-
-        descriptionPrompt = `Generate a professional AI image generation prompt (following Seedream 4.0 specifications) for the following content.
-
-Content:
-${contentToDescribe}
-
-Aspect Ratio: ${aspectRatio} ${orientationDescription}
-
-[IMAGE PROMPT CORE REQUIREMENTS]
-1. **Static Freeze Frame**: Describe a still moment, not an action process
-2. **Spatial Composition**: Clearly define spatial layout and element positioning
-3. **Visual Details**: Emphasize colors, textures, lighting, and other visual elements
-4. **Ratio Adaptation**: Optimize composition for ${aspectRatio} ${aspectRatio === '9:16' || aspectRatio === '3:4' ? 'vertical' : aspectRatio === '1:1' ? 'square' : 'horizontal'} format
-5. **English Output**: Write in English following "Subject + Environment + Details" structure
-
-[IMAGE-SPECIFIC ELEMENTS (Distinguished from Video)]
-• **Static Posture**: Fixed postures and expressions of characters (e.g., "standing", "side glance"), not action processes
-• **Decisive Moment**: Capture a decisive instant (e.g., "the moment tear slides down cheek")
-• **Spatial Layout**: Layering of foreground, midground, and background
-• **Detail Rendering**: Precise description of materials, textures, and lighting details
-• **Atmosphere Creation**: Convey emotions through static elements (tones, lighting, environment)
-
-[REQUIRED ELEMENTS]
-• Subject Description: Static posture, expression, and clothing features of characters/objects (specific)
-• Environment Scene: Specific location, time, weather, spatial layers
-• Composition Note: **Explicitly mark "using ${aspectRatio} ${aspectRatio === '9:16' || aspectRatio === '3:4' ? 'vertical composition' : aspectRatio === '1:1' ? 'square composition' : 'horizontal composition'}"**
-• Lighting Effects: Light source position, direction, contrast, atmosphere
-• Color Scheme: Main tone, color pairing, saturation, color emotion
-• Texture Details: Materials, textures, surface qualities${styleContext}
-
-[FORMAT REQUIREMENTS]
-- Limit to 200 words
-- Avoid abstract terms, use concrete visual descriptions
-- No markdown formatting
-- No copyrighted content (brands, celebrities, artist names)
-- Output in English
-
-Output the prompt directly without additional explanation.`;
-        
-        systemPrompt = "You are a professional AI image prompt expert, proficient in Seedream 4.0 image generation specifications and visual arts. You excel at transforming text into static scene descriptions, accurately guiding AI to generate high-quality, artistic image content.";
-      }
+      const systemPrompt = "你是一个专业的场景描述专家，擅长将文本转化为客观、详细的视觉场景描述（中文）。你的描述就像为盲人写剧本一样，只描述可以看到的内容，不添加任何艺术风格或情感解读。";
       
       // 使用Bearer Token认证
       const requestBody = JSON.stringify({
@@ -442,108 +338,32 @@ Output the prompt directly without additional explanation.`;
 
       const results = [];
 
-      // 预设风格映射表
-      const presetStyleDescriptions: Record<string, string> = {
-        "cinema": "Cinematic quality with film language (depth of field, camera movements, professional lighting), rich visual layers, clear color grading, strong atmospheric presence",
-        "anime": "Japanese anime style with clean lines, vivid saturated colors, exaggerated character expressions, simplified backgrounds, anime-style lighting effects",
-        "realistic": "Photorealistic style with natural lighting effects, rich details, authentic material textures, accurate natural colors, follows physical laws",
-        "fantasy": "Fantasy magical atmosphere with mystical dreamy tones (purple, blue, gold dominant), magical light effects, castle architecture elements, surreal scenes",
-        "retro": "80s-90s retro vibe with film grain, faded effects, nostalgic color palette (warm yellow, orange-red, brown), vintage filter textures",
-        "minimalist": "Minimalist approach with ample negative space, clean composition, restrained colors (monochrome or dual-color), emphasis on geometric shapes and lines",
-        "noir": "Film noir style with black-white or desaturated tones, strong contrast between light and shadow, dramatic lighting, suspenseful oppressive atmosphere",
-        "cyberpunk": "Cyberpunk futuristic feel with neon lighting effects (blue, pink, purple), tech elements, urban nightscape, rain-soaked reflective textures"
-      };
-
-      // 构建风格参考信息
-      let styleContext = "";
-      if (styleSettings) {
-        if (styleSettings.useCharacterReference && styleSettings.characterImageUrl) {
-          styleContext += "\n\n[CHARACTER CONSISTENCY REQUIREMENTS - MUST STRICTLY FOLLOW]\nUser has uploaded a character reference image. In all shot descriptions:\n• Main character must maintain the same appearance features (gender, age, hairstyle, body type, clothing style)\n• Describe specific features: e.g., 'young woman with shoulder-length black hair in white shirt' rather than 'protagonist' or 'she'\n• Ensure character image is completely consistent throughout the story, no different character appearances\n• If specific features cannot be determined, use 'the same character' and keep descriptions uniform";
-        }
-        
-        if (styleSettings.useStyleReference && styleSettings.styleImageUrl) {
-          styleContext += "\n\n[VISUAL STYLE REQUIREMENTS - MUST STRICTLY FOLLOW]\nUser has uploaded a style reference image. All shots must maintain:\n• Same color tones and color schemes\n• Consistent lighting style and atmosphere\n• Unified artistic expression techniques\n• Similar visual textures and detail treatment";
-        }
-        
-        if (styleSettings.usePresetStyle && styleSettings.presetStyleId) {
-          const styleDesc = presetStyleDescriptions[styleSettings.presetStyleId];
-          if (styleDesc) {
-            styleContext += `\n\n[PRESET STYLE REQUIREMENTS - MUST STRICTLY FOLLOW]\nStyle: ${styleSettings.presetStyleId}\nCharacteristics: ${styleDesc}\n\nAll shot descriptions must reflect the above style characteristics and maintain complete visual style unity.`;
-          }
-        }
-      }
-
       // 逐个生成描述词
       for (const segment of segments) {
         const contentToDescribe = segment.language === "English" && segment.translation 
           ? `${segment.text}\n(中文翻译: ${segment.translation})`
           : segment.text;
 
-        let descriptionPrompt: string;
-        let systemPrompt: string;
+        // 新规则：生成纯客观的中文场景描述
+        const descriptionPrompt = `# Role: Objective Scene Describer
 
-        if (generationMode === "text-to-video") {
-          descriptionPrompt = `Generate a professional AI video generation prompt for the following content.
+# Task
+Read the user's text segment. Your sole mission is to generate a detailed, objective, and purely descriptive scene in CHINESE. Imagine you are writing a script for a blind person, describing only what can be seen.
 
-Content:
+# Rules
+- **DO NOT** add any artistic style, camera angles, or emotional interpretation.
+- Describe the setting, characters, objects, and actions as literally as possible.
+- Focus on "what" is in the scene, not "how" it should look.
+- Output only the Chinese description paragraph.
+- Keep it concise (100-150 words in Chinese).
+
+# Input Text:
 ${contentToDescribe}
 
-Aspect Ratio: ${aspectRatio} (${aspectRatio === '9:16' || aspectRatio === '3:4' ? 'Vertical/Portrait' : aspectRatio === '1:1' ? 'Square' : 'Horizontal/Landscape'})
-
-[VIDEO PROMPT CORE REQUIREMENTS]
-1. **Dynamic Expression**: Must describe clear actions and movements
-2. **Camera Language**: Specify camera movement methods (push in, pull out, pan, follow, tilt, etc.)
-3. **Time Evolution**: Describe temporal flow and progression of the scene
-4. **Ratio Adaptation**: Optimize dynamic performance for ${aspectRatio} composition
-5. **English Output**: Write in English with specific, vivid descriptions
-
-[VIDEO-SPECIFIC ELEMENTS]
-• **Action Description**: Specific actions and posture changes
-• **Camera Movement**: Clear camera motion methods
-• **Temporal Flow**: Scene progression from start → development → end${styleContext}
-
-[FORMAT REQUIREMENTS]
-- Limit to 200 words
-- Avoid abstract terms, use concrete visual descriptions
-- No markdown formatting
-- No copyrighted content
-- Output in English
-
-Output the prompt directly without additional explanation.`;
+# Output:
+(Provide only the Chinese objective scene description below)`;
           
-          systemPrompt = "You are a professional AI video prompt expert with deep knowledge of cinematography and video generation AI models. Your prompts drive high-quality video creation with clear motion, camera work, and temporal structure.";
-        } else {
-          descriptionPrompt = `Generate a professional AI image generation prompt for the following content.
-
-Content:
-${contentToDescribe}
-
-Aspect Ratio: ${aspectRatio} (${aspectRatio === '9:16' || aspectRatio === '3:4' ? 'Vertical/Portrait' : aspectRatio === '1:1' ? 'Square' : 'Horizontal/Landscape'})
-
-[IMAGE PROMPT CORE REQUIREMENTS]
-1. **Static Scene**: Describe a frozen moment, not a sequence
-2. **Spatial Layout**: Clear foreground, midground, and background
-3. **Visual Details**: Precise textures, lighting, and materials
-4. **Ratio Adaptation**: Optimize composition for ${aspectRatio}
-5. **English Output**: Write in English with vivid descriptions
-
-[IMAGE-SPECIFIC ELEMENTS]
-• **Static Posture**: Fixed postures and expressions
-• **Decisive Moment**: Capture a decisive instant
-• **Spatial Layout**: Layering of foreground, midground, and background
-• **Detail Rendering**: Precise description of materials, textures, and lighting${styleContext}
-
-[FORMAT REQUIREMENTS]
-- Limit to 200 words
-- Avoid abstract terms, use concrete visual descriptions
-- No markdown formatting
-- No copyrighted content
-- Output in English
-
-Output the prompt directly without additional explanation.`;
-          
-          systemPrompt = "You are a professional AI image prompt expert, proficient in image generation specifications and visual arts. You excel at transforming text into static scene descriptions for high-quality image generation.";
-        }
+        const systemPrompt = "你是一个专业的场景描述专家，擅长将文本转化为客观、详细的视觉场景描述（中文）。你的描述就像为盲人写剧本一样，只描述可以看到的内容，不添加任何艺术风格或情感解读。";
 
         try {
           // 使用Bearer Token认证（专用于批量生成）
