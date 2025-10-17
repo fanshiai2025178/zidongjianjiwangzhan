@@ -8,7 +8,7 @@ This is an AI-powered video creation platform designed to streamline professiona
 
 **描述词中英文分离显示（最新）**
 - **第4步（生成描述）**：显示中文描述词，批量生成按钮标注"批量生成描述词（中文）"
-- **第6步（生成素材）**：描述词（中文）列仅显示中文描述，无标签
+- **第6步（生成素材）**：描述词（英文）列显示英文描述，无标签
 - **API自动翻译**：描述词生成API先生成英文描述，然后自动翻译为中文
 - **数据模型更新**：Segment接口新增sceneDescriptionEn字段存储英文描述词
 - **独立API处理**：使用专用火山引擎DeepSeek API同时生成中英文描述
