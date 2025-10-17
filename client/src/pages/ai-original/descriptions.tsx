@@ -597,7 +597,7 @@ export default function DescriptionsPage() {
                     ) : (
                       <>
                         <Sparkles className="h-3 w-3 mr-1" />
-                        批量生成描述词
+                        批量生成描述词（中文）
                       </>
                     )}
                   </Button>
@@ -667,10 +667,7 @@ export default function DescriptionsPage() {
                               </div>
                             )}
                             <div className="bg-muted rounded-md p-3 font-mono text-xs text-foreground leading-relaxed max-h-32 overflow-y-auto">
-                              <div className="flex items-start gap-2">
-                                <span className="text-muted-foreground shrink-0">(中文)</span>
-                                <span className="flex-1">{segment.sceneDescription}</span>
-                              </div>
+                              {segment.sceneDescription}
                             </div>
                             <div className="flex gap-1 mt-2">
                               <Button
