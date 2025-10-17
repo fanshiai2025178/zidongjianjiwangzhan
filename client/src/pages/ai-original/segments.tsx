@@ -560,7 +560,19 @@ export default function SegmentsPage() {
                         </Button>
                       </div>
                     ) : (
-                      <p className="text-sm text-destructive italic">请稍等</p>
+                      <div className="flex items-center gap-2">
+                        <p className="text-sm text-destructive italic">翻译缺失</p>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleRetranslate(segment)}
+                          className="h-7"
+                          data-testid={`button-translate-${segment.number}`}
+                        >
+                          <RefreshCw className="h-3 w-3 mr-1" />
+                          翻译
+                        </Button>
+                      </div>
                     )
                   )}
                 </div>
