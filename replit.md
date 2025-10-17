@@ -50,10 +50,11 @@ The platform features a dark-themed creative studio interface, drawing inspirati
 
 -   **DeepSeek API (deepseek-chat model)**: For intelligent text segmentation.
 -   **火山引擎DeepSeek API**:
-    -   Endpoint `ep-20251016061331-8bgnk`: Dedicated for description generation (single and batch).
-    -   Endpoint `ep-20251016063909-7l6gr`: Dedicated for keyword extraction (single and batch, returns both Chinese and English versions).
-    -   Endpoint `ep-20251016064746-rb9dk`: Dedicated for prompt optimization.
-    -   Endpoint (待配置): Dedicated for Chinese-to-English translation (descriptions and keywords).
+    -   Endpoint `ep-20251016061331-8bgnk` (VOLCENGINE_DEEPSEEK_API_KEY): Dedicated for description generation (single and batch).
+    -   Endpoint `ep-20251016063909-7l6gr` (VOLCENGINE_KEYWORD_API_KEY): Dedicated for keyword extraction (single and batch).
+    -   Endpoint `ep-20251016064746-rb9dk` (VOLCENGINE_OPTIMIZE_API_KEY): Dedicated for prompt optimization.
+    -   Endpoint `ep-20251017114027-mqcbk` (VOLCENGINE_TRANSLATE_API_KEY): Dedicated for Chinese-to-English translation (descriptions and keywords).
+    -   All endpoints use `VOLCENGINE_ACCESS_KEY` as Bearer Token for authentication.
 -   **聚光Chat API (gemini-2.5-flash-image-preview model)**: For image generation.
 -   **Neon Database**: Serverless PostgreSQL.
 
