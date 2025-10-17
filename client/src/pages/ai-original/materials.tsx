@@ -637,7 +637,13 @@ export default function MaterialsPage() {
                 <Button
                   size="sm"
                   onClick={batchOptimizingPrompts ? () => setShouldStopOptimize(true) : handleBatchOptimizePrompts}
-                  disabled={!batchOptimizingPrompts && segments.every(s => !s.sceneDescription || s.optimizedPrompt)}
+                  disabled={
+                    (!batchOptimizingPrompts && (
+                      batchExtractingKeywords || // 关键词提取中时禁用
+                      segments.some(s => s.sceneDescription && !s.keywords) || // 有描述但没关键词时禁用
+                      segments.every(s => !s.sceneDescription || s.optimizedPrompt) // 全部已优化时禁用
+                    ))
+                  }
                   className="w-full"
                   data-testid="button-batch-optimize-prompts"
                 >
@@ -659,7 +665,13 @@ export default function MaterialsPage() {
                   <Button
                     size="sm"
                     onClick={batchGeneratingImages ? () => setShouldStopImages(true) : handleBatchGenerateImages}
-                    disabled={!batchGeneratingImages && segments.every(s => !s.sceneDescription || s.imageUrl)}
+                    disabled={
+                      (!batchGeneratingImages && (
+                        batchOptimizingPrompts || // 提示词优化中时禁用
+                        segments.some(s => s.sceneDescription && !s.optimizedPrompt) || // 有描述但没优化提示词时禁用
+                        segments.every(s => !s.sceneDescription || s.imageUrl) // 全部已生成图片时禁用
+                      ))
+                    }
                     className="w-full"
                     data-testid="button-batch-generate-images"
                   >
@@ -681,7 +693,14 @@ export default function MaterialsPage() {
                 <Button
                   size="sm"
                   onClick={batchGeneratingVideos ? () => setShouldStopVideos(true) : handleBatchGenerateVideos}
-                  disabled={!batchGeneratingVideos && segments.every(s => isTextToVideo ? !s.sceneDescription || s.videoUrl : !s.imageUrl || s.videoUrl)}
+                  disabled={
+                    (!batchGeneratingVideos && (
+                      (isTextToVideo 
+                        ? (batchOptimizingPrompts || segments.every(s => !s.sceneDescription || s.videoUrl)) // 文生视频：优化中或已全部生成
+                        : (batchGeneratingImages || segments.some(s => s.sceneDescription && !s.imageUrl) || segments.every(s => !s.imageUrl || s.videoUrl)) // 图生视频：图片生成中或有描述但没图片或已全部生成
+                      )
+                    ))
+                  }
                   className="w-full"
                   data-testid="button-batch-generate-videos"
                 >
@@ -1038,10 +1057,26 @@ export default function MaterialsPage() {
           <Button
             onClick={handleNext}
             size="lg"
+            disabled={
+              batchExtractingKeywords || 
+              batchOptimizingPrompts || 
+              batchGeneratingImages || 
+              batchGeneratingVideos ||
+              !segments.some(s => s.imageUrl || s.videoUrl) // 至少要有一个图片或视频
+            }
             data-testid="button-next"
           >
-            下一步：导出成片
-            <ArrowRight className="ml-2 h-4 w-4" />
+            {(batchExtractingKeywords || batchOptimizingPrompts || batchGeneratingImages || batchGeneratingVideos) ? (
+              <>
+                <Loader2 className="ml-2 h-4 w-4 mr-2 animate-spin" />
+                批量生成中...
+              </>
+            ) : (
+              <>
+                下一步：导出成片
+                <ArrowRight className="ml-2 h-4 w-4" />
+              </>
+            )}
           </Button>
         </div>
       </main>
